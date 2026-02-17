@@ -85,7 +85,6 @@
 
 <!--      待处理-->
       <el-card style="max-width: 98%;margin-top: 10px">
-<!--        待处理标题-->
         <div class="ddl">
           <span>我的待处理</span>
           <span>
@@ -99,11 +98,22 @@
           </span>
         </div>
 
-        <!-- 列表内容区域 -->
+        <!-- 待处理列表内容区域 -->
         <main class="content-area">
           <ApproveList/>
           <TaskList/>
+          <ResearchList/>
+          <UserNeedList/>
+          <BugList/>
         </main>
+      </el-card>
+
+<!--      未完成项目列表-->
+      <el-card style="max-width: 98%;margin-top: 10px">
+        <span>未完成的项目列表</span>
+        <div class="unfinish-project">
+          <NoFinishList/>
+        </div>
       </el-card>
     </div>
 <!--    右边整体-->
@@ -119,6 +129,10 @@
 import {ref} from "vue";
 import ApproveList from '@/views/admin/listView/ApproveList.vue';
 import TaskList from "@/views/admin/listView/TaskList.vue";
+import ResearchList from "@/views/admin/listView/ResearchList.vue";
+import UserNeedList from "@/views/admin/listView/UserNeedList.vue";
+import BugList from "@/views/admin/listView/BugList.vue";
+import NoFinishList from "@/views/admin/listView/NoFinishList.vue";
 //日期
 const currentTime = ref(new Date()).value.toLocaleDateString('zh-CN', {
   year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'

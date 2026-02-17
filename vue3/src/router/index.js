@@ -10,7 +10,11 @@ const router = createRouter({
         {path:'approveList',component:()=>import('@/views/admin/listView/ApproveList.vue')},
         {path:'taskList',component:()=>import('@/views/admin/listView/TaskList.vue')},
         {path:'noFinishList',component:()=>import('@/views/admin/listView/NoFinishList.vue')},
-      ]
+        {path:'researchList',component:()=>import('@/views/admin/listView/ResearchList.vue')},
+        {path:'userNeedList',component:()=>import('@/views/admin/listView/UserNeedList.vue')},
+        {path:'bugList',component:()=>import('@/views/admin/listView/BugList.vue')},
+
+        ]
     }
   ],
 })

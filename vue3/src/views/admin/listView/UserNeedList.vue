@@ -2,7 +2,7 @@
   <el-table
       :data="tableData"
       style="width: 100%"
-      class="ResearchTable"
+      class="UserNeedTable"
   >
     <el-table-column prop="id" label="序号" width="80"></el-table-column>
     <el-table-column prop="title" label="标题" width="400"></el-table-column>
