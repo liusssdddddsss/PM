@@ -1,0 +1,10 @@
+#设置端口号
+server:
+  port: 9090
+#连接数据库
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/pm
+    username: root
+    password: emo1231
