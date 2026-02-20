@@ -23,7 +23,7 @@ const tableData = ref([
     title:'ash丢啊复古风',
     priority:'紧急',
     state:'进行中',
-    sure:'已确认',
+    sure:'已确',
     finishTime:'2029-09-09 12:00'
   }
 ])

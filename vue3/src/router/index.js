@@ -13,6 +13,7 @@ const router = createRouter({
         {path:'researchList',component:()=>import('@/views/admin/listView/ResearchList.vue')},
         {path:'userNeedList',component:()=>import('@/views/admin/listView/UserNeedList.vue')},
         {path:'bugList',component:()=>import('@/views/admin/listView/BugList.vue')},
+        {path:'dynamicList',component:()=>import('@/views/admin/listView/DynamicList.vue')},
 
         ]
     }

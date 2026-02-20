@@ -63,7 +63,7 @@
       </el-card>
 <!--      参与项目-->
       <el-card style="max-width: 98%;margin-top: 10px">
-        <p>我参与的项目</p>
+        <h3>我参与的项目</h3>
         <el-row class="project-self">
           <el-col
               v-for="item in projectList"
@@ -86,7 +86,7 @@
 <!--      待处理-->
       <el-card style="max-width: 98%;margin-top: 10px">
         <div class="ddl">
-          <span>我的待处理</span>
+          <h3>我的待处理</h3>
           <span>
             <div class="ddl-list">
               <span class="ddl-approve">审批</span>
@@ -110,16 +110,158 @@
 
 <!--      未完成项目列表-->
       <el-card style="max-width: 98%;margin-top: 10px">
-        <span>未完成的项目列表</span>
+        <h3>未完成的项目列表</h3>
+        <div class="unfinish-project">
+          <NoFinishList/>
+        </div>
+      </el-card>
+
+<!--      项目统计-->
+      <el-card style="max-width: 98%;margin-top: 10px">
+        <h3>未完成的项目列表</h3>
         <div class="unfinish-project">
           <NoFinishList/>
         </div>
       </el-card>
     </div>
+
+
 <!--    右边整体-->
     <div class="right">
-      <el-card style="max-width: 99.5%">
+<!--      最新动态-->
+      <el-card style="max-width: 98%">
+        <div class="dynamic">
+          <h3>最新动态</h3>
+          <el-divider />
+          <DynamicList/>
+        </div>
+      </el-card>
 
+<!--      团队完成情况-->
+      <el-card style="max-width: 98%;margin-top: 10px">
+        <h3>团队完成情况</h3>
+        <el-divider />
+        <div class="stats-grid">
+          <div class="icon">
+            <div class="kuai">
+              <el-icon><Document/></el-icon>
+              <div>
+                <div>完成任务数量</div>
+                昨日 {{yesterday.task}}
+                <el-divider direction="vertical" />
+                今日{{today.task}}
+              </div>
+            </div>
+            <div class="kuai">
+              <el-icon><CircleClose /></el-icon>
+              <div>
+                <div>修改Bug数量</div>
+                昨日 {{yesterday.bug}}
+                <el-divider direction="vertical" />
+                今日{{today.bug}}
+              </div>
+            </div>
+            <div class="kuai">
+              <el-icon><Plus /></el-icon>
+              <div>
+                <div>创建需求数量</div>
+                昨日 {{yesterday.create}}
+                <el-divider direction="vertical" />
+                今日{{today.create}}
+              </div>
+            </div>
+            <div class="kuai">
+              <el-icon><Warning /></el-icon>
+              <div>
+                <div>提出Bug数量</div>
+                昨日 {{yesterday.tiChu}}
+                <el-divider direction="vertical" />
+                今日{{today.tiChu}}
+              </div>
+            </div>
+            <div class="kuai">
+              <el-icon><Clock /></el-icon>
+              <div>
+                <div>总消耗工时/h</div>
+                昨日 {{yesterday.clock}}
+                <el-divider direction="vertical" />
+                今日{{today.clock}}
+              </div>
+            </div>
+            <div class="kuai">
+              <el-icon><Clock /></el-icon>
+              <div>
+                <div>平均消耗工时/h</div>
+                昨日 {{yesterday.averageClock}}
+                <el-divider direction="vertical" />
+                今日{{today.averageClock}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-card>
+
+<!--      产品总览-->
+      <el-card style="max-width: 98%;margin-top: 10px">
+        <div class="project-overview">
+          <h3>产品总览</h3>
+          <el-divider/>
+          <div>
+          <span>
+            <p>{{projectCount}}</p>
+            产品总数
+          </span>
+            <el-divider direction="vertical" />
+            <span>
+            <p>{{thisYearIssue}}</p>
+            今年发布
+          </span>
+            <el-divider direction="vertical" />
+            <span>
+            <p>{{closeCount}}</p>
+            关闭数量
+          </span>
+          </div>
+        </div>
+      </el-card>
+
+<!--      项目总览-->
+      <el-card style="max-width: 98%;margin-top: 10px">
+        <div class="project-overview">
+          <h3>项目总览</h3>
+          <el-divider/>
+          <div>
+            <span>
+              <p>{{xiangMuCount}}</p>
+              项目总数
+            </span>
+            <el-divider direction="vertical" />
+            <span>
+              <p>{{thisYearFinish}}</p>
+              今年完成
+            </span>
+            <el-divider direction="vertical" />
+            <span>
+              最三年完成的项目数量分布
+            </span>
+          </div>
+        </div>
+      </el-card>
+
+<!--      测量统计-->
+      <el-card style="max-width: 98%;margin-top: 10px">
+        <div class="measure">
+          <h3>测量统计</h3>
+          <el-divider/>
+          <div>
+            <div class="shang">
+
+            </div>
+            <div class="xia">
+
+            </div>
+          </div>
+        </div>
       </el-card>
     </div>
   </div>
@@ -133,6 +275,8 @@ import ResearchList from "@/views/admin/listView/ResearchList.vue";
 import UserNeedList from "@/views/admin/listView/UserNeedList.vue";
 import BugList from "@/views/admin/listView/BugList.vue";
 import NoFinishList from "@/views/admin/listView/NoFinishList.vue";
+import {Document} from "@element-plus/icons-vue";
+import DynamicList from "@/views/admin/listView/DynamicList.vue";
 //日期
 const currentTime = ref(new Date()).value.toLocaleDateString('zh-CN', {
   year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
@@ -168,7 +312,35 @@ const projectList = ref([
   }
 ])
 
+// 团队完成情况
+const yesterday=ref(
+  {
+    task:10,
+    create:12,
+    tiChu:34,
+    bug:80,
+    clock:78,
+    averageClock:24
+  }
+);
+const today=ref(
+    {
+      task:10,
+      create:12,
+      tiChu:34,
+      bug:80,
+      clock:78,
+      averageClock:24
+    }
+);
 
+// 产品总览
+const projectCount=24;
+const thisYearIssue=23;
+const closeCount=24;
+// 项目总览
+const xiangMuCount=12;
+const thisYearFinish=12;
 </script>
 
 <style scoped>
@@ -178,10 +350,12 @@ const projectList = ref([
   justify-content: space-between;
 }
 .left{
-  flex: 2;
+  max-width: 65%;
+  background-color: blue;
 }
 .right{
   flex: 1;
+  background-color: orange;
 }
 /*左上个人信息和任务状态*/
 .message{
@@ -246,5 +420,39 @@ p{
 }
 .ddl-list span{
   flex: 1;
+}
+
+/*最新动态样式*/
+.dynamic{
+  height: 373px;
+}
+
+/*团队完成情况样式*/
+.icon{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+.kuai{
+  width: 200px;
+  height: 70px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: blue;
+}
+
+/*产品总览样式*/
+.project-overview div{
+  display: flex;
+}
+.project-overview span{
+  width: 130px;
+  flex: 1;
+  text-align: center;
+}
+.project-overview p{
+  display: block;
+  font-size: 25px;
+  margin-bottom: 2px;
 }
 </style>

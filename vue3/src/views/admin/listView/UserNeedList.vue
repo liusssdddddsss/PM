@@ -20,7 +20,7 @@ import {ref} from "vue";
 const tableData = ref([
   {
     id:1,
-    title:'ash丢啊复古风',
+    title:'啊复古风',
     priority:'紧急',
     state:'进行中',
     category:'功能',
