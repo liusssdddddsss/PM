@@ -49,8 +49,23 @@ const router = createRouter({
             {path:'itemList',component:()=>import('@/views/itemSetView/ItemList.vue')},
             {path:'itemBorder',component:()=>import('@/views/itemSetView/ItemBorder.vue')},
             {path:'itemEdit',component:()=>import('@/views/itemSetView/ItemEdit.vue')},
+    ]},
 
-        ]}
+      {path:'/productResearch',component:()=>import('@/views/home/Home.vue'),
+          meta:{
+              tabs:[
+                  {name:'仪表盘',route:'/productResearch/productDashboard'},
+                  {name:'产品列表',route:'/productResearch/productList'},
+                  {name:'产品看板',route:'/productResearch/productBorder'},
+              ]
+          },
+          children:[
+              {path:'productDashboard',component:()=>import('@/views/ProductResearch/ProductDashboard.vue')},
+              {path:'productList',component:()=>import('@/views/ProductResearch/ProductList.vue')},
+              {path:'productBorder',component:()=>import('@/views/ProductResearch/ProductBorder.vue')},
+              {path:'productEdit',component:()=>import('@/views/ProductResearch/ProductEdit.vue')},
+
+          ]}
   ],
 })
 

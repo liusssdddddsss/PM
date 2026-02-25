@@ -350,7 +350,7 @@
           </div>
         </div>
       </el-card>
-<!--      测量统计-->
+<!--      测试统计-->
       <el-card style="max-width: 98%;margin-top: 10px">
         <div class="measure">
           <h3>测量统计</h3>

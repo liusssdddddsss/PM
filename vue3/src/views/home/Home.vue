@@ -95,7 +95,7 @@ const handleTagClick = (tag) => {
 const menuList = ref([
   {path:'/workbench',name:'工作台'},
   {path: '/itemSet',name:'项目集'},
-  {path: '/',name:'产品'},
+  {path: '/productResearch',name:'产品'},
   {path: '/',name:'迭代'},
   {path: '/',name:'执行'},
   {path: '/',name:'测试'},

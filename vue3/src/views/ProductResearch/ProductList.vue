@@ -1,5 +1,5 @@
 <template>
-  <div class="projects-comment">
+  <div class="product-comment">
     <div class="option">
       <span
           v-for="tab in tabs"
@@ -10,12 +10,12 @@
         {{tab.name}}
         {{tab.count}}
       </span>
-      <div class="addProject">
-        <el-button @Click="goToItemEdit">
-          编辑项目
+      <div class="addProduct">
+        <el-button @Click="goToProductEdit">
+          编辑产品
         </el-button>
         <el-button class="button">
-          添加项目
+          添加产品
         </el-button>
       </div>
     </div>
@@ -33,20 +33,19 @@ import {useRouter} from "vue-router";
 
 const tabs = ref([
   {name:'全部',type:'all',count:10},
-  {name:'进行中',type:'ing',count:10},
-  {name:'未开始',type:'noBegin',count:10},
+  {name:'未关闭',type:'noClose',count:10},
   {name:'已关闭',type:'close',count:10},
 ]);
 const activeTab=ref('all');
 
 const router =useRouter();
-const goToItemEdit = () =>{
-  router.push('/itemSet/itemEdit');
+const goToProductEdit = () =>{
+  router.push('/productResearch/productEdit');
 }
 </script>
 
 <style scoped>
-.projects-comment{
+.product-comment{
   background-color: white;
 }
 .option{
@@ -63,7 +62,7 @@ const goToItemEdit = () =>{
   color: #238EFF;
   border-bottom: 2px solid #238EFF;
 }
-.addProject{
+.addProduct{
   display: inline-block;
   float: right;
 }
