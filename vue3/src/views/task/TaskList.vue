@@ -11,11 +11,14 @@
         {{tab.count}}
       </span>
       <div class="addProduct">
-        <el-button @Click="goToProductEdit">
-          编辑产品
+        <el-button class="button">
+          添加任务
         </el-button>
         <el-button class="button">
-          添加产品
+          关闭
+        </el-button>
+        <el-button class="button" @click="goToEdit">
+          编辑
         </el-button>
       </div>
     </div>
@@ -33,14 +36,15 @@ import {useRouter} from "vue-router";
 
 const tabs = ref([
   {name:'全部',type:'all',count:10},
-  {name:'未关闭',type:'noClose',count:10},
-  {name:'已关闭',type:'close',count:10},
+  {name:'指派我的',type:'zhiPaiMe',count:10},
+  {name:'我参与的',type:'meJoin',count:10},
+  {name:'我指派的',type:'meZhiPai',count:10},
 ]);
 const activeTab=ref('all');
 
 const router =useRouter();
-const goToProductEdit = () =>{
-  router.push('/productResearch/productEdit');
+const goToEdit = () =>{
+  router.push('/task/taskEdit');
 }
 const goToDetail = () =>{
   router.push('/iteration/iterationDetail');

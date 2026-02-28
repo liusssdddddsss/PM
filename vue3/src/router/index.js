@@ -65,6 +65,40 @@ const router = createRouter({
               {path:'productBorder',component:()=>import('@/views/ProductResearch/ProductBorder.vue')},
               {path:'productEdit',component:()=>import('@/views/ProductResearch/ProductEdit.vue')},
 
+          ]},
+      {path:'/iteration',component:()=>import('@/views/home/Home.vue'),
+          meta:{
+              tabs:[
+                  {name:'项目列表',route:'/iteration/iterationList'},
+                  {name:'项目看板',route:'/iteration/iterationBorder'},
+              ]
+          },
+          children:[
+              {path:'iterationList',component:()=>import('@/views/Iteration/IterationList.vue')},
+              {path:'iterationBorder',component:()=>import('@/views/Iteration/IterationBorder.vue')},
+              {path:'iterationDetail',component:()=>import('@/views/Iteration/IterationDetail.vue')}
+
+          ]},
+      {path:'/test',component:()=>import('@/views/home/Home.vue'),
+
+          children:[
+              {path:'tests',component:()=>import('@/views/test/Tests.vue')},
+              {path:'testSubmit',component:()=>import('@/views/test/TestSubmit.vue')},
+              {path:'testList',component:()=>import('@/views/test/TestList.vue')},
+          ]},
+      {path:'/task',component:()=>import('@/views/home/Home.vue'),
+          meta:{
+              tabs:[
+                  {name:'任务列表',route:'/task/taskList'},
+                  {name:'任务看板',route:'/task/taskBorder'},
+              ]
+          },
+          children:[
+              {path:'taskList',component:()=>import('@/views/task/TaskList.vue')},
+              {path:'taskBorder',component:()=>import('@/views/task/TaskBorder.vue')},
+              {path:'addTask',component:()=>import('@/views/task/AddTask.vue')},
+              {path:'taskEdit',component:()=>import('@/views/task/TaskEdit.vue')},
+
           ]}
   ],
 })
