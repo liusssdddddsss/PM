@@ -98,11 +98,10 @@ const menuList = ref([
   {path: '/productResearch/productDashboard',name:'产品'},
   {path: '/task/taskList',name:'任务'},
   {path: '/iteration/iterationList',name:'迭代'},
-  {path: '/',name:'执行'},
+  {path: '/teams/team',name:'团队'},
   {path: '/test/tests',name:'测试'},
-  {path: '/',name:'AI'},
-  {path: '/',name:'反馈'},
-  {path: '/',name:'更多'},
+  {path: '/AI/marketAI',name:'AI'},
+  {path: '/feedbacks/feedback',name:'反馈'}
 ])
 </script>
 

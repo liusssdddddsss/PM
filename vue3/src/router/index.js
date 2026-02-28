@@ -94,10 +94,32 @@ const router = createRouter({
               ]
           },
           children:[
-              {path:'taskList',component:()=>import('@/views/task/TaskList.vue')},
+              {path:'taskList',component:()=>import('@/views/task/TList.vue')},
               {path:'taskBorder',component:()=>import('@/views/task/TaskBorder.vue')},
               {path:'addTask',component:()=>import('@/views/task/AddTask.vue')},
               {path:'taskEdit',component:()=>import('@/views/task/TaskEdit.vue')},
+
+          ]},
+      {path:'/feedbacks',component:()=>import('@/views/home/Home.vue'),
+          meta:{
+              tabs:[
+                  {name:'反馈',route:'/feedbacks/feedback'},
+                  {name:'工单',route:'/feedbacks/workOrder'},
+              ]
+          },
+          children:[
+              {path:'feedback',component:()=>import('@/views/feedbacks/FeedBack.vue')},
+              {path:'workOrder',component:()=>import('@/views/feedbacks/WorkOrder.vue')},
+
+          ]},
+      {path:'/AI',component:()=>import('@/views/home/Home.vue'),
+          children:[
+              {path:'marketAI',component:()=>import('@/views/AI/Market.vue')},
+
+          ]},
+      {path:'/teams',component:()=>import('@/views/home/Home.vue'),
+          children:[
+              {path:'team',component:()=>import('@/views/team/team.vue')},
 
           ]}
   ],
