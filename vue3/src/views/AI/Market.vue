@@ -1,97 +1,121 @@
 <template>
   <div class="market-analysis-container">
     <div class="left-panel">
-      <div class="panel-header">
-        <div class="header-top">
-            <div class="title">
-              <h2>市场分析报告</h2>
-            </div>
+      <el-card>
+        <div class="title">
+          <h3>市场分析报告</h3>
         </div>
+        <div class="form-container">
+          <el-form :model="formData" label-width="80px">
+            <el-form-item label="目标市场">
+              <el-input
+                  v-model="formData.targetMarket"
+                  placeholder="请输入内容"
+                  type="textarea"
+                  :rows="2"
+              />
+            </el-form-item>
 
-      </div>
+            <el-form-item label="市场概况">
+              <el-input
+                  v-model="formData.marketOverview"
+                  placeholder="请输入内容"
+                  type="textarea"
+                  :rows="2"
+              />
+            </el-form-item>
 
-      <div class="form-container">
-        <el-form :model="formData" label-width="80px">
-          <el-form-item label="目标市场">
-            <el-input
-                v-model="formData.targetMarket"
-                placeholder="请概述目标市场的定义和范围"
-                type="textarea"
-                :rows="2"
-            />
-          </el-form-item>
+            <el-form-item label="细分市场">
+              <el-input
+                  v-model="formData.segmentedMarket"
+                  placeholder="请输入内容"
+                  type="textarea"
+                  :rows="2"
+              />
+            </el-form-item>
 
-          <el-form-item label="市场概况">
-            <el-input
-                v-model="formData.marketOverview"
-                placeholder="可描述市场规模、增长率、发展趋势等信息"
-                type="textarea"
-                :rows="2"
-            />
-          </el-form-item>
+            <el-form-item label="竞品名称">
+              <el-input
+                  v-model="formData.competitors"
+                  placeholder="请输入内容"
+                  type="textarea"
+                  :rows="2"
+              />
+            </el-form-item>
 
-          <el-form-item label="细分市场">
-            <el-input
-                v-model="formData.segmentedMarket"
-                placeholder="请描述市场的主要细分领域"
-                type="textarea"
-                :rows="2"
-            />
-          </el-form-item>
+            <el-form-item label="竞品分析维度">
+              <el-select v-model="formData.competitorDimensions" placeholder="请选择">
+                <el-option label="功能特性" value="features" />
+                <el-option label="价格策略" value="pricing" />
+                <el-option label="市场份额" value="marketShare" />
+                <el-option label="用户体验" value="ux" />
+                <el-option label="技术优势" value="technology" />
+                <el-option label="营销策略" value="marketing" />
+              </el-select>
+            </el-form-item>
+          </el-form>
 
-          <el-form-item label="竞品名称">
-            <el-input
-                v-model="formData.competitors"
-                placeholder="请描述列举竞品名称"
-                type="textarea"
-                :rows="2"
-            />
-          </el-form-item>
-
-          <el-form-item label="竞品分析维度">
-            <el-select v-model="formData.competitorDimensions" placeholder="请选择">
-              <el-option label="功能特性" value="features" />
-              <el-option label="价格策略" value="pricing" />
-              <el-option label="市场份额" value="marketShare" />
-              <el-option label="用户体验" value="ux" />
-              <el-option label="技术优势" value="technology" />
-              <el-option label="营销策略" value="marketing" />
-            </el-select>
-          </el-form-item>
-        </el-form>
-
-        <div class="generate-button">
-          <el-button type="primary" @click="generateReport" style="width: 100%">生成</el-button>
+          <div class="generate-button">
+            <el-button type="primary" @click="generateReport" style="width: 100%" :loading="loading">生成</el-button>
+          </div>
         </div>
-      </div>
+      </el-card>
     </div>
 
     <div class="right-panel">
-      <div class="right-content">
-        <el-alert
-            :title="'尚未配置语言模型'"
-            type="warning"
-            show-icon
-        >
-<!--          <template #default>-->
-<!--            <p>若已完成相关配置，请尝试重新加载页面。</p>-->
-<!--          </template>-->
-        </el-alert>
-      </div>
+      <el-card>
+        <div class="chat-header">
+          <h3>市场分析助手</h3>
+        </div>
+        <div class="chat-messages">
+          <el-timeline>
+            <el-timeline-item
+                v-for="(message, index) in chatMessages"
+                :key="index"
+                :timestamp="message.timestamp"
+                :type="message.role === 'user' ? 'primary' : 'info'"
+                :icon="message.role === 'user' ? 'el-icon-user' : 'el-icon-chat-line-round'"
+            >
+              <el-card :class="{ 'user-message': message.role === 'user', 'ai-message': message.role === 'assistant' }">
+                <div class="message-header">
+                  <span class="message-role">{{ message.role === 'user' ? '您' : '市场分析助手' }}</span>
+                  <span class="message-time">{{ message.timestamp }}</span>
+                </div>
+                <div class="message-content" v-html="message.content"></div>
+              </el-card>
+            </el-timeline-item>
+            <el-timeline-item v-if="isGenerating" type="info" icon="el-icon-loading">
+              <el-card class="ai-message">
+                <div class="message-header">
+                  <span class="message-role">市场分析助手</span>
+                </div>
+                <div class="message-content">
+                  <el-skeleton :rows="3" animated />
+                </div>
+              </el-card>
+            </el-timeline-item>
+          </el-timeline>
+        </div>
+        <div class="chat-input">
+          <el-input
+              v-model="chatInput"
+              placeholder="输入您的问题..."
+              @keyup.enter="sendMessage"
+              type="textarea"
+              :rows="2"
+              :disabled="isLoading"
+          />
+          <el-button type="primary" @click="sendMessage" style="margin-top: 10px; width: 100%" :disabled="isLoading" :loading="isLoading">发送</el-button>
+        </div>
+      </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import axios from 'axios';
 
-const router = useRouter();
-
-// 语言模型
-const languageModel = ref('default');
-// 收藏状态
-const isFavorite = ref(false);
 // 表单数据
 const formData = ref({
   targetMarket: '',
@@ -101,28 +125,134 @@ const formData = ref({
   competitorDimensions: ''
 });
 
-// 切换收藏状态
-const toggleFavorite = () => {
-  isFavorite.value = !isFavorite.value;
-  console.log('收藏状态:', isFavorite.value);
-};
+// 状态变量
+const loading = ref(false);
+const chatMessages = ref([]);
+const chatInput = ref('');
+const isGenerating = ref(false);
+const isLoading = ref(false); // 用于控制输入框禁用状态
 
-// 清空表单
-const clearForm = () => {
-  formData.value = {
-    targetMarket: '',
-    marketOverview: '',
-    segmentedMarket: '',
-    competitors: '',
-    competitorDimensions: ''
-  };
-  console.log('表单已清空');
+// 获取当前时间戳
+const getCurrentTimestamp = () => {
+  const now = new Date();
+  return now.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
 };
 
 // 生成报告
-const generateReport = () => {
-  console.log('生成报告:', formData.value);
-  // 这里可以添加生成报告的逻辑
+const generateReport = async () => {
+  if (!formData.value.targetMarket) {
+    alert('请填写目标市场');
+    return;
+  }
+
+  loading.value = true;
+  isLoading.value = true; // 禁用输入框
+  isGenerating.value = true; // 显示加载动画
+  try {
+    // 构建更友好的用户输入消息
+    const userMessage = `我需要分析以下市场信息：\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}`;
+
+    // 添加用户消息到聊天历史（显示给用户的友好版本）
+    chatMessages.value.push({
+      role: 'user',
+      content: userMessage,
+      timestamp: getCurrentTimestamp()
+    });
+
+    // 构建详细的prompt给AI
+    const prompt = `请根据以下市场信息生成一份详细的市场分析报告：\n\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}\n\n请生成一份结构清晰、内容正式的市场分析报告，包括：市场规模分析、发展趋势、竞争格局、机会与挑战等内容。报告应该专业、全面，并且易于理解。`;
+
+    const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      model: 'qwen-plus',
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      extra_body: { enable_thinking: true }
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer sk-24fe119404b1404da366d99aacbe3bf9'
+      }
+    });
+
+    // 添加AI回复到聊天历史
+    chatMessages.value.push({
+      role: 'assistant',
+      content: response.data.choices[0].message.content,
+      timestamp: getCurrentTimestamp()
+    });
+  } catch (error) {
+    console.error('生成报告失败:', error);
+    // 添加错误消息到聊天历史
+    chatMessages.value.push({
+      role: 'assistant',
+      content: `生成报告失败: ${error.response ? JSON.stringify(error.response.data) : error.message}`,
+      timestamp: getCurrentTimestamp()
+    });
+  } finally {
+    loading.value = false;
+    isLoading.value = false; // 启用输入框
+    isGenerating.value = false; // 隐藏加载动画
+  }
+};
+
+// 发送消息
+const sendMessage = async () => {
+  if (!chatInput.value.trim()) return;
+
+  // 添加用户消息
+  const userMessage = chatInput.value;
+  chatMessages.value.push({
+    role: 'user',
+    content: userMessage,
+    timestamp: getCurrentTimestamp()
+  });
+  chatInput.value = '';
+
+  isGenerating.value = true;
+  isLoading.value = true; // 禁用输入框
+  try {
+    // 构建聊天历史消息
+    const messages = chatMessages.value.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
+    const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      model: 'qwen-plus',
+      messages: messages
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer sk-24fe119404b1404da366d99aacbe3bf9'
+      }
+    });
+
+    // 添加AI回复
+    chatMessages.value.push({
+      role: 'assistant',
+      content: response.data.choices[0].message.content,
+      timestamp: getCurrentTimestamp()
+    });
+  } catch (error) {
+    console.error('发送消息失败:', error);
+    // 添加错误消息到聊天历史
+    chatMessages.value.push({
+      role: 'assistant',
+      content: `抱歉，我暂时无法回答您的问题，请稍后重试。错误: ${error.response ? JSON.stringify(error.response.data) : error.message}`,
+      timestamp: getCurrentTimestamp()
+    });
+  } finally {
+    isGenerating.value = false;
+    isLoading.value = false; // 启用输入框
+  }
 };
 </script>
 
@@ -130,64 +260,29 @@ const generateReport = () => {
 .market-analysis-container {
   display: flex;
   min-height: 100vh;
-  background-color: #fff;
+  gap: 20px;
 }
 
 .left-panel {
   width: 400px;
-  padding: 20px;
-  overflow-y: auto;
+  flex-shrink: 0;
 }
 
-.panel-header {
-  margin-bottom: 30px;
-}
-
-.header-top {
+.left-panel .el-card {
+  height: 100%;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
+  flex-direction: column;
 }
 
-.logo-title {
-  display: flex;
-  gap: 15px;
-  align-items: flex-start;
-}
-
-.title h2 {
-  margin: 0 0 5px 0;
+.title h3 {
+  margin: 0 0 20px 0;
+  color: #303133;
   font-size: 18px;
   font-weight: bold;
-  color: #303133;
-}
-
-.subtitle {
-  font-size: 12px;
-  color: #909399;
-  line-height: 1.4;
-}
-
-.actions {
-  margin-top: 5px;
-}
-
-.language-model {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  font-size: 14px;
 }
 
 .form-container {
-  margin-top: 20px;
-}
-
-.el-form-item {
-  margin-bottom: 20px;
+  flex: 1;
 }
 
 .generate-button {
@@ -196,16 +291,71 @@ const generateReport = () => {
 
 .right-panel {
   flex: 1;
-  padding: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: lightgray;
 }
 
-.right-content {
-  width: 100%;
-  max-width: 600px;
+.right-panel .el-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.chat-header h3 {
+  margin: 0;
+  color: #303133;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  max-height: 600px;
+}
+
+.chat-input {
+  margin-top: auto;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.message-role {
+  font-weight: bold;
+  color: #303133;
+}
+
+.message-time {
+  color: #909399;
+}
+
+.message-content {
+  line-height: 1.6;
+  color: #303133;
+  white-space: pre-wrap;
+}
+
+.user-message {
+  border-left: 4px solid #409eff;
+}
+
+.ai-message {
+  border-left: 4px solid #67c23a;
+}
+
+.el-timeline-item {
+  padding-bottom: 20px;
 }
 
 @media (max-width: 768px) {
@@ -215,12 +365,10 @@ const generateReport = () => {
 
   .left-panel {
     width: 100%;
-    box-shadow: none;
-    border-bottom: 1px solid #e4e7ed;
   }
 
-  .right-panel {
-    padding: 20px;
+  .chat-messages {
+    max-height: 400px;
   }
 }
 </style>

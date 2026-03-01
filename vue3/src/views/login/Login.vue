@@ -51,7 +51,7 @@
           </div>
 
 <!--          登录-->
-          <el-button type="submit" class="login-button">登录</el-button>
+          <el-button type="submit" class="login-button" @click="goToWorkbench">登录</el-button>
         </form>
       </div>
     </div>
@@ -61,6 +61,7 @@
 <script setup>
 import {reactive} from "vue";
 import request from "@/utils/request.js";
+import {useRouter} from "vue-router";
 
 request.get('/').then(res => {
   console.log(res);
@@ -78,6 +79,10 @@ const handleLogin = async () => {
     密码:form.password,
     自动登录:form.autoLogin
   })
+}
+const router = useRouter();
+const goToWorkbench = () =>{
+  router.push('/workbench/dashboard');
 }
 </script>
 

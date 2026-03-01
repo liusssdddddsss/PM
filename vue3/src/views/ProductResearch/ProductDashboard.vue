@@ -1,5 +1,6 @@
 <template>
   <div class="product-research">
+    <el-card style="max-width: 98%">
     <div class="tou">
       <div class="left">
         <h3>产品总览</h3>
@@ -35,6 +36,8 @@
         </div>
       </div>
     </div>
+    </el-card>
+
     <div class="comment">
       <div class="com-left" style="width: 65%">
 <!--        产品年度统计工作-->
