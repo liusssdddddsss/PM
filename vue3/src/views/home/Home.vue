@@ -63,7 +63,7 @@ const tagList = ref([]);
 const tagRoutes=ref({});
 // 根据当前路由的 meta.tags 更新标签
 watch(
-    () => route.meta.tabs,
+    () => route.meta.tags,
     (newTags) => {
       if (newTags && Array.isArray(newTags)) {
         tagList.value = newTags.map(tag => tag.name);

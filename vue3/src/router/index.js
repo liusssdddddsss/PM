@@ -74,9 +74,9 @@ const router = createRouter({
               ]
           },
           children:[
-              {path:'iterationList',component:()=>import('@/views/Iteration/IterationList.vue')},
-              {path:'iterationBorder',component:()=>import('@/views/Iteration/IterationBorder.vue')},
-              {path:'iterationDetail',component:()=>import('@/views/Iteration/IterationDetail.vue')}
+              {path:'iterationList',component:()=>import('@/views/iteration/IterationList.vue')},
+              {path:'iterationBorder',component:()=>import('@/views/iteration/IterationBorder.vue')},
+              {path:'iterationDetail',component:()=>import('@/views/iteration/IterationDetail.vue')}
 
           ]},
       {path:'/test',component:()=>import('@/views/home/Home.vue'),
@@ -121,6 +121,19 @@ const router = createRouter({
           children:[
               {path:'team',component:()=>import('@/views/team/team.vue')},
 
+          ]},
+      {path:'/admin',component:()=>import('@/views/admin/AdminPanel.vue'),
+          meta:{
+              tabs:[
+                  {name:'管理员面板',route:'/admin'}
+              ]
+          },
+          children:[
+              {path:'',component:()=>import('@/views/admin/AdminContent.vue')},
+              {path:'userManagement',component:()=>import('@/views/admin/AdminContent.vue')},
+              {path:'teamManagement',component:()=>import('@/views/admin/TeamManagement.vue')},
+              {path:'logManagement',component:()=>import('@/views/admin/LogManagement.vue')},
+              {path:'feedback',component:()=>import('@/views/admin/Feedback.vue')}
           ]}
   ],
 })
