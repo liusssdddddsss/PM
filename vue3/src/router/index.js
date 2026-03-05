@@ -95,9 +95,12 @@ const router = createRouter({
           },
           children:[
               {path:'taskList',component:()=>import('@/views/task/TList.vue')},
-              {path:'taskBorder',component:()=>import('@/views/task/TaskBorder.vue')},
-              {path:'addTask',component:()=>import('@/views/task/AddTask.vue')},
-              {path:'taskEdit',component:()=>import('@/views/task/TaskEdit.vue')},
+      {path:'taskBorder',component:()=>import('@/views/task/TaskBorder.vue')},
+      {path:'addTask',component:()=>import('@/views/task/AddTask.vue')},
+      {path:'taskEdit',component:()=>import('@/views/task/TaskEdit.vue')},
+      {path:'assignedTasks',component:()=>import('@/views/task/AssignedTasks.vue')},
+      {path:'meJoinTasks',component:()=>import('@/views/task/MeJoinTasks.vue')},
+      {path:'meAssignedTasks',component:()=>import('@/views/task/MeAssignedTasks.vue')},
 
           ]},
       {path:'/feedbacks',component:()=>import('@/views/home/Home.vue'),

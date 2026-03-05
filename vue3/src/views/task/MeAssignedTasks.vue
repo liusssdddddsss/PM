@@ -22,32 +22,27 @@
         </el-button>
       </div>
     </div>
-    <div class="list">
-      <TaskList v-if="activeTab==='all'"/>
+    <div class="no-tasks">
+      <p>暂时没有任务。<a href="#" class="new-task-link">新建任务</a></p>
     </div>
   </div>
 </template>
 
 <script setup>
-
-import {ref} from "vue";
-import TaskList from "@/views/workbenchView/listView/TaskList.vue";
-import {useRouter} from "vue-router";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 
 const tabs = ref([
   {name:'全部',type:'all',count:16},
   {name:'指派我的',type:'zhiPaiMe',count:9},
-  {name:'我参与的',type:'meJoin',count:5},
-  {name:'我指派的',type:'meZhiPai',count:5},
+  {name:'我参与的',type:'meJoin',count:0},
+  {name:'我指派的',type:'meZhiPai',count:0},
 ]);
-const activeTab=ref('all');
+const activeTab=ref('meZhiPai');
 
-const router =useRouter();
+const router = useRouter();
 const goToEdit = () => {
   router.push('/task/taskEdit');
-};
-const goToDetail = () => {
-  router.push('/iteration/iterationDetail');
 };
 
 // 处理标签点击
@@ -90,5 +85,30 @@ const handleTabClick = (type) => {
 .button{
   background-color: #238EFF;
   color: #fff;
+}
+
+.no-tasks {
+  padding: 60px 20px;
+  text-align: center;
+  background-color: #f9f9f9;
+  margin: 20px;
+  border-radius: 8px;
+}
+
+.no-tasks p {
+  font-size: 14px;
+  color: #606266;
+  margin: 0;
+}
+
+.new-task-link {
+  color: #409EFF;
+  text-decoration: none;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+.new-task-link:hover {
+  text-decoration: underline;
 }
 </style>
