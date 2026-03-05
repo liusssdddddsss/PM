@@ -130,10 +130,48 @@
           <el-divider/>
           <div ref="faBuDom" style="width: 100%; height: 250px;"></div>
           <div class="bangDan">
-            <h4>年度发布榜({{currentYear}})</h4>
-<!--            进度条那个感觉应该另外写个页面-->
-            <div class="chart-container">
-              <div ref="rankingChart" style="width: 100%; height: 300px;"></div>
+            <h4>年度发布榜(2024年)</h4>
+            <div class="ranking-list">
+              <div class="ranking-item">
+                <span class="rank">1</span>
+                <span class="product-name">实践教学管理平台</span>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 90%"></div>
+                </div>
+                <span class="count">123</span>
+              </div>
+              <div class="ranking-item">
+                <span class="rank">2</span>
+                <span class="product-name">电子班牌管理系统</span>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 80%"></div>
+                </div>
+                <span class="count">101</span>
+              </div>
+              <div class="ranking-item">
+                <span class="rank">3</span>
+                <span class="product-name">智慧校园(中学版)</span>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 70%"></div>
+                </div>
+                <span class="count">86</span>
+              </div>
+              <div class="ranking-item">
+                <span class="rank">4</span>
+                <span class="product-name">宿舍管理系统</span>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 60%"></div>
+                </div>
+                <span class="count">71</span>
+              </div>
+              <div class="ranking-item">
+                <span class="rank">5</span>
+                <span class="product-name">教务考试系统</span>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: 50%"></div>
+                </div>
+                <span class="count">66</span>
+              </div>
             </div>
           </div>
         </el-card>
@@ -270,18 +308,66 @@ const repairBugList = ref([
 
 const {chartRef: faBuDom} = useEcharts({
   title: {
-    text:'月度发布次数趋势图'
+    text: '月度发布次数趋势图(个)',
+    left: 'center',
+    textStyle: {
+      fontSize: 14,
+      fontWeight: 'normal'
+    }
+  },
+  grid: {
+    left: '3%',
+    right: '4%',
+    bottom: '3%',
+    containLabel: true
   },
   xAxis:{
     type: 'category',
-    data:['6月','7月','8月','9月','10月','11月']
+    boundaryGap: false,
+    data:['6月','7月','8月','9月','10月','11月'],
+    axisLine: {
+      lineStyle: {
+        color: '#d9d9d9'
+      }
+    },
+    axisLabel: {
+      fontSize: 11
+    }
   },
   yAxis:{
     type: 'value',
+    min: 0,
+    max: 30,
+    interval: 5,
+    axisLine: {
+      show: false
+    },
+    axisTick: {
+      show: false
+    },
+    splitLine: {
+      lineStyle: {
+        color: '#f0f0f0'
+      }
+    },
+    axisLabel: {
+      fontSize: 11
+    }
   },
   series:[{
     type:'line',
-    data:[20,100,30,12,22,11]
+    data:[10, 15, 20, 25, 10, 20, 15],
+    lineStyle: {
+      color: '#409EFF',
+      width: 2
+    },
+    itemStyle: {
+      color: '#409EFF',
+      borderWidth: 2,
+      borderColor: '#fff'
+    },
+    symbol: 'circle',
+    symbolSize: 8
   }]
 });
 const { chartRef: rankingChart } = useEcharts({
@@ -363,5 +449,93 @@ h3{
 }
 .staying-test-list{
   flex:1;
+}
+.bangDan {
+  margin-top: 20px;
+}
+
+.bangDan h4 {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.rank {
+  width: 20px;
+  text-align: center;
+  font-weight: bold;
+  color: #303133;
+}
+
+.product-name {
+  flex: 1;
+  font-size: 12px;
+  color: #606266;
+}
+
+.progress-container {
+  flex: 2;
+  height: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #409EFF;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.count {
+  width: 30px;
+  text-align: right;
+  color: #303133;
+  font-weight: 500;
+}
+
+/* 为不同排名设置不同颜色 */
+.ranking-item:nth-child(1) .rank {
+  color: #F56C6C;
+}
+
+.ranking-item:nth-child(2) .rank {
+  color: #E6A23C;
+}
+
+.ranking-item:nth-child(3) .rank {
+  color: #409EFF;
+}
+
+.ranking-item:nth-child(1) .progress-bar {
+  background-color: #F56C6C;
+}
+
+.ranking-item:nth-child(2) .progress-bar {
+  background-color: #E6A23C;
+}
+
+.ranking-item:nth-child(3) .progress-bar {
+  background-color: #409EFF;
+}
+
+.ranking-item:nth-child(4) .progress-bar,
+.ranking-item:nth-child(5) .progress-bar {
+  background-color: #67C23A;
 }
 </style>

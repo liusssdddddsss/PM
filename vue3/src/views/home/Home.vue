@@ -61,15 +61,15 @@ const router = useRouter();
 
 const tagList = ref([]);
 const tagRoutes=ref({});
-// 根据当前路由的 meta.tags 更新标签
+// 根据当前路由的 meta.tabs 更新标签
 watch(
-    () => route.meta.tags,
-    (newTags) => {
-      if (newTags && Array.isArray(newTags)) {
-        tagList.value = newTags.map(tag => tag.name);
+    () => route.meta.tabs,
+    (newTabs) => {
+      if (newTabs && Array.isArray(newTabs)) {
+        tagList.value = newTabs.map(tag => tag.name);
         // 构建路由映射对象
         const routesMap = {};
-        newTags.forEach(tag => {
+        newTabs.forEach(tag => {
           routesMap[tag.name] = tag.route;
         });
         tagRoutes.value = routesMap;

@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import * as echarts from 'echarts';
+
 
 // 最新动态数据
 const activities = ref([
