@@ -33,17 +33,72 @@
       <el-table-column prop="remainingTime" label="剩余工时" width="100"></el-table-column>
       <el-table-column label="操作" width="200">
           <template #default="scope">
-            <span class="action-text close-action" @click="handleClose(scope.row.id)">关闭</span>
+            <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
             <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
             <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
           </template>
         </el-table-column>
     </el-table>
+
+    <!-- 关闭任务对话框 -->
+    <el-dialog
+      v-model="dialogVisible"
+      title="关闭任务"
+      width="400px"
+    >
+      <div class="dialog-content">
+        <h4>{{ currentTask.name }}</h4>
+        <div class="form-item">
+          <label>预计完成时间：</label>
+          <el-date-picker
+            v-model="closeForm.expectedCompleteTime"
+            type="datetime"
+            placeholder="选择日期时间"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>实际完成时间：</label>
+          <el-date-picker
+            v-model="closeForm.actualCompleteTime"
+            type="datetime"
+            placeholder="选择日期时间"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>备注：</label>
+          <el-input
+            v-model="closeForm.remark"
+            type="textarea"
+            placeholder="请输入备注"
+            :rows="3"
+          />
+        </div>
+        <div class="history-section">
+          <h5>历史记录</h5>
+          <div class="history-item" v-for="(item, index) in historyList" :key="index">
+            <span class="history-number">{{ index + 1 }}</span>
+            <span class="history-date">{{ item.date }}</span>
+            <span class="history-action">{{ item.action }}</span>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmClose">关闭项目</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 // 任务数据
 const taskList = ref([
@@ -59,6 +114,22 @@ const taskList = ref([
   { id: 10, name: '班牌PC端管理界面调整，样式统一，菜单归类', priority: '正常', status: '已完成', deadline: '2023-08-08', progress: 0, workTime: '6h', remainingTime: '6h' },
   { id: 11, name: '班牌模板调整，参考海康，增加竖版', priority: '正常', status: '已完成', deadline: '2023-08-08', progress: 25, workTime: '6h', remainingTime: '6h' },
   { id: 12, name: '终端-教师端查询评分标准列表', priority: '正常', status: '已完成', deadline: '2023-08-08', progress: 25, workTime: '6h', remainingTime: '6h' }
+]);
+
+// 关闭任务对话框
+const dialogVisible = ref(false);
+const currentTask = ref({ name: '' });
+const closeForm = ref({
+  expectedCompleteTime: '',
+  actualCompleteTime: '',
+  remark: ''
+});
+
+// 历史记录
+const historyList = ref([
+  { date: '2023-08-08 12:12:12', action: '由张三创建' },
+  { date: '2023-08-08 12:12:12', action: '由李四修改' },
+  { date: '2023-08-08 12:12:12', action: '由王五完成' }
 ]);
 
 // 获取优先级的类名
@@ -88,16 +159,25 @@ const getStatusClass = (status) => {
 };
 
 // 处理操作
-const handleClose = (id) => {
-  console.log('关闭任务:', id);
+const handleClose = (task) => {
+  currentTask.value = task;
+  dialogVisible.value = true;
 };
 
 const handleEdit = (id) => {
-  console.log('编辑任务:', id);
+  router.push('/task/taskEdit');
 };
 
 const handleDelete = (id) => {
   console.log('删除任务:', id);
+};
+
+// 确认关闭任务
+const confirmClose = () => {
+  console.log('确认关闭任务:', currentTask.value.id);
+  console.log('关闭表单:', closeForm.value);
+  dialogVisible.value = false;
+  // 这里可以添加关闭任务的逻辑
 };
 </script>
 
@@ -215,5 +295,79 @@ const handleDelete = (id) => {
 .el-progress__text {
   font-size: 10px !important;
   margin: 0;
+}
+
+/* 对话框样式 */
+.dialog-content {
+  padding: 10px 0;
+}
+
+.dialog-content h4 {
+  margin: 0 0 16px 0;
+  color: #303133;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.form-item {
+  margin-bottom: 16px;
+}
+
+.form-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.history-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e4e7ed;
+}
+
+.history-section h5 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #303133;
+  font-weight: bold;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.history-number {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #409eff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.history-date {
+  margin-right: 12px;
+  color: #909399;
+  flex-shrink: 0;
+}
+
+.history-action {
+  flex: 1;
+  color: #303133;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

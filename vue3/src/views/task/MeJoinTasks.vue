@@ -11,7 +11,7 @@
         {{tab.count}}
       </span>
       <div class="addProduct">
-        <el-button class="button">
+        <el-button class="button" @click="goToCreate">
           添加任务
         </el-button>
         <el-button class="button">
@@ -23,7 +23,7 @@
       </div>
     </div>
     <div class="no-tasks">
-      <p>暂时没有任务。<a href="#" class="new-task-link">新建任务</a></p>
+      <p>暂时没有任务。<span class="new-task-link" @click="goToCreate">新建任务</span></p>
     </div>
   </div>
 </template>
@@ -43,6 +43,10 @@ const activeTab=ref('meJoin');
 const router = useRouter();
 const goToEdit = () => {
   router.push('/task/taskEdit');
+};
+
+const goToCreate = () => {
+  router.push('/task/taskCreate');
 };
 
 // 处理标签点击

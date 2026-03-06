@@ -11,14 +11,8 @@
         {{tab.count}}
       </span>
       <div class="addProduct">
-        <el-button class="button">
+        <el-button class="button" @click="goToAddForm">
           添加任务
-        </el-button>
-        <el-button class="button">
-          关闭
-        </el-button>
-        <el-button class="button" @click="goToEdit">
-          编辑
         </el-button>
       </div>
     </div>
@@ -48,6 +42,9 @@ const goToEdit = () => {
 };
 const goToDetail = () => {
   router.push('/iteration/iterationDetail');
+};
+const goToAddForm = () => {
+  router.push('/task/addTaskForm');
 };
 
 // 处理标签点击
