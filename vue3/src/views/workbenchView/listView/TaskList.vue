@@ -32,12 +32,12 @@
       <el-table-column prop="workTime" label="工时" width="100"></el-table-column>
       <el-table-column prop="remainingTime" label="剩余工时" width="100"></el-table-column>
       <el-table-column label="操作" width="200">
-        <template #default="scope">
-          <span class="action-text close-action" @click="handleClose(scope.row.id)">关闭</span>
-          <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
-          <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
-        </template>
-      </el-table-column>
+          <template #default="scope">
+            <span class="action-text close-action" @click="handleClose(scope.row.id)">关闭</span>
+            <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
+            <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+          </template>
+        </el-table-column>
     </el-table>
   </div>
 </template>
