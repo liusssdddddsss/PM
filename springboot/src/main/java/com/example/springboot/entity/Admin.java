@@ -14,6 +14,7 @@ public class Admin {
     @Id
     private String username;
     
+    private String name;
     private String password;
     private Integer is_admin;
 
@@ -21,9 +22,10 @@ public class Admin {
     public Admin() {
     }
 
-    public Admin(Integer id, String username, String password, Integer is_admin) {
+    public Admin(Integer id, String username, String name, String password, Integer is_admin) {
         this.id = id;
         this.username = username;
+        this.name = name;
         this.password = password;
         this.is_admin = is_admin;
     }
@@ -43,6 +45,14 @@ public class Admin {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getPassword() {

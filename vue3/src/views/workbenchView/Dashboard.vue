@@ -456,7 +456,7 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
+import {ref, onMounted} from "vue";
 import ApproveList from '@/views/workbenchView/listView/ApproveList.vue';
 import TaskList from "@/views/workbenchView/listView/TaskList.vue";
 import ResearchList from "@/views/workbenchView/listView/ResearchList.vue";
@@ -469,6 +469,7 @@ import ProjectList from "@/views/workbenchView/listView/ProjectList.vue";
 import ProductList from "@/views/workbenchView/listView/ProductList.vue";
 import { useEcharts } from '@/utils/useEcharts.js';
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
+import request from "@/utils/request.js";
 
 // 待处理标签
 const activeTab = ref(0);
@@ -484,14 +485,61 @@ const tabs = ref([
 const currentTime = ref(new Date()).value.toLocaleDateString('zh-CN', {
   year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
 })
-const name='张三';
-const bug = 10;
-const approveState=17;
-const taskState=13;
-const bugState=10;
-const needsState=10;
-const userState=10;
-const passageState=10;
+
+// 用户信息
+const name = ref('');
+const bug = ref(10);
+const approveState = ref(17);
+const taskState = ref(13);
+const bugState = ref(10);
+const needsState = ref(10);
+const userState = ref(10);
+const passageState = ref(10);
+
+// 页面加载时获取用户信息
+onMounted(() => {
+  // 从本地存储中获取用户信息
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    name.value = user.username || '用户';
+  }
+  
+  // 从后端获取数据
+  fetchDashboardData();
+});
+
+// 从后端获取仪表盘数据
+const fetchDashboardData = async () => {
+  try {
+    // 从本地存储中获取当前登录用户的信息
+    const userStr = localStorage.getItem('user');
+    let currentUsername = '';
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      currentUsername = user.username;
+    }
+    
+    // 从后端获取管理员信息
+    const response = await request.get('/admin/findAll');
+    if (response.code === 200) {
+      console.log('获取管理员数据成功:', response.data);
+      // 更新用户名显示
+      if (response.data && response.data.length > 0) {
+        // 找到当前登录用户的信息
+        const currentUser = response.data.find(user => user.username === currentUsername);
+        if (currentUser) {
+          name.value = currentUser.name || currentUser.username || '用户';
+        } else {
+          // 如果没有找到当前用户，使用第一个用户的信息
+          name.value = response.data[0].name || response.data[0].username || '用户';
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取仪表盘数据失败:', error);
+  }
+};
 
 //我参与的项目数
 const projectList = ref([

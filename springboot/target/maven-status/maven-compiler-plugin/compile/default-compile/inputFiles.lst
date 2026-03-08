@@ -2,8 +2,16 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\common\Result.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\common\SwaggerConfig.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminController.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\ProjectController.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\TaskController.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\WebController.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Admin.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Project.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Task.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\AdminRepository.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\ProjectRepository.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\TaskRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\AdminService.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectService.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TaskService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\SpringbootApplication.java

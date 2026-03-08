@@ -20,7 +20,7 @@
           <span>欢迎，
             {{name}}
           </span>
-          <a href="/vue3/public">退出</a>
+          <a href="/" style="margin-left: 10px;text-decoration: none;color: white">退出</a>
         </div>
       </el-header>
 
@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import {ref, watch} from "vue";
+import {ref, watch, onMounted} from "vue";
 import {useRoute, useRouter} from "vue-router";
 
 const route = useRoute();
@@ -61,6 +61,18 @@ const router = useRouter();
 
 const tagList = ref([]);
 const tagRoutes=ref({});
+const name = ref('用户');
+
+// 页面加载时获取用户信息
+onMounted(() => {
+  // 从本地存储中获取用户信息
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    name.value = user.username || '用户';
+  }
+});
+
 // 根据当前路由的 meta.tabs 更新标签
 watch(
     () => route.meta.tabs,
