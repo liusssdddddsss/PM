@@ -5,30 +5,27 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name="admin")
+@Table(name="users")
 //属性要与数据库对应上
 public class Admin {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
+    
+    @Id
     private String username;
+    
     private String password;
-    private String name;
-    private String avatar;
-    private String role;
+    private Integer is_admin;
 
     // 构造方法
     public Admin() {
     }
 
-    public Admin(Integer id, String username, String password, String name, String avatar, String role) {
+    public Admin(Integer id, String username, String password, Integer is_admin) {
         this.id = id;
         this.username = username;
         this.password = password;
-        this.name = name;
-        this.avatar = avatar;
-        this.role = role;
+        this.is_admin = is_admin;
     }
 
     // Getter 和 Setter 方法
@@ -56,28 +53,12 @@ public class Admin {
         this.password = password;
     }
 
-    public String getName() {
-        return name;
+    public Integer getIs_admin() {
+        return is_admin;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
+    public void setIs_admin(Integer is_admin) {
+        this.is_admin = is_admin;
     }
 
 }

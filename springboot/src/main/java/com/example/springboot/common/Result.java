@@ -24,18 +24,21 @@ public class Result {
     }
     public static Result success(Object data) {
         Result result = new Result();
+        result.setCode(SUCCESS_CODE);
+        result.setMsg("success");
         result.setData(data);
         return result;
     }
-    public static Result error() {
+    public static Result error(String msg) {
         Result result = new Result();
         result.setCode(ERROR_CODE);
-        result.setMsg("error");
+        result.setMsg(msg);
         return result;
     }
     public static Result error(int code, String msg) {
         Result result = new Result();
         result.setCode(code);
+        result.setMsg(msg);
         return result;
     }
 }
