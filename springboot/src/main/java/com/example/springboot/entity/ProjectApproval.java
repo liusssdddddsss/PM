@@ -15,6 +15,7 @@ public class ProjectApproval {
     private Integer project_id;
     private Integer approver_id;
     private String action;
+    private String type;
     private String comment;
     private String created_at;
 
@@ -22,11 +23,12 @@ public class ProjectApproval {
     public ProjectApproval() {
     }
 
-    public ProjectApproval(Integer id, Integer project_id, Integer approver_id, String action, String comment, String created_at) {
+    public ProjectApproval(Integer id, Integer project_id, Integer approver_id, String action, String type, String comment, String created_at) {
         this.id = id;
         this.project_id = project_id;
         this.approver_id = approver_id;
         this.action = action;
+        this.type = type;
         this.comment = comment;
         this.created_at = created_at;
     }
@@ -62,6 +64,14 @@ public class ProjectApproval {
 
     public void setAction(String action) {
         this.action = action;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getComment() {
