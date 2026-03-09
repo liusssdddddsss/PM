@@ -496,48 +496,59 @@ const needsState = ref(10);
 const userState = ref(10);
 const passageState = ref(10);
 
-// 页面加载时获取用户信息
+// 页面加载时获取用户信息和统计数据
 onMounted(() => {
   // 从本地存储中获取用户信息
   const userStr = localStorage.getItem('user');
   if (userStr) {
     const user = JSON.parse(userStr);
+    // 先使用username作为默认值
     name.value = user.username || '用户';
+    
+    // 从后端获取用户的真实姓名
+    fetchUserInfo(user.username);
   }
   
-  // 从后端获取数据
-  fetchDashboardData();
+  // 从后端获取统计数据
+  fetchStatistics();
 });
 
-// 从后端获取仪表盘数据
-const fetchDashboardData = async () => {
+// 从后端获取用户信息
+const fetchUserInfo = async (username) => {
   try {
-    // 从本地存储中获取当前登录用户的信息
-    const userStr = localStorage.getItem('user');
-    let currentUsername = '';
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      currentUsername = user.username;
-    }
-    
     // 从后端获取管理员信息
     const response = await request.get('/admin/findAll');
     if (response.code === 200) {
-      console.log('获取管理员数据成功:', response.data);
-      // 更新用户名显示
-      if (response.data && response.data.length > 0) {
-        // 找到当前登录用户的信息
-        const currentUser = response.data.find(user => user.username === currentUsername);
-        if (currentUser) {
-          name.value = currentUser.name || currentUser.username || '用户';
-        } else {
-          // 如果没有找到当前用户，使用第一个用户的信息
-          name.value = response.data[0].name || response.data[0].username || '用户';
-        }
+      // 找到当前登录用户的信息
+      const currentUser = response.data.find(user => user.username === username);
+      if (currentUser) {
+        // 使用数据库中的name字段
+        name.value = currentUser.name || currentUser.username || '用户';
       }
     }
   } catch (error) {
-    console.error('获取仪表盘数据失败:', error);
+    console.error('获取用户信息失败:', error);
+  }
+};
+
+// 从后端获取统计数据
+const fetchStatistics = async () => {
+  try {
+    // 从后端获取工作台统计数据
+    const response = await request.get('/dashboard/statistics');
+    if (response.code === 200) {
+      // 更新统计数据
+      const data = response.data;
+      bug.value = data.bug || 0;
+      approveState.value = data.approveState || 0;
+      taskState.value = data.taskState || 0;
+      bugState.value = data.bugState || 0;
+      needsState.value = data.needsState || 0;
+      userState.value = data.userState || 0;
+      passageState.value = data.passageState || 0;
+    }
+  } catch (error) {
+    console.error('获取统计数据失败:', error);
   }
 };
 

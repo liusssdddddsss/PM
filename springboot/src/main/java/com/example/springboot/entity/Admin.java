@@ -9,11 +9,9 @@ import lombok.Data;
 //属性要与数据库对应上
 public class Admin {
 
-    private Integer id;
-    
     @Id
+    private Integer id;
     private String username;
-    
     private String name;
     private String password;
     private Integer is_admin;

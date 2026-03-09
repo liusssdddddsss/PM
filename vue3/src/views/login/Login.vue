@@ -86,11 +86,12 @@ onMounted(() => {
 // 登录处理
 const handleLogin = async () => {
   try {
-    // 创建表单数据
+    // 构建FormData对象
     const formData = new FormData();
     formData.append('username', form.username);
     formData.append('password', form.password);
     
+    // 发送登录请求
     const response = await request.post('/admin/login', formData);
     if (response.code === 200) {
       const user = response.data;
