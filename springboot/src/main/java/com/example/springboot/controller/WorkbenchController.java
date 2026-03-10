@@ -218,7 +218,11 @@ public class WorkbenchController {
                             Map<String, Object> projectMap = new HashMap<>();
                             projectMap.put("id", p.getId());
                             projectMap.put("projectName", p.getName());
-                            projectMap.put("projectMember", 6); // 假设每个项目有6个成员
+                            
+                            // 从数据库查询项目成员数
+                            List<com.example.springboot.entity.ProjectMember> projectMemberList = projectMemberService.findByProjectId(projectId);
+                            projectMap.put("projectMember", projectMemberList.size());
+                            
                             projectMap.put("finishTime", p.getEnd_date());
                             projectMap.put("degree", p.getProgress() != null ? p.getProgress() : 0);
                             projectList.add(projectMap);
