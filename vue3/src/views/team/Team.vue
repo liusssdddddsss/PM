@@ -130,21 +130,23 @@
       <el-card style="max-width: 98%;">
         <h3>个人进度</h3>
         <el-divider />
-        <div class="progress-list">
-          <div class="progress-item" v-for="(member, index) in progressData" :key="index">
-            <div class="member-info">
-              <span class="member-name">{{ member.name }}</span>
-              <span class="member-role">{{ member.role }}</span>
-              <span v-if="member.unreadMessages > 0" class="message-badge">消息: {{ member.unreadMessages }}</span>
-            </div>
-            <div class="progress-details">
-              <p>任务完成率: {{ member.completionRate }}%</p>
-              <p>当前任务: {{ member.currentTasks }}个</p>
-              <p>逾期任务: {{ member.overdueTasks }}个</p>
-            </div>
-            <div class="member-actions">
-              <button class="btn-small" @click="viewDetails(member)">查看详情</button>
-              <button class="btn-small warn" @click="remindMember(member)">催促</button>
+        <div class="progress-container">
+          <div class="progress-scroll">
+            <div class="progress-item" v-for="(member, index) in progressData" :key="index">
+              <div class="member-info">
+                <span class="member-name">{{ member.name }}</span>
+                <span class="member-role">{{ member.role }}</span>
+                <span v-if="member.unreadMessages > 0" class="message-badge">消息: {{ member.unreadMessages }}</span>
+              </div>
+              <div class="progress-details">
+                <p>任务完成率: {{ member.completionRate }}%</p>
+                <p>当前任务: {{ member.currentTasks }}个</p>
+                <p>逾期任务: {{ member.overdueTasks }}个</p>
+              </div>
+              <div class="member-actions">
+                <button class="btn-small" @click="viewDetails(member)">查看详情</button>
+                <button class="btn-small warn" @click="remindMember(member)">催促</button>
+              </div>
             </div>
           </div>
         </div>
@@ -490,25 +492,25 @@ function exportReport() {
 }
 
 .announcement-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #343a40;
 }
 
 .announcement-date {
-  font-size: 12px;
+  font-size: 11px;
   color: #6c757d;
 }
 
 .announcement-content {
-  font-size: 14px;
+  font-size: 12px;
   color: #495057;
   margin: 8px 0;
   line-height: 1.5;
 }
 
 .announcement-author {
-  font-size: 12px;
+  font-size: 11px;
   color: #6c757d;
   margin-top: 8px;
   text-align: right;
@@ -516,16 +518,16 @@ function exportReport() {
 
 /* 团队卡片样式 */
 .team-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #343a40;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
 }
 
 .team-stats {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .stat-item {
@@ -535,12 +537,12 @@ function exportReport() {
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 12px;
   color: #6c757d;
 }
 
 .stat-value {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: #343a40;
 }
@@ -601,7 +603,7 @@ function exportReport() {
 /* 所属团队 */
 .team-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -610,7 +612,7 @@ function exportReport() {
   width: 100%;
   background-color: transparent;
   border-radius: 8px;
-  padding: 14px;
+  padding: 5px;
   transition: none;
   cursor: pointer;
   display: flex;
@@ -662,10 +664,31 @@ function exportReport() {
 }
 
 /* 个人进度 */
-.progress-list {
+.progress-container {
+  overflow: hidden;
+}
+
+.progress-scroll {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #409EFF #f0f0f0;
+}
+
+.progress-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.progress-scroll::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.progress-scroll::-webkit-scrollbar-thumb {
+  background: #409EFF;
+  border-radius: 3px;
 }
 
 .progress-item {
@@ -675,6 +698,8 @@ function exportReport() {
   transition: none;
   border: 1px solid #e9ecef;
   box-shadow: none;
+  min-width: 180px;
+  flex: 0 0 auto;
 }
 
 .member-info {
@@ -686,14 +711,14 @@ function exportReport() {
 
 .member-name {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
   color: #343a40;
   margin-right: 0;
 }
 
 .member-role {
   color: #6c757d;
-  font-size: 14px;
+  font-size: 12px;
   margin-right: 0;
   background-color: #e3f2fd;
   padding: 4px 12px;
@@ -706,7 +731,7 @@ function exportReport() {
   color: white;
   padding: 4px 12px;
   border-radius: 16px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
 }
 
@@ -716,7 +741,7 @@ function exportReport() {
 
 .progress-details p {
   margin: 8px 0;
-  font-size: 14px;
+  font-size: 12px;
   color: #495057;
 }
 
@@ -745,13 +770,13 @@ function exportReport() {
 
 .message-content p {
   margin: 8px 0;
-  font-size: 14px;
+  font-size: 12px;
   color: #495057;
 }
 
 .message-time {
   color: #6c757d;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .message-actions {

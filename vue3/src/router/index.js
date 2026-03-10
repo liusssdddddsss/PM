@@ -127,6 +127,7 @@ const router = createRouter({
               {path:'team',component:()=>import('@/views/team/Team.vue')},
 
           ]},
+      {path:'/watermark-demo',component:()=>import('@/views/WatermarkDemo.vue')},
       {path:'/admin',component:()=>import('@/views/admin/AdminPanel.vue'),
           meta:{
               tabs:[
