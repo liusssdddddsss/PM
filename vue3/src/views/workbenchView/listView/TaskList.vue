@@ -8,7 +8,12 @@
         :cell-style="{padding: '4px'}"
     >
       <el-table-column prop="id" label="序号" width="80"></el-table-column>
-      <el-table-column prop="name" label="任务名称" width="350">
+      <el-table-column prop="projectName" label="项目名称" width="200">
+        <template #default="scope">
+          <span class="task-name">{{ scope.row.projectName }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="name" label="任务描述" width="350">
         <template #default="scope">
           <span class="task-name">{{ scope.row.name }}</span>
         </template>
@@ -95,26 +100,73 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import request from "@/utils/request.js";
 
 const router = useRouter();
 
 // 任务数据
-const taskList = ref([
-  { id: 1, name: '家校互通留言', priority: '紧急', status: '进度中', deadline: '2023-08-08', progress: 25, workTime: '8h', remainingTime: '1h' },
-  { id: 2, name: '数据大屏 实训教学资源大数据', priority: '紧急', status: '进度中', deadline: '2023-08-08', progress: 25, workTime: '8h', remainingTime: '1h' },
-  { id: 3, name: '终端-教师端查询评分标准列表', priority: '紧急', status: '进度中', deadline: '2023-08-08', progress: 25, workTime: '8h', remainingTime: '1h' },
-  { id: 4, name: '家校互通留言', priority: '紧急', status: '进度中', deadline: '2023-08-08', progress: 0, workTime: '8h', remainingTime: '1h' },
-  { id: 5, name: '数据大屏 实训教学资源大数据', priority: '一般', status: '进度中', deadline: '2023-08-08', progress: 0, workTime: '8h', remainingTime: '1h' },
-  { id: 6, name: '终端-教师端查询评分标准列表', priority: '一般', status: '进度中', deadline: '2023-08-08', progress: 25, workTime: '6h', remainingTime: '1h' },
-  { id: 7, name: '实训任务、示范列表详情优化', priority: '一般', status: '进度中', deadline: '2023-08-08', progress: 25, workTime: '6h', remainingTime: '6h' },
-  { id: 8, name: '学期结束后，自动给学生推送实训档案', priority: '一般', status: '进度中', deadline: '2023-08-08', progress: 25, workTime: '6h', remainingTime: '6h' },
-  { id: 9, name: '家长端，界面优化调整，新增功能：授权监控设备查看', priority: '正常', status: '已完成', deadline: '2023-08-08', progress: 0, workTime: '6h', remainingTime: '6h' },
-  { id: 10, name: '班牌PC端管理界面调整，样式统一，菜单归类', priority: '正常', status: '已完成', deadline: '2023-08-08', progress: 0, workTime: '6h', remainingTime: '6h' },
-  { id: 11, name: '班牌模板调整，参考海康，增加竖版', priority: '正常', status: '已完成', deadline: '2023-08-08', progress: 25, workTime: '6h', remainingTime: '6h' },
-  { id: 12, name: '终端-教师端查询评分标准列表', priority: '正常', status: '已完成', deadline: '2023-08-08', progress: 25, workTime: '6h', remainingTime: '6h' }
-]);
+const taskList = ref([]);
+
+// 从后端获取任务列表数据
+onMounted(() => {
+  fetchTasks();
+});
+
+const fetchTasks = async () => {
+  try {
+    const response = await request.get('/workbench/tasks');
+    console.log('获取任务列表响应:', response);
+    if (response.code === 200) {
+      // 转换数据格式以匹配前端组件
+      taskList.value = response.data.map(item => ({
+        id: item.id,
+        projectName: item.project_name,
+        name: item.description || item.title,
+        priority: getPriorityText(item.priority),
+        status: getStatusText(item.status),
+        deadline: item.due_date,
+        progress: item.progress || 0,
+        workTime: item.actual_hours ? `${item.actual_hours}h` : '0h',
+        remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h'
+      }));
+      console.log('转换后的任务列表数据:', taskList.value);
+    }
+  } catch (error) {
+    console.error('获取任务列表失败:', error);
+  }
+};
+
+// 获取优先级文本
+const getPriorityText = (priority) => {
+  switch (priority) {
+    case 1:
+      return '紧急';
+    case 2:
+      return '一般';
+    case 3:
+      return '正常';
+    default:
+      return '正常';
+  }
+};
+
+// 获取状态文本
+const getStatusText = (status) => {
+  switch (status) {
+    case 1:
+      return '待开始';
+    case 2:
+      return '进度中';
+    case 3:
+      return '已完成';
+    case 4:
+      return '已关闭';
+    default:
+      return '待开始';
+  }
+};
 
 // 关闭任务对话框
 const dialogVisible = ref(false);

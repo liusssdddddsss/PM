@@ -101,7 +101,45 @@ public class WorkbenchController {
     public Result getTasks() {
         try {
             List<Task> tasks = taskService.findall();
-            return Result.success(tasks);
+            List<Map<String, Object>> taskList = new ArrayList<>();
+            
+            for (Task task : tasks) {
+                Map<String, Object> taskMap = new HashMap<>();
+                taskMap.put("id", task.getId());
+                taskMap.put("title", task.getTitle());
+                taskMap.put("description", task.getDescription());
+                taskMap.put("project_id", task.getProject_id());
+                taskMap.put("requirement_id", task.getRequirement_id());
+                taskMap.put("parent_id", task.getParent_id());
+                taskMap.put("creator_id", task.getCreator_id());
+                taskMap.put("assignee_id", task.getAssignee_id());
+                taskMap.put("priority", task.getPriority());
+                taskMap.put("status", task.getStatus());
+                taskMap.put("progress", task.getProgress());
+                taskMap.put("estimated_hours", task.getEstimated_hours());
+                taskMap.put("actual_hours", task.getActual_hours());
+                taskMap.put("start_date", task.getStart_date());
+                taskMap.put("due_date", task.getDue_date());
+                taskMap.put("created_at", task.getCreated_at());
+                
+                // 获取项目名称
+                String projectName = "未知项目";
+                if (task.getProject_id() != null) {
+                    try {
+                        var project = projectService.findById(task.getProject_id().longValue());
+                        if (project.isPresent()) {
+                            projectName = project.get().getName();
+                        }
+                    } catch (Exception e) {
+                        System.out.println("获取项目名称失败: " + e.getMessage());
+                    }
+                }
+                taskMap.put("project_name", projectName);
+                
+                taskList.add(taskMap);
+            }
+            
+            return Result.success(taskList);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取任务列表失败: " + e.getMessage());
