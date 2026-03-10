@@ -278,11 +278,60 @@ public class WorkbenchController {
                     }
                     projectMap.put("states", statusText);
                     
-                    // 假设工时和其他数据
-                    projectMap.put("workTime", "160h");
-                    projectMap.put("shengYuNeeds", 20);
-                    projectMap.put("shengYuTask", 30);
-                    projectMap.put("shengYuBug", 10);
+                    // 从数据库获取实际数据
+                    Integer projectId = project.getId().intValue();
+                    
+                    // 计算总工时（从tasks表中获取）
+                    int totalHours = 0;
+                    List<Task> tasks = taskService.findall();
+                    for (Task task : tasks) {
+                        if (task.getProject_id() != null && task.getProject_id().equals(projectId)) {
+                            if (task.getEstimated_hours() != null) {
+                                totalHours += task.getEstimated_hours().intValue();
+                            }
+                        }
+                    }
+                    projectMap.put("workTime", totalHours + "h");
+                    
+                    // 计算剩余需求数量（从requirements表中获取）
+                    int remainingNeeds = 0;
+                    List<Requirement> requirements = requirementService.findall();
+                    for (Requirement req : requirements) {
+                        if (req.getProject_id() != null && req.getProject_id().equals(projectId)) {
+                            // 假设需求状态为0表示未完成
+                            if (req.getStatus() == null || req.getStatus() == 0) {
+                                remainingNeeds++;
+                            }
+                        }
+                    }
+                    projectMap.put("shengYuNeeds", remainingNeeds);
+                    
+                    // 计算剩余任务数量（从tasks表中获取）
+                    int remainingTasks = 0;
+                    for (Task task : tasks) {
+                        if (task.getProject_id() != null && task.getProject_id().equals(projectId)) {
+                            // 假设任务状态为0或1表示未完成
+                            if (task.getStatus() == null || task.getStatus() < 2) {
+                                remainingTasks++;
+                            }
+                        }
+                    }
+                    projectMap.put("shengYuTask", remainingTasks);
+                    
+                    // 计算剩余Bug数量（从bugs表中获取）
+                    int remainingBugs = 0;
+                    List<Bug> bugs = bugService.findall();
+                    for (Bug bug : bugs) {
+                        if (bug.getProject_id() != null && bug.getProject_id().equals(projectId)) {
+                            // 假设Bug状态为0或1表示未解决
+                            if (bug.getStatus() == null || bug.getStatus() < 2) {
+                                remainingBugs++;
+                            }
+                        }
+                    }
+                    projectMap.put("shengYuBug", remainingBugs);
+                    
+                    // 设置完成时间和进度
                     projectMap.put("finishTime", project.getEnd_date());
                     projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
                     
