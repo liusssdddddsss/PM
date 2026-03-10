@@ -15,6 +15,9 @@
         </span>
         </div>
       </li>
+      <li v-if="dynamicData.length === 0" class="no-data">
+        <span style="color: #909399;">暂无最新动态</span>
+      </li>
     </ul>
   </div>
 </template>
@@ -22,22 +25,27 @@
 <script setup>
 
 // 最新动态数据
-import {ref} from "vue";
+import {ref, onMounted} from "vue";
+import request from "@/utils/request.js";
 
-const dynamicData = ref([
-  {
-    time: '08月08日 12:12',
-    operator: '张三三',
-    action: '审批了研发需求',
-    link: '班牌模板调整，参考海康，增加竖版'
-  },
-  {
-    time: '08月08日 12:12',
-    operator: '王麻子',
-    action: '确认通过研发需求',
-    link: '家校互通留言'
+const dynamicData = ref([]);
+
+// 从后端获取最新动态数据
+const fetchDynamicData = async () => {
+  try {
+    const response = await request.get('/dashboard/dynamic');
+    if (response.code === 200) {
+      dynamicData.value = response.data || [];
+    }
+  } catch (error) {
+    console.error('获取最新动态失败:', error);
   }
-])
+};
+
+// 页面加载时获取最新动态数据
+onMounted(() => {
+  fetchDynamicData();
+});
 
 </script>
 

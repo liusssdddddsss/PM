@@ -1,68 +1,81 @@
 <template>
   <div class="team-container">
-    <div class="team-header">
-      <h3>团队管理</h3>
-      <div class="header-actions">
-        <button class="btn">创建团队</button>
-        <button class="btn">邀请成员</button>
-        <button class="btn">导出报告</button>
-      </div>
-    </div>
+    <div class="left">
+      <!-- 团队概览 -->
+      <el-card style="max-width: 98%;">
+        <div class="team-header">
+          <h3>团队管理</h3>
+          <div class="header-actions">
+            <button class="btn">创建团队</button>
+            <button class="btn">邀请成员</button>
+            <button class="btn">导出报告</button>
+          </div>
+        </div>
+        <div class="overview-cards">
+          <div class="overview-card">
+            <div class="overview-icon team-icon">👥</div>
+            <div class="overview-content">
+              <div class="overview-value">{{ totalTeams }}</div>
+              <div class="overview-label">团队数量</div>
+            </div>
+          </div>
+          <div class="overview-card">
+            <div class="overview-icon member-icon">👤</div>
+            <div class="overview-content">
+              <div class="overview-value">{{ totalMembers }}</div>
+              <div class="overview-label">总成员数</div>
+            </div>
+          </div>
+          <div class="overview-card">
+            <div class="overview-icon project-icon">📁</div>
+            <div class="overview-content">
+              <div class="overview-value">{{ totalProjects }}</div>
+              <div class="overview-label">项目数量</div>
+            </div>
+          </div>
+          <div class="overview-card">
+            <div class="overview-icon task-icon">✅</div>
+            <div class="overview-content">
+              <div class="overview-value">{{ totalTasks }}</div>
+              <div class="overview-label">任务总数</div>
+            </div>
+          </div>
+        </div>
+      </el-card>
 
-    <!-- 团队概览 -->
-    <div class="team-section">
-      <h3>团队概览</h3>
-      <div class="overview-cards">
-        <div class="overview-card">
-          <div class="overview-icon team-icon">👥</div>
-          <div class="overview-content">
-            <div class="overview-value">{{ totalTeams }}</div>
-            <div class="overview-label">团队数量</div>
-          </div>
+      <!-- 任务进展 -->
+      <el-card style="max-width: 98%; margin-top: 10px">
+        <h3>任务进展</h3>
+        <el-divider />
+        <div class="task-progress">
+          <table width="100%">
+            <tr>
+              <th width="200">任务</th>
+              <th width="120">负责人</th>
+              <th width="150">截止日期</th>
+              <th width="100">进度</th>
+              <th width="100">状态</th>
+              <th width="150">操作</th>
+            </tr>
+            <tr v-for="(task, index) in taskProgressData" :key="index">
+              <td>{{ task.task }}</td>
+              <td>{{ task.assignee }}</td>
+              <td>{{ task.deadline }}</td>
+              <td>{{ task.progress }}%</td>
+              <td>{{ task.status }}</td>
+              <td>
+                <button class="btn-small" @click="viewTask(task)">查看</button>
+                <button class="btn-small warn" @click="remindTask(task)">催促</button>
+              </td>
+            </tr>
+          </table>
         </div>
-        <div class="overview-card">
-          <div class="overview-icon member-icon">👤</div>
-          <div class="overview-content">
-            <div class="overview-value">{{ totalMembers }}</div>
-            <div class="overview-label">总成员数</div>
-          </div>
-        </div>
-        <div class="overview-card">
-          <div class="overview-icon project-icon">📁</div>
-          <div class="overview-content">
-            <div class="overview-value">{{ totalProjects }}</div>
-            <div class="overview-label">项目数量</div>
-          </div>
-        </div>
-        <div class="overview-card">
-          <div class="overview-icon task-icon">✅</div>
-          <div class="overview-content">
-            <div class="overview-value">{{ totalTasks }}</div>
-            <div class="overview-label">任务总数</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      </el-card>
 
-    <!-- 团队公告 -->
-    <div class="team-section">
-      <h3>团队公告</h3>
-      <div class="announcement-list">
-        <div class="announcement-item" v-for="(announcement, index) in announcements" :key="index">
-          <div class="announcement-header">
-            <span class="announcement-title">{{ announcement.title }}</span>
-            <span class="announcement-date">{{ announcement.date }}</span>
-          </div>
-          <p class="announcement-content">{{ announcement.content }}</p>
-          <div class="announcement-author">发布人: {{ announcement.author }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="team-content">
       <!-- 所属团队 -->
-      <div class="team-section">
+      <el-card style="max-width: 98%; margin-top: 10px">
         <h3>所属团队</h3>
+        <el-divider />
         <div class="team-cards">
           <div class="team-card" v-for="(team, index) in teams" :key="index" @click="switchTeam(team.name)">
             <div class="team-info">
@@ -85,13 +98,14 @@
             <button class="btn-small" @click.stop="switchTeam(team.name)">切换</button>
           </div>
         </div>
-      </div>
+      </el-card>
 
       <!-- 团队分工 -->
-      <div class="team-section">
+      <el-card style="max-width: 98%; margin-top: 10px">
         <h3>团队分工</h3>
+        <el-divider />
         <div class="division-table">
-          <table border="1" width="100%">
+          <table width="100%">
             <tr>
               <th width="120">成员</th>
               <th width="100">角色</th>
@@ -104,15 +118,18 @@
               <td>{{ item.role }}</td>
               <td>{{ item.responsibility }}</td>
               <td>{{ item.projects }}</td>
-              <td><button class="btn-small" onclick="editDivision(item)">编辑</button></td>
+              <td><button class="btn-small" @click="editDivision(item)">编辑</button></td>
             </tr>
           </table>
         </div>
-      </div>
+      </el-card>
+    </div>
 
+    <div class="right">
       <!-- 个人进度 -->
-      <div class="team-section">
+      <el-card style="max-width: 98%;">
         <h3>个人进度</h3>
+        <el-divider />
         <div class="progress-list">
           <div class="progress-item" v-for="(member, index) in progressData" :key="index">
             <div class="member-info">
@@ -126,44 +143,33 @@
               <p>逾期任务: {{ member.overdueTasks }}个</p>
             </div>
             <div class="member-actions">
-              <button class="btn-small" onclick="viewDetails(member)">查看详情</button>
-              <button class="btn-small warn" onclick="remindMember(member)">催促</button>
+              <button class="btn-small" @click="viewDetails(member)">查看详情</button>
+              <button class="btn-small warn" @click="remindMember(member)">催促</button>
             </div>
           </div>
         </div>
-      </div>
+      </el-card>
 
-      <!-- 任务进展 -->
-      <div class="team-section">
-        <h3>任务进展</h3>
-        <div class="task-progress">
-          <table border="1" width="100%">
-            <tr>
-              <th width="200">任务</th>
-              <th width="120">负责人</th>
-              <th width="150">截止日期</th>
-              <th width="100">进度</th>
-              <th width="100">状态</th>
-              <th width="150">操作</th>
-            </tr>
-            <tr v-for="(task, index) in taskProgressData" :key="index">
-              <td>{{ task.task }}</td>
-              <td>{{ task.assignee }}</td>
-              <td>{{ task.deadline }}</td>
-              <td>{{ task.progress }}%</td>
-              <td>{{ task.status }}</td>
-              <td>
-                <button class="btn-small" onclick="viewTask(task)">查看</button>
-                <button class="btn-small warn" onclick="remindTask(task)">催促</button>
-              </td>
-            </tr>
-          </table>
+      <!-- 团队公告 -->
+      <el-card style="max-width: 98%; margin-top: 10px">
+        <h3>团队公告</h3>
+        <el-divider />
+        <div class="announcement-list">
+          <div class="announcement-item" v-for="(announcement, index) in announcements" :key="index">
+            <div class="announcement-header">
+              <span class="announcement-title">{{ announcement.title }}</span>
+              <span class="announcement-date">{{ announcement.date }}</span>
+            </div>
+            <p class="announcement-content">{{ announcement.content }}</p>
+            <div class="announcement-author">发布人: {{ announcement.author }}</div>
+          </div>
         </div>
-      </div>
+      </el-card>
 
       <!-- 消息提示 -->
-      <div class="team-section">
+      <el-card style="max-width: 98%; margin-top: 10px">
         <h3>消息提示</h3>
+        <el-divider />
         <div class="message-list">
           <div class="message-item" v-for="(message, index) in messages" :key="index">
             <div class="message-content">
@@ -171,13 +177,13 @@
               <p>{{ message.content }}</p>
               <p v-if="!message.read"><strong>未读</strong></p>
               <div class="message-actions">
-                <button class="btn-small" onclick="replyMessage(message)">回复</button>
-                <button class="btn-small" onclick="markAsRead(message)">标记已读</button>
+                <button class="btn-small" @click="replyMessage(message)">回复</button>
+                <button class="btn-small" @click="markAsRead(message)">标记已读</button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </el-card>
     </div>
   </div>
 </template>
@@ -377,33 +383,38 @@ function exportReport() {
 <style scoped>
 /* 全局样式 */
 .team-container {
-  padding: 20px;
-  background-color: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+.left {
+  max-width: 65%;
+}
+
+.right {
+  flex: 1;
+}
+
 /* 概览区域 */
 .overview-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
 }
 
 .overview-card {
-  background-color: white;
+  background-color: transparent;
   border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  width: 180px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  transition: all 0.3s ease;
-}
-
-.overview-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  gap: 12px;
+  transition: none;
+  border: 1px solid #e9ecef;
+  box-shadow: none;
 }
 
 .overview-icon {
@@ -462,17 +473,13 @@ function exportReport() {
 }
 
 .announcement-item {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: transparent;
   border-radius: 8px;
-  padding: 16px;
-  transition: all 0.3s ease;
+  padding: 14px;
+  transition: none;
   border-left: 4px solid #007bff;
-}
-
-.announcement-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  border: 1px solid #e9ecef;
+  box-shadow: none;
 }
 
 .announcement-header {
@@ -543,7 +550,6 @@ function exportReport() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 2px solid #e9ecef;
 }
@@ -571,14 +577,8 @@ function exportReport() {
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: none;
   margin-right: 0;
-}
-
-.btn:hover {
-  background-color: #0069d9;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.25);
 }
 
 .btn-small {
@@ -590,55 +590,12 @@ function exportReport() {
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.btn-small:hover {
-  background-color: #0069d9;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.2);
+  transition: none;
 }
 
 .btn-small.warn {
   background-color: #ffc107;
   color: #212529;
-}
-
-.btn-small.warn:hover {
-  background-color: #e0a800;
-  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.2);
-}
-
-/* 内容区域 */
-.team-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* 区块样式 */
-.team-section {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 0;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.team-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.team-section h3 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #343a40;
-  border-bottom: 2px solid #f1f3f5;
-  padding-bottom: 8px;
 }
 
 /* 所属团队 */
@@ -651,21 +608,16 @@ function exportReport() {
 
 .team-card {
   width: 100%;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: transparent;
   border-radius: 8px;
-  padding: 16px;
-  transition: all 0.3s ease;
+  padding: 14px;
+  transition: none;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-}
-
-.team-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #007bff;
+  border: 1px solid #e9ecef;
+  box-shadow: none;
 }
 
 .team-info h4 {
@@ -675,12 +627,6 @@ function exportReport() {
   color: #343a40;
 }
 
-.team-info p {
-  margin: 6px 0;
-  font-size: 14px;
-  color: #6c757d;
-}
-
 /* 表格样式 */
 .division-table table,
 .task-progress table {
@@ -688,7 +634,9 @@ function exportReport() {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  box-shadow: none;
+  background-color: transparent;
 }
 
 .division-table th,
@@ -697,26 +645,20 @@ function exportReport() {
 .task-progress td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #e9ecef;
-  border: none;
+  border: 1px solid #e9ecef;
 }
 
 .division-table th,
 .task-progress th {
-  background-color: #f8f9fa;
+  background-color: transparent;
   font-weight: 600;
   color: #495057;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid #f1f3f5;
 }
 
 .division-table tr,
 .task-progress tr {
-  transition: background-color 0.3s ease;
-}
-
-.division-table tr:hover,
-.task-progress tr:hover {
-  background-color: #f8f9fa;
+  transition: none;
 }
 
 /* 个人进度 */
@@ -727,16 +669,12 @@ function exportReport() {
 }
 
 .progress-item {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: transparent;
   border-radius: 8px;
-  padding: 16px;
-  transition: all 0.3s ease;
-}
-
-.progress-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #007bff;
+  padding: 14px;
+  transition: none;
+  border: 1px solid #e9ecef;
+  box-shadow: none;
 }
 
 .member-info {
@@ -796,17 +734,13 @@ function exportReport() {
 }
 
 .message-item {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: transparent;
   border-radius: 8px;
-  padding: 16px;
-  transition: all 0.3s ease;
+  padding: 14px;
+  transition: none;
   border-left: 4px solid #e9ecef;
-}
-
-.message-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-left-color: #007bff;
+  border: 1px solid #e9ecef;
+  box-shadow: none;
 }
 
 .message-content p {
@@ -829,7 +763,14 @@ function exportReport() {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .team-container {
+    flex-direction: column;
     padding: 12px;
+  }
+  
+  .left,
+  .right {
+    max-width: 100%;
+    width: 100%;
   }
   
   .team-header {

@@ -124,7 +124,7 @@ const router = createRouter({
           ]},
       {path:'/teams',component:()=>import('@/views/home/Home.vue'),
           children:[
-              {path:'team',component:()=>import('@/views/team/team.vue')},
+              {path:'team',component:()=>import('@/views/team/Team.vue')},
 
           ]},
       {path:'/admin',component:()=>import('@/views/admin/AdminPanel.vue'),

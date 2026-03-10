@@ -253,7 +253,7 @@
               </div>
               <div>
                 <div>完成任务数量</div>
-                昨日 <span class="number">120</span> | 今日 <span class="number blue">68</span>
+                昨日 <span class="number">{{yesterday.task}}</span> | 今日 <span class="number blue">{{today.task}}</span>
               </div>
             </div>
             <div class="kuai">
@@ -262,7 +262,7 @@
               </div>
               <div>
                 <div>创建需求数量</div>
-                昨日 <span class="number">56</span> | 今日 <span class="number blue">45</span>
+                昨日 <span class="number">{{yesterday.create}}</span> | 今日 <span class="number blue">{{today.create}}</span>
               </div>
             </div>
             <div class="kuai">
@@ -271,7 +271,7 @@
               </div>
               <div>
                 <div>提出Bug数量</div>
-                昨日 <span class="number">159</span> | 今日 <span class="number blue">123</span>
+                昨日 <span class="number">{{yesterday.tiChu}}</span> | 今日 <span class="number blue">{{today.tiChu}}</span>
               </div>
             </div>
             <div class="kuai">
@@ -280,7 +280,7 @@
               </div>
               <div>
                 <div>修改Bug数量</div>
-                昨日 <span class="number">165</span> | 今日 <span class="number blue">158</span>
+                昨日 <span class="number">{{yesterday.bug}}</span> | 今日 <span class="number blue">{{today.bug}}</span>
               </div>
             </div>
             <div class="kuai">
@@ -289,7 +289,7 @@
               </div>
               <div>
                 <div>总消耗工时/h</div>
-                昨日 <span class="number">65</span> | 今日 <span class="number blue">50</span>
+                昨日 <span class="number">{{yesterday.clock}}</span> | 今日 <span class="number blue">{{today.clock}}</span>
               </div>
             </div>
             <div class="kuai">
@@ -298,7 +298,7 @@
               </div>
               <div>
                 <div>平均消耗工时/h</div>
-                昨日 <span class="number">7</span> | 今日 <span class="number blue">4.5</span>
+                昨日 <span class="number">{{yesterday.averageClock}}</span> | 今日 <span class="number blue">{{today.averageClock}}</span>
               </div>
             </div>
           </div>
@@ -394,23 +394,23 @@
                 <h3>Bug统计</h3>
                 <div class="bug-stat-item">
                   <div class="bug-stat-label">昨天新增</div>
-                  <div class="bug-stat-value">125</div>
-                  <el-progress :percentage="70" />
+                  <div class="bug-stat-value">{{testStatistics.yesterdayNew}}</div>
+                  <el-progress :percentage="testStatistics.yesterdayNew * 100 / 200" />
                 </div>
                 <div class="bug-stat-item">
                   <div class="bug-stat-label">今日新增</div>
-                  <div class="bug-stat-value">65</div>
-                  <el-progress :percentage="40" />
+                  <div class="bug-stat-value">{{testStatistics.todayNew}}</div>
+                  <el-progress :percentage="testStatistics.todayNew * 100 / 200" />
                 </div>
                 <div class="bug-stat-item">
                   <div class="bug-stat-label">昨天解决</div>
-                  <div class="bug-stat-value">98</div>
-                  <el-progress :percentage="60" />
+                  <div class="bug-stat-value">{{testStatistics.yesterdaySolved}}</div>
+                  <el-progress :percentage="testStatistics.yesterdaySolved * 100 / 200" />
                 </div>
                 <div class="bug-stat-item">
                   <div class="bug-stat-label">今日解决</div>
-                  <div class="bug-stat-value">26</div>
-                  <el-progress :percentage="20" />
+                  <div class="bug-stat-value">{{testStatistics.todaySolved}}</div>
+                  <el-progress :percentage="testStatistics.todaySolved * 100 / 200" />
                 </div>
               </div>
             </div>
@@ -420,18 +420,18 @@
             <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff;">
               <div class="bug-repair">
                 <h3>Bug修复率</h3>
-                <el-progress type="circle" :percentage="50" />
+                <el-progress type="circle" :percentage="testStatistics.bugRepairRate" />
                 <div class="bug-repair-stats">
                   <span>
-                    <div class="stat-value">56</div>
+                    <div class="stat-value">{{testStatistics.validBugs}}</div>
                     <div class="stat-label">有效Bug</div>
                   </span>
                   <span>
-                    <div class="stat-value">16</div>
+                    <div class="stat-value">{{testStatistics.fixedBugs}}</div>
                     <div class="stat-label">已修复</div>
                   </span>
                   <span>
-                    <div class="stat-value">42</div>
+                    <div class="stat-value">{{testStatistics.unclosedBugs}}</div>
                     <div class="stat-label">未关闭</div>
                   </span>
                 </div>
@@ -441,11 +441,12 @@
               <div class="staying-test-list">
                 <h3>待测试的测试单</h3>
                 <ul class="test-list">
-                  <li><a href="#">班牌PC端管理界面调整</a></li>
-                  <li><a href="#">学期结束后，自动给学生推送实训档案</a></li>
-                  <li><a href="#">班牌模板调整，参考海康，增加竖版</a></li>
-                  <li><a href="#">家校互通留言</a></li>
-                  <li><a href="#">终端-教师端查询评分标准列表</a></li>
+                  <li v-for="(item, index) in testStatistics.testLists" :key="index">
+                    <a href="#">{{item}}</a>
+                  </li>
+                  <li v-if="testStatistics.testLists.length === 0">
+                    <span style="color: #909399;">暂无待测试的测试单</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -576,6 +577,24 @@ onMounted(() => {
   
   // 从后端获取项目列表
   fetchProjects();
+  
+  // 从后端获取团队完成情况数据
+  fetchTeamStatistics();
+  
+  // 从后端获取产品总览数据
+  fetchProductOverview();
+  
+  // 从后端获取项目总览数据
+  fetchProjectOverview();
+  
+  // 从后端获取任务完成总览数据
+  fetchTaskOverview();
+  
+  // 从后端获取需求统计数据
+  fetchNeedsStatistics();
+  
+  // 从后端获取测试统计数据
+  fetchTestStatistics();
 });
 
 // 格式化日期
@@ -590,67 +609,66 @@ const formatDate = (dateString) => {
 };
 
 // 团队完成情况
-const yesterday=ref(
-  {
-    task:10,
-    create:12,
-    tiChu:34,
-    bug:80,
-    clock:78,
-    averageClock:24
-  }
-);
-const today=ref(
-    {
-      task:10,
-      create:12,
-      tiChu:34,
-      bug:80,
-      clock:78,
-      averageClock:24
-    }
-);
+const yesterday=ref({
+  task:0,
+  create:0,
+  tiChu:0,
+  bug:0,
+  clock:0,
+  averageClock:0
+});
+const today=ref({
+  task:0,
+  create:0,
+  tiChu:0,
+  bug:0,
+  clock:0,
+  averageClock:0
+});
 
 // 产品总览
-const projectCount=24;
-const thisYearIssue=23;
-const closeCount=24;
+const projectCount=ref(0);
+const thisYearIssue=ref(0);
+const closeCount=ref(0);
 
 // 项目总览
-const xiangMuCount=12;
-const thisYearFinish=12;
-const {chartRef: chartDom} = useEcharts({
-    xAxis:{
-      type: 'category',
-      data:['2022','2023','2024']
-    },
-    yAxis:{
-      type: 'value',
-    },
-    series:[{
-      type:'bar',
-      data:[20,100,30]
-    }]
+const xiangMuCount=ref(0);
+const thisYearFinish=ref(0);
+const projectYearsData=ref({
+  xAxis:{
+    type: 'category',
+    data:['2022','2023','2024']
+  },
+  yAxis:{
+    type: 'value',
+  },
+  series:[{
+    type:'bar',
+    data:[0,0,0]
+  }]
 });
+const {chartRef: chartDom} = useEcharts(projectYearsData.value);
 
 // 任务数量总览
-const taskAllCount=1222;
-const taskFinishCount=1000;
-const {chartRef: taskDom} = useEcharts({
-    xAxis:{
-      type: 'category',
-      data:['未开始','进行中','已排期']
-    },
-    yAxis:{
-      type: 'value',
-    },
-    series:[{
-      type:'bar',
-      data:[20,100,30]
-    }]
+const taskAllCount=ref(0);
+const taskFinishCount=ref(0);
+const taskDistributionData=ref({
+  xAxis:{
+    type: 'category',
+    data:['未开始','进行中','已排期']
+  },
+  yAxis:{
+    type: 'value',
+  },
+  series:[{
+    type:'bar',
+    data:[0,0,0]
+  }]
 });
+const {chartRef: taskDom} = useEcharts(taskDistributionData.value);
+
 // 需求统计图
-const {chartRef: needsDom} = useEcharts({
+const needsChartData=ref({
   xAxis:{
     type: 'category',
     data:['7月','8月','9月','10月','11月','12月']
@@ -663,16 +681,131 @@ const {chartRef: needsDom} = useEcharts({
         name:'finish',
         type:'line',
         stack:'Total',
-        data:[15,24,54,23,14,56]
+        data:[0,0,0,0,0,0]
       },
     {
       name:'add',
       type:'line',
       stack:'Total',
-      data:[35,67,34,28,89,99]
+      data:[0,0,0,0,0,0]
     }
   ]
 });
+const {chartRef: needsDom} = useEcharts(needsChartData.value);
+
+// 测试统计数据
+const testStatistics = ref({
+  yesterdayNew: 0,
+  todayNew: 0,
+  yesterdaySolved: 0,
+  todaySolved: 0,
+  bugRepairRate: 0,
+  validBugs: 0,
+  fixedBugs: 0,
+  unclosedBugs: 0,
+  testLists: []
+});
+
+// 从后端获取团队完成情况数据
+const fetchTeamStatistics = async () => {
+  try {
+    const response = await request.get('/dashboard/team-statistics');
+    if (response.code === 200) {
+      const data = response.data;
+      yesterday.value = data.yesterday || yesterday.value;
+      today.value = data.today || today.value;
+    }
+  } catch (error) {
+    console.error('获取团队完成情况失败:', error);
+  }
+};
+
+// 从后端获取产品总览数据
+const fetchProductOverview = async () => {
+  try {
+    const response = await request.get('/dashboard/product-overview');
+    if (response.code === 200) {
+      const data = response.data;
+      projectCount.value = data.projectCount || 0;
+      thisYearIssue.value = data.thisYearIssue || 0;
+      closeCount.value = data.closeCount || 0;
+    }
+  } catch (error) {
+    console.error('获取产品总览失败:', error);
+  }
+};
+
+// 从后端获取项目总览数据
+const fetchProjectOverview = async () => {
+  try {
+    const response = await request.get('/dashboard/project-overview');
+    if (response.code === 200) {
+      const data = response.data;
+      xiangMuCount.value = data.xiangMuCount || 0;
+      thisYearFinish.value = data.thisYearFinish || 0;
+      if (data.projectYearsData) {
+        projectYearsData.value = data.projectYearsData;
+      }
+    }
+  } catch (error) {
+    console.error('获取项目总览失败:', error);
+  }
+};
+
+// 从后端获取任务完成总览数据
+const fetchTaskOverview = async () => {
+  try {
+    const response = await request.get('/dashboard/task-overview');
+    if (response.code === 200) {
+      const data = response.data;
+      taskAllCount.value = data.taskAllCount || 0;
+      taskFinishCount.value = data.taskFinishCount || 0;
+      if (data.taskDistributionData) {
+        taskDistributionData.value = data.taskDistributionData;
+      }
+    }
+  } catch (error) {
+    console.error('获取任务完成总览失败:', error);
+  }
+};
+
+// 从后端获取需求统计数据
+const fetchNeedsStatistics = async () => {
+  try {
+    const response = await request.get('/dashboard/needs-statistics');
+    if (response.code === 200) {
+      const data = response.data;
+      if (data.needsChartData) {
+        needsChartData.value = data.needsChartData;
+      }
+    }
+  } catch (error) {
+    console.error('获取需求统计数据失败:', error);
+  }
+};
+
+// 从后端获取测试统计数据
+const fetchTestStatistics = async () => {
+  try {
+    const response = await request.get('/dashboard/test-statistics');
+    if (response.code === 200) {
+      const data = response.data;
+      testStatistics.value = {
+        yesterdayNew: data.yesterdayNew || 0,
+        todayNew: data.todayNew || 0,
+        yesterdaySolved: data.yesterdaySolved || 0,
+        todaySolved: data.todaySolved || 0,
+        bugRepairRate: data.bugRepairRate || 0,
+        validBugs: data.validBugs || 0,
+        fixedBugs: data.fixedBugs || 0,
+        unclosedBugs: data.unclosedBugs || 0,
+        testLists: data.testLists || []
+      };
+    }
+  } catch (error) {
+    console.error('获取测试统计数据失败:', error);
+  }
+};
 
 </script>
 
