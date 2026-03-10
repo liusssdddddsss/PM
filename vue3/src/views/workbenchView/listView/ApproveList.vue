@@ -1,11 +1,25 @@
 <template>
-  <el-table
-      :data="tableData"
-      style="width: 100%"
-  >
-    <el-table-column prop="id" label="序号" width="80"></el-table-column>
-    <el-table-column prop="title" label="标题" width="300"></el-table-column>
-    <el-table-column prop="comment" label="审批内容" width="300"></el-table-column>
+  <div class="task-table-container">
+    <el-table
+        :data="tableData"
+        style="width: 100%"
+        class="ApproveTable"
+    >
+    <el-table-column label="序号" width="80">
+      <template #default="scope">
+        {{ scope.$index + 1 }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="title" label="标题" width="300">
+      <template #default="scope">
+        <span class="task-name">{{ scope.row.title }}</span>
+      </template>
+    </el-table-column>
+    <el-table-column prop="comment" label="审批内容" width="300">
+      <template #default="scope">
+        <span class="task-name">{{ scope.row.comment }}</span>
+      </template>
+    </el-table-column>
     <el-table-column prop="type" label="审批类型" width="150"></el-table-column>
     <el-table-column prop="approver" label="审批人" width="150"></el-table-column>
     <el-table-column prop="submitTime" label="提交时间" width="180"></el-table-column>
@@ -16,7 +30,8 @@
         </span>
       </template>
     </el-table-column>
-  </el-table>
+    </el-table>
+  </div>
 </template>
 
 <script setup>
@@ -56,7 +71,88 @@ const fetchApprovals = async () => {
 
 <style scoped>
 .status-rejected {
-  color: red;
+  color: #F56C6C;
   font-weight: 500;
+  font-size: 13px;
+}
+
+.task-name {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-urgent {
+  color: #F56C6C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-normal {
+  color: #E6A23C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-regular {
+  color: #67C23A;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-in-progress {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-completed {
+  color: #67C23A;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.task-table-container {
+  padding: 0;
+  background-color: #fff;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ApproveTable {
+  border-radius: 0;
+  overflow: hidden;
+  border: none !important;
+}
+
+.el-table .cell {
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.el-table th {
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #f9f9f9;
+  padding: 4px 12px;
+  text-align: center;
+  vertical-align: middle;
+  height: 28px !important;
+}
+
+.el-table__row {
+  height: 28px !important;
+  line-height: 28px !important;
+}
+
+.el-table--border th {
+  border: none !important;
+}
+
+.el-table--border td {
+  border: none !important;
+  vertical-align: middle;
 }
 </style>

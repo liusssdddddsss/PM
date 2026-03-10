@@ -4,6 +4,8 @@
       style="width: 100%;height: 400px"
       class="NoFinishTable"
       :header-cell-style="{backgroundColor: '#f5f7fa', color: '#303133', fontSize: '14px', fontWeight: '500'}"
+      :row-style="{height: '20px'}"
+      :cell-style="{ padding: '0px',lineHeight: '20px'}"
   >
     <el-table-column prop="title" label="项目名称" width="180">
       <template #default="scope">
@@ -32,99 +34,28 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
+import {ref, onMounted} from "vue";
+import request from "@/utils/request.js";
 
 //ddl列表
-const tableData = ref([
-  {
-    title:'智慧教室_智慧云盘',
-    person:'张三三',
-    states:'进行中',
-    workTime:'160h',
-    shengYuNeeds:102,
-    shengYuTask:25,
-    shengYuBug:15,
-    finishTime:'2023-08-08',
-    jinDu:25
-  },
-  {
-    title:'实践教学管理平台',
-    person:'李四四',
-    states:'进行中',
-    workTime:'1150h',
-    shengYuNeeds:12,
-    shengYuTask:36,
-    shengYuBug:63,
-    finishTime:'2023-08-08',
-    jinDu:25
-  },
-  {
-    title:'电子班牌管理系统',
-    person:'张三三',
-    states:'进行中',
-    workTime:'320h',
-    shengYuNeeds:56,
-    shengYuTask:59,
-    shengYuBug:72,
-    finishTime:'2023-08-08',
-    jinDu:25
-  },
-  {
-    title:'智慧校园(中学版)',
-    person:'王麻子',
-    states:'已排期',
-    workTime:'160h',
-    shengYuNeeds:85,
-    shengYuTask:86,
-    shengYuBug:0,
-    finishTime:'2023-08-08',
-    jinDu:0
-  },
-  {
-    title:'宿舍管理系统',
-    person:'王麻子',
-    states:'已排期',
-    workTime:'78h',
-    shengYuNeeds:20,
-    shengYuTask:26,
-    shengYuBug:0,
-    finishTime:'2023-08-08',
-    jinDu:0
-  },
-  {
-    title:'教务考试系统',
-    person:'胡一刀',
-    states:'进行中',
-    workTime:'300h',
-    shengYuNeeds:28,
-    shengYuTask:75,
-    shengYuBug:152,
-    finishTime:'2023-08-08',
-    jinDu:25
-  },
-  {
-    title:'在线试卷批改',
-    person:'张三三',
-    states:'进行中',
-    workTime:'320h',
-    shengYuNeeds:45,
-    shengYuTask:102,
-    shengYuBug:3,
-    finishTime:'2023-08-08',
-    jinDu:25
-  },
-  {
-    title:'家校互通平台',
-    person:'王麻子',
-    states:'进行中',
-    workTime:'160h',
-    shengYuNeeds:13,
-    shengYuTask:160,
-    shengYuBug:9,
-    finishTime:'2023-08-08',
-    jinDu:25
+const tableData = ref([]);
+
+// 从后端获取未完成项目列表
+const fetchUnfinishedProjects = async () => {
+  try {
+    const response = await request.get('/workbench/unfinished-projects');
+    if (response.code === 200) {
+      tableData.value = response.data;
+    }
+  } catch (error) {
+    console.error('获取未完成项目列表失败:', error);
   }
-])
+};
+
+// 页面加载时获取未完成项目列表
+onMounted(() => {
+  fetchUnfinishedProjects();
+});
 </script>
 
 <style scoped>
@@ -176,5 +107,36 @@ const tableData = ref([
   font-size: 14px;
   font-weight: bold;
   color: #409EFF;
+}
+
+.el-table .cell {
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.el-table th {
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #f9f9f9;
+  padding: 4px 12px;
+  text-align: center;
+  vertical-align: middle;
+  height: 28px !important;
+}
+
+.el-table__row {
+  height: 35px !important;
+  line-height: 35px !important;
+}
+
+.el-table--border th {
+  border: none !important;
+}
+
+.el-table--border td {
+  border: none !important;
+  vertical-align: middle;
 }
 </style>

@@ -7,7 +7,11 @@
         :row-style="{height: '45px'}"
         :cell-style="{padding: '4px'}"
     >
-      <el-table-column prop="id" label="序号" width="80"></el-table-column>
+      <el-table-column label="序号" width="80">
+        <template #default="scope">
+          {{ scope.$index + 1 }}
+        </template>
+      </el-table-column>
       <el-table-column prop="projectName" label="项目名称" width="200">
         <template #default="scope">
           <span class="task-name">{{ scope.row.projectName }}</span>
@@ -235,15 +239,16 @@ const confirmClose = () => {
 
 <style scoped>
 .task-table-container {
-  padding: 20px;
+  padding: 0;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .TaskTable {
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
+  border: none !important;
 }
 
 .task-name {
@@ -329,11 +334,11 @@ const confirmClose = () => {
 }
 
 .el-table--border th {
-  border-bottom: 1px solid #ebeef5;
+  border: none !important;
 }
 
 .el-table--border td {
-  border-bottom: 1px solid #ebeef5;
+  border: none !important;
   vertical-align: middle;
 }
 

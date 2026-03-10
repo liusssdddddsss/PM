@@ -235,4 +235,65 @@ public class WorkbenchController {
             return Result.error("获取项目列表失败: " + e.getMessage());
         }
     }
+
+    @Operation(summary = "获取未完成项目列表", description = "返回未完成项目列表数据")
+    @GetMapping("/unfinished-projects")
+    public Result getUnfinishedProjects() {
+        try {
+            // 获取所有项目
+            Iterable<Project> allProjects = projectService.findAll();
+            List<Map<String, Object>> projectList = new ArrayList<>();
+            
+            for (Project project : allProjects) {
+                // 过滤出未完成的项目（状态不是2已关闭或3已归档）
+                if (project.getStatus() == null || (project.getStatus() != 2 && project.getStatus() != 3)) {
+                    Map<String, Object> projectMap = new HashMap<>();
+                    projectMap.put("title", project.getName());
+                    
+                    // 获取负责人姓名
+                    String managerName = "未知"; 
+                    if (project.getManager_id() != null) {
+                        try {
+                            var user = userService.findById(project.getManager_id().toString());
+                            if (user.isPresent()) {
+                                managerName = user.get().getName();
+                            }
+                        } catch (Exception e) {
+                            System.out.println("获取负责人姓名失败: " + e.getMessage());
+                        }
+                    }
+                    projectMap.put("person", managerName);
+                    
+                    // 根据状态设置显示文本
+                    String statusText = "已排期"; // 默认状态
+                    if (project.getStatus() != null) {
+                        switch (project.getStatus()) {
+                            case 0:
+                                statusText = "未开始";
+                                break;
+                            case 1:
+                                statusText = "进行中";
+                                break;
+                        }
+                    }
+                    projectMap.put("states", statusText);
+                    
+                    // 假设工时和其他数据
+                    projectMap.put("workTime", "160h");
+                    projectMap.put("shengYuNeeds", 20);
+                    projectMap.put("shengYuTask", 30);
+                    projectMap.put("shengYuBug", 10);
+                    projectMap.put("finishTime", project.getEnd_date());
+                    projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
+                    
+                    projectList.add(projectMap);
+                }
+            }
+            
+            return Result.success(projectList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取未完成项目列表失败: " + e.getMessage());
+        }
+    }
 }

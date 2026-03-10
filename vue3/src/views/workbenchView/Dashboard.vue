@@ -846,7 +846,24 @@ p{
 }
 
 .content-area {
-  min-height: 400px;
+  height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #409EFF #f0f0f0;
+}
+
+.content-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-area::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.content-area::-webkit-scrollbar-thumb {
+  background: #409EFF;
+  border-radius: 3px;
 }
 
 /*项目统计样式*/

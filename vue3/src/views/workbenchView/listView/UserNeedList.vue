@@ -1,16 +1,34 @@
 <template>
-  <el-table
-      :data="tableData"
-      style="width: 100%"
-      class="UserNeedTable"
-  >
-    <el-table-column prop="id" label="序号" width="80"></el-table-column>
-    <el-table-column prop="title" label="标题" width="400"></el-table-column>
-    <el-table-column prop="priority" label="优先级" width="80"></el-table-column>
-    <el-table-column prop="state" label="状态" width="90"></el-table-column>
+  <div class="task-table-container">
+    <el-table
+        :data="tableData"
+        style="width: 100%"
+        class="UserNeedTable"
+    >
+    <el-table-column label="序号" width="80">
+      <template #default="scope">
+        {{ scope.$index + 1 }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="title" label="标题" width="400">
+      <template #default="scope">
+        <span class="task-name">{{ scope.row.title }}</span>
+      </template>
+    </el-table-column>
+    <el-table-column prop="priority" label="优先级" width="80">
+      <template #default="scope">
+        <span :class="getPriorityClass(scope.row.priority)">{{ scope.row.priority }}</span>
+      </template>
+    </el-table-column>
+    <el-table-column prop="state" label="状态" width="90">
+      <template #default="scope">
+        <span :class="getStatusClass(scope.row.state)">{{ scope.row.state }}</span>
+      </template>
+    </el-table-column>
     <el-table-column prop="category" label="类别" width="80"></el-table-column>
     <el-table-column prop="finishTime" label="完成时间" width="180"></el-table-column>
-  </el-table>
+    </el-table>
+  </div>
 </template>
 
 <script setup>
@@ -87,8 +105,112 @@ const getCategoryText = (type) => {
       return '用户需求';
   }
 };
+
+// 获取优先级的类名
+const getPriorityClass = (priority) => {
+  switch (priority) {
+    case '紧急':
+      return 'priority-urgent';
+    case '一般':
+      return 'priority-normal';
+    case '正常':
+      return 'priority-regular';
+    default:
+      return '';
+  }
+};
+
+// 获取状态的类名
+const getStatusClass = (state) => {
+  switch (state) {
+    case '进行中':
+      return 'status-in-progress';
+    case '已完成':
+      return 'status-completed';
+    default:
+      return '';
+  }
+};
 </script>
 
 <style scoped>
+.task-table-container {
+  padding: 0;
+  background-color: #fff;
+  border-radius: 0;
+  box-shadow: none;
+}
 
+.UserNeedTable {
+  border-radius: 0;
+  overflow: hidden;
+  border: none !important;
+}
+
+.task-name {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-urgent {
+  color: #F56C6C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-normal {
+  color: #E6A23C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-regular {
+  color: #67C23A;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-in-progress {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-completed {
+  color: #67C23A;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.el-table .cell {
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.el-table th {
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #f9f9f9;
+  padding: 4px 12px;
+  text-align: center;
+  vertical-align: middle;
+  height: 28px !important;
+}
+
+.el-table__row {
+  height: 28px !important;
+  line-height: 28px !important;
+}
+
+.el-table--border th {
+  border: none !important;
+}
+
+.el-table--border td {
+  border: none !important;
+  vertical-align: middle;
+}
 </style>
