@@ -66,23 +66,24 @@
 <!--      参与项目-->
       <el-card style="max-width: 98%;margin-top: 10px">
         <h3>我参与的项目</h3>
-        <el-row class="project-self">
-          <el-col
-              v-for="item in projectList"
-              :key="item"
-              :title="item"
-              :span="8"
-          >
-            <el-card class="project-list">
-              <h1>{{item.projectName}}</h1>
-              <p>项目成员: 共{{item.projectMember}}人</p><br>
-              <p>计划完成时间: {{item.finishTime}}</p>
-              <div class="progress-bar">
-                <el-progress :percentage="item.degree"/>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+        <div class="project-self">
+          <div class="project-container">
+            <div
+                v-for="item in projectList"
+                :key="item.id"
+                class="project-item"
+            >
+              <el-card class="project-list">
+                <h1>{{item.projectName}}</h1>
+                <p>项目成员: 共{{item.projectMember}}人</p><br>
+                <p>计划完成时间: {{formatDate(item.finishTime)}}</p>
+                <div class="progress-bar">
+                  <el-progress :percentage="item.degree"/>
+                </div>
+              </el-card>
+            </div>
+          </div>
+        </div>
       </el-card>
 
 <!--      待处理-->
@@ -496,22 +497,27 @@ const needsState = ref(10);
 const userState = ref(10);
 const passageState = ref(10);
 
-// 页面加载时获取用户信息和统计数据
-onMounted(() => {
-  // 从本地存储中获取用户信息
-  const userStr = localStorage.getItem('user');
-  if (userStr) {
-    const user = JSON.parse(userStr);
-    // 先使用username作为默认值
-    name.value = user.username || '用户';
-    
-    // 从后端获取用户的真实姓名
-    fetchUserInfo(user.username);
+//我参与的项目数
+const projectList = ref([]);
+
+// 从后端获取项目列表数据
+const fetchProjects = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get(`/workbench/projects?username=${user.username}`);
+      console.log('获取项目列表响应:', response);
+      if (response.code === 200) {
+        projectList.value = response.data;
+        console.log('转换后的项目列表数据:', projectList.value);
+      }
+    }
+  } catch (error) {
+    console.error('获取项目列表失败:', error);
   }
-  
-  // 从后端获取统计数据
-  fetchStatistics();
-});
+};
 
 // 从后端获取用户信息
 const fetchUserInfo = async (username) => {
@@ -552,27 +558,36 @@ const fetchStatistics = async () => {
   }
 };
 
-//我参与的项目数
-const projectList = ref([
-  {
-    projectName:'智慧教室',
-    projectMember:6,
-    finishTime:'2026-09-09',
-    degree:80
-  },
-  {
-    projectName:'实践教学平台',
-    projectMember:6,
-    finishTime:'2026-09-09',
-    degree:26
-  },
-  {
-    projectName:'实践教学平台',
-    projectMember:6,
-    finishTime:'2026-09-09',
-    degree:26
+// 页面加载时获取用户信息、统计数据和项目列表
+onMounted(() => {
+  // 从本地存储中获取用户信息
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    // 先使用username作为默认值
+    name.value = user.username || '用户';
+    
+    // 从后端获取用户的真实姓名
+    fetchUserInfo(user.username);
   }
-])
+  
+  // 从后端获取统计数据
+  fetchStatistics();
+  
+  // 从后端获取项目列表
+  fetchProjects();
+});
+
+// 格式化日期
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
 
 // 团队完成情况
 const yesterday=ref(
@@ -737,8 +752,41 @@ p{
 }
 
 /*我参与的项目样式*/
+.project-self {
+  overflow: hidden;
+}
+
+.project-container {
+  display: flex;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #409EFF #f0f0f0;
+}
+
+.project-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.project-container::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.project-container::-webkit-scrollbar-thumb {
+  background: #409EFF;
+  border-radius: 3px;
+}
+
+.project-item {
+  flex: 0 0 33.333%;
+  max-width: 33.333%;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
 .project-list{
-  width: 250px;
+  width: 100%;
   height: 150px;
   margin-top: 10px;
   box-shadow: none;

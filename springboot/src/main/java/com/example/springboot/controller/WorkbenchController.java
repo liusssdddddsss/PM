@@ -2,6 +2,7 @@ package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.Bug;
+import com.example.springboot.entity.Project;
 import com.example.springboot.entity.ProjectApproval;
 import com.example.springboot.entity.Requirement;
 import com.example.springboot.entity.Task;
@@ -11,11 +12,13 @@ import com.example.springboot.service.RequirementService;
 import com.example.springboot.service.TaskService;
 import com.example.springboot.service.ProjectService;
 import com.example.springboot.service.UserService;
+import com.example.springboot.service.ProjectMemberService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
@@ -40,6 +43,8 @@ public class WorkbenchController {
     ProjectService projectService;
     @Resource
     UserService userService;
+    @Resource
+    ProjectMemberService projectMemberService;
 
     @Operation(summary = "获取审批列表", description = "返回审批列表数据")
     @GetMapping("/approvals")
@@ -187,6 +192,47 @@ public class WorkbenchController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取Bug列表失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取项目列表", description = "返回项目列表数据")
+    @GetMapping("/projects")
+    public Result getProjects(@RequestParam String username) {
+        try {
+            // 首先根据用户名获取用户信息
+            var user = userService.findById(username);
+            if (user.isPresent()) {
+                Long userId = Long.parseLong(user.get().getUsername());
+                
+                // 根据用户ID查询参与的项目成员记录
+                List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                List<Map<String, Object>> projectList = new ArrayList<>();
+                
+                // 遍历项目成员记录，获取对应的项目信息
+                for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                    Long projectId = member.getProjectId();
+                    if (projectId != null) {
+                        var project = projectService.findById(projectId);
+                        if (project.isPresent()) {
+                            Project p = project.get();
+                            Map<String, Object> projectMap = new HashMap<>();
+                            projectMap.put("id", p.getId());
+                            projectMap.put("projectName", p.getName());
+                            projectMap.put("projectMember", 6); // 假设每个项目有6个成员
+                            projectMap.put("finishTime", p.getEnd_date());
+                            projectMap.put("degree", p.getProgress() != null ? p.getProgress() : 0);
+                            projectList.add(projectMap);
+                        }
+                    }
+                }
+                
+                return Result.success(projectList);
+            } else {
+                return Result.error("用户不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目列表失败: " + e.getMessage());
         }
     }
 }
