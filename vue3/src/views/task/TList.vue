@@ -65,6 +65,7 @@ const handleTabClick = (type) => {
 <style scoped>
 .product-comment{
   background-color: white;
+  height: 100vh;
 }
 .option{
   height: 40px;

@@ -27,18 +27,17 @@
       <el-container class="admin-content">
         <!--      导航栏-->
         <el-aside class="aside">
-          <el-menu router>
+          <el-menu router :default-active="activeMenu">
             <el-menu-item
                 class="menu-item"
                 v-for="(item,index) in menuList"
                 :key="item.path"
                 :index="item.path"
-                :class="{'liang':index === 0}"
             >
 <!--              图标-->
-<!--              <el-icon>-->
-<!--                <component :is="item.icon"/>-->
-<!--              </el-icon>-->
+<!--              <el-icon>-->  
+<!--                <component :is="item.icon"/>-->  
+<!--              </el-icon>-->  
               {{item.name}}
             </el-menu-item>
           </el-menu>
@@ -53,7 +52,7 @@
 </template>
 
 <script setup>
-import {ref, watch, onMounted} from "vue";
+import {ref, watch, onMounted, computed} from "vue";
 import {useRoute, useRouter} from "vue-router";
 
 const route = useRoute();
@@ -112,9 +111,26 @@ const menuList = ref([
   {path: '/iteration/iterationList',name:'迭代'},
   {path: '/teams/team',name:'团队'},
   {path: '/test/tests',name:'测试'},
-  {path: '/AI/marketAI',name:'AI'},
+  {path: '/AI/assistant',name:'AI'},
   {path: '/feedbacks/feedback',name:'反馈'}
 ])
+
+// 计算当前激活的菜单
+const activeMenu = computed(() => {
+  // 获取当前路由路径
+  const currentPath = route.path;
+  
+  // 检查当前路径是否匹配菜单中的某个项
+  for (const item of menuList.value) {
+    // 如果当前路径以菜单项的路径开头，则返回该菜单项的路径
+    if (currentPath.startsWith(item.path)) {
+      return item.path;
+    }
+  }
+  
+  // 默认返回工作台
+  return '/workbench/dashboard';
+});
 </script>
 
 <style scoped>
@@ -176,9 +192,11 @@ const menuList = ref([
 .menu-item:hover{
   background-color: #238EFF;
 }
-.liang{
-  background-color: #238EFF;
-  color:white;
+
+/* Element Plus 激活菜单样式 */
+.el-menu-item.is-active {
+  background-color: #238EFF !important;
+  color: white !important;
 }
 /*主要内容*/
 .main-comment{

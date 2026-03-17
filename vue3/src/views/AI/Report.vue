@@ -1,62 +1,60 @@
 <template>
-  <div class="market-analysis-container">
+  <div class="report-container">
     <div class="left-panel">
       <el-card>
         <div class="title">
-          <h3>市场分析报告</h3>
+          <h3>工作汇报</h3>
         </div>
         <div class="form-container">
           <el-form :model="formData" label-width="80px">
-            <el-form-item label="目标市场">
-              <el-input
-                  v-model="formData.targetMarket"
-                  placeholder="请输入内容"
-                  type="textarea"
-                  :rows="2"
+            <el-form-item label="汇报周期">
+              <el-select v-model="formData.reportPeriod" placeholder="请选择">
+                <el-option label="日汇报" value="daily" />
+                <el-option label="周汇报" value="weekly" />
+                <el-option label="月汇报" value="monthly" />
+                <el-option label="季度汇报" value="quarterly" />
+                <el-option label="年度汇报" value="yearly" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="汇报时间">
+              <el-date-picker
+                  v-model="formData.reportDate"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
               />
             </el-form-item>
 
-            <el-form-item label="市场概况">
+            <el-form-item label="汇报内容">
               <el-input
-                  v-model="formData.marketOverview"
-                  placeholder="请输入内容"
+                  v-model="formData.reportContent"
+                  placeholder="请输入汇报内容要点"
                   type="textarea"
-                  :rows="2"
+                  :rows="3"
               />
             </el-form-item>
 
-            <el-form-item label="细分市场">
+            <el-form-item label="项目名称">
               <el-input
-                  v-model="formData.segmentedMarket"
-                  placeholder="请输入内容"
-                  type="textarea"
-                  :rows="2"
+                  v-model="formData.projectName"
+                  placeholder="请输入项目名称"
               />
             </el-form-item>
 
-            <el-form-item label="竞品名称">
-              <el-input
-                  v-model="formData.competitors"
-                  placeholder="请输入内容"
-                  type="textarea"
-                  :rows="2"
-              />
-            </el-form-item>
-
-            <el-form-item label="竞品分析维度">
-              <el-select v-model="formData.competitorDimensions" placeholder="请选择">
-                <el-option label="功能特性" value="features" />
-                <el-option label="价格策略" value="pricing" />
-                <el-option label="市场份额" value="marketShare" />
-                <el-option label="用户体验" value="ux" />
-                <el-option label="技术优势" value="technology" />
-                <el-option label="营销策略" value="marketing" />
+            <el-form-item label="汇报类型">
+              <el-select v-model="formData.reportType" placeholder="请选择">
+                <el-option label="工作总结" value="summary" />
+                <el-option label="进度汇报" value="progress" />
+                <el-option label="问题反馈" value="issue" />
+                <el-option label="计划安排" value="plan" />
               </el-select>
             </el-form-item>
           </el-form>
 
           <div class="generate-button">
-            <el-button type="primary" @click="generateReport" style="width: 100%" :loading="loading">生成</el-button>
+            <el-button type="primary" @click="generateReport" style="width: 100%" :loading="loading">生成汇报</el-button>
           </div>
         </div>
       </el-card>
@@ -65,7 +63,7 @@
     <div class="right-panel">
       <el-card>
         <div class="chat-header">
-          <h3>市场分析助手</h3>
+          <h3>工作汇报助手</h3>
         </div>
         <div class="chat-messages">
           <el-timeline>
@@ -78,7 +76,7 @@
             >
               <el-card :class="{ 'user-message': message.role === 'user', 'ai-message': message.role === 'assistant' }">
                 <div class="message-header">
-                  <span class="message-role">{{ message.role === 'user' ? '您' : '市场分析助手' }}</span>
+                  <span class="message-role">{{ message.role === 'user' ? '您' : '工作汇报助手' }}</span>
                   <span class="message-time">{{ message.timestamp }}</span>
                 </div>
                 <div class="message-content" v-html="message.content"></div>
@@ -87,7 +85,7 @@
             <el-timeline-item v-if="isGenerating" type="info" icon="el-icon-loading">
               <el-card class="ai-message">
                 <div class="message-header">
-                  <span class="message-role">市场分析助手</span>
+                  <span class="message-role">工作汇报助手</span>
                 </div>
                 <div class="message-content">
                   <el-skeleton :rows="3" animated />
@@ -118,11 +116,11 @@ import axios from 'axios';
 
 // 表单数据
 const formData = ref({
-  targetMarket: '',
-  marketOverview: '',
-  segmentedMarket: '',
-  competitors: '',
-  competitorDimensions: ''
+  reportPeriod: '',
+  reportDate: [],
+  reportContent: '',
+  projectName: '',
+  reportType: ''
 });
 
 // 状态变量
@@ -145,10 +143,10 @@ const getCurrentTimestamp = () => {
   });
 };
 
-// 生成报告
+// 生成工作汇报
 const generateReport = async () => {
-  if (!formData.value.targetMarket) {
-    alert('请填写目标市场');
+  if (!formData.value.reportPeriod || !formData.value.reportDate) {
+    alert('请填写汇报周期和汇报时间');
     return;
   }
 
@@ -157,7 +155,7 @@ const generateReport = async () => {
   isGenerating.value = true; // 显示加载动画
   try {
     // 构建更友好的用户输入消息
-    const userMessage = `我需要分析以下市场信息：\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}`;
+    const userMessage = `我需要生成以下工作汇报：\n汇报周期：${formData.value.reportPeriod}\n汇报时间：${formData.value.reportDate[0]} 至 ${formData.value.reportDate[1]}\n汇报内容：${formData.value.reportContent}\n项目名称：${formData.value.projectName}\n汇报类型：${formData.value.reportType}`;
 
     // 添加用户消息到聊天历史（显示给用户的友好版本）
     chatMessages.value.push({
@@ -167,7 +165,7 @@ const generateReport = async () => {
     });
 
     // 构建详细的prompt给AI
-    const prompt = `请根据以下市场信息生成一份详细的市场分析报告：\n\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}\n\n请生成一份结构清晰、内容正式的市场分析报告，包括：市场规模分析、发展趋势、竞争格局、机会与挑战等内容。报告应该专业、全面，并且易于理解。`;
+    const prompt = `请根据以下信息生成一份详细的工作汇报：\n\n汇报周期：${formData.value.reportPeriod}\n汇报时间：${formData.value.reportDate[0]} 至 ${formData.value.reportDate[1]}\n汇报内容：${formData.value.reportContent}\n项目名称：${formData.value.projectName}\n汇报类型：${formData.value.reportType}\n\n请生成一份结构清晰、内容正式的工作汇报，包括：\n1. 工作内容概述\n2. 完成的任务和成果\n3. 遇到的问题和解决方案\n4. 下一步计划\n5. 总结和建议\n\n汇报应该专业、全面，并且易于理解。`;
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
       model: 'qwen3.5-flash',
@@ -188,11 +186,11 @@ const generateReport = async () => {
       timestamp: getCurrentTimestamp()
     });
   } catch (error) {
-    console.error('生成报告失败:', error);
+    console.error('生成工作汇报失败:', error);
     // 添加错误消息到聊天历史
     chatMessages.value.push({
       role: 'assistant',
-      content: `生成报告失败: ${error.response ? JSON.stringify(error.response.data) : error.message}`,
+      content: `生成工作汇报失败: ${error.response ? JSON.stringify(error.response.data) : error.message}`,
       timestamp: getCurrentTimestamp()
     });
   } finally {
@@ -256,7 +254,7 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
-.market-analysis-container {
+.report-container {
   display: flex;
   min-height: 100vh;
   gap: 20px;
@@ -358,7 +356,7 @@ const sendMessage = async () => {
 }
 
 @media (max-width: 768px) {
-  .market-analysis-container {
+  .report-container {
     flex-direction: column;
   }
 

@@ -1,62 +1,50 @@
 <template>
-  <div class="market-analysis-container">
+  <div class="analysis-container">
     <div class="left-panel">
       <el-card>
         <div class="title">
-          <h3>市场分析报告</h3>
+          <h3>智能分析预警</h3>
         </div>
         <div class="form-container">
           <el-form :model="formData" label-width="80px">
-            <el-form-item label="目标市场">
+            <el-form-item label="项目名称">
               <el-input
-                  v-model="formData.targetMarket"
-                  placeholder="请输入内容"
-                  type="textarea"
-                  :rows="2"
+                  v-model="formData.projectName"
+                  placeholder="请输入项目名称"
               />
             </el-form-item>
 
-            <el-form-item label="市场概况">
-              <el-input
-                  v-model="formData.marketOverview"
-                  placeholder="请输入内容"
-                  type="textarea"
-                  :rows="2"
+            <el-form-item label="分析维度">
+              <el-select v-model="formData.analysisDimensions" placeholder="请选择" multiple>
+                <el-option label="进度风险" value="progress" />
+                <el-option label="资源风险" value="resource" />
+                <el-option label="技术风险" value="technology" />
+                <el-option label="成本风险" value="cost" />
+                <el-option label="质量风险" value="quality" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="项目周期">
+              <el-date-picker
+                  v-model="formData.projectPeriod"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
               />
             </el-form-item>
 
-            <el-form-item label="细分市场">
-              <el-input
-                  v-model="formData.segmentedMarket"
-                  placeholder="请输入内容"
-                  type="textarea"
-                  :rows="2"
-              />
-            </el-form-item>
-
-            <el-form-item label="竞品名称">
-              <el-input
-                  v-model="formData.competitors"
-                  placeholder="请输入内容"
-                  type="textarea"
-                  :rows="2"
-              />
-            </el-form-item>
-
-            <el-form-item label="竞品分析维度">
-              <el-select v-model="formData.competitorDimensions" placeholder="请选择">
-                <el-option label="功能特性" value="features" />
-                <el-option label="价格策略" value="pricing" />
-                <el-option label="市场份额" value="marketShare" />
-                <el-option label="用户体验" value="ux" />
-                <el-option label="技术优势" value="technology" />
-                <el-option label="营销策略" value="marketing" />
+            <el-form-item label="项目状态">
+              <el-select v-model="formData.projectStatus" placeholder="请选择">
+                <el-option label="进行中" value="inProgress" />
+                <el-option label="已完成" value="completed" />
+                <el-option label="已暂停" value="paused" />
               </el-select>
             </el-form-item>
           </el-form>
 
           <div class="generate-button">
-            <el-button type="primary" @click="generateReport" style="width: 100%" :loading="loading">生成</el-button>
+            <el-button type="primary" @click="generateAnalysis" style="width: 100%" :loading="loading">分析</el-button>
           </div>
         </div>
       </el-card>
@@ -65,7 +53,7 @@
     <div class="right-panel">
       <el-card>
         <div class="chat-header">
-          <h3>市场分析助手</h3>
+          <h3>智能分析助手</h3>
         </div>
         <div class="chat-messages">
           <el-timeline>
@@ -78,7 +66,7 @@
             >
               <el-card :class="{ 'user-message': message.role === 'user', 'ai-message': message.role === 'assistant' }">
                 <div class="message-header">
-                  <span class="message-role">{{ message.role === 'user' ? '您' : '市场分析助手' }}</span>
+                  <span class="message-role">{{ message.role === 'user' ? '您' : '智能分析助手' }}</span>
                   <span class="message-time">{{ message.timestamp }}</span>
                 </div>
                 <div class="message-content" v-html="message.content"></div>
@@ -87,7 +75,7 @@
             <el-timeline-item v-if="isGenerating" type="info" icon="el-icon-loading">
               <el-card class="ai-message">
                 <div class="message-header">
-                  <span class="message-role">市场分析助手</span>
+                  <span class="message-role">智能分析助手</span>
                 </div>
                 <div class="message-content">
                   <el-skeleton :rows="3" animated />
@@ -118,11 +106,10 @@ import axios from 'axios';
 
 // 表单数据
 const formData = ref({
-  targetMarket: '',
-  marketOverview: '',
-  segmentedMarket: '',
-  competitors: '',
-  competitorDimensions: ''
+  projectName: '',
+  analysisDimensions: [],
+  projectPeriod: [],
+  projectStatus: ''
 });
 
 // 状态变量
@@ -145,10 +132,10 @@ const getCurrentTimestamp = () => {
   });
 };
 
-// 生成报告
-const generateReport = async () => {
-  if (!formData.value.targetMarket) {
-    alert('请填写目标市场');
+// 生成分析报告
+const generateAnalysis = async () => {
+  if (!formData.value.projectName) {
+    alert('请填写项目名称');
     return;
   }
 
@@ -157,7 +144,7 @@ const generateReport = async () => {
   isGenerating.value = true; // 显示加载动画
   try {
     // 构建更友好的用户输入消息
-    const userMessage = `我需要分析以下市场信息：\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}`;
+    const userMessage = `我需要分析以下项目的风险：\n项目名称：${formData.value.projectName}\n分析维度：${formData.value.analysisDimensions.join(', ')}\n项目周期：${formData.value.projectPeriod ? formData.value.projectPeriod[0] + ' 至 ' + formData.value.projectPeriod[1] : '未指定'}\n项目状态：${formData.value.projectStatus}`;
 
     // 添加用户消息到聊天历史（显示给用户的友好版本）
     chatMessages.value.push({
@@ -167,7 +154,7 @@ const generateReport = async () => {
     });
 
     // 构建详细的prompt给AI
-    const prompt = `请根据以下市场信息生成一份详细的市场分析报告：\n\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}\n\n请生成一份结构清晰、内容正式的市场分析报告，包括：市场规模分析、发展趋势、竞争格局、机会与挑战等内容。报告应该专业、全面，并且易于理解。`;
+    const prompt = `请根据以下项目信息进行风险分析和预警：\n\n项目名称：${formData.value.projectName}\n分析维度：${formData.value.analysisDimensions.join(', ')}\n项目周期：${formData.value.projectPeriod ? formData.value.projectPeriod[0] + ' 至 ' + formData.value.projectPeriod[1] : '未指定'}\n项目状态：${formData.value.projectStatus}\n\n请生成一份详细的风险分析报告，包括：\n1. 各维度的风险评估\n2. 潜在风险点的预警\n3. 风险缓解建议\n4. 优先级排序\n\n报告应该专业、全面，并且易于理解。`;
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
       model: 'qwen3.5-flash',
@@ -188,11 +175,11 @@ const generateReport = async () => {
       timestamp: getCurrentTimestamp()
     });
   } catch (error) {
-    console.error('生成报告失败:', error);
+    console.error('生成分析报告失败:', error);
     // 添加错误消息到聊天历史
     chatMessages.value.push({
       role: 'assistant',
-      content: `生成报告失败: ${error.response ? JSON.stringify(error.response.data) : error.message}`,
+      content: `生成分析报告失败: ${error.response ? JSON.stringify(error.response.data) : error.message}`,
       timestamp: getCurrentTimestamp()
     });
   } finally {
@@ -256,7 +243,7 @@ const sendMessage = async () => {
 </script>
 
 <style scoped>
-.market-analysis-container {
+.analysis-container {
   display: flex;
   min-height: 100vh;
   gap: 20px;
@@ -358,7 +345,7 @@ const sendMessage = async () => {
 }
 
 @media (max-width: 768px) {
-  .market-analysis-container {
+  .analysis-container {
     flex-direction: column;
   }
 

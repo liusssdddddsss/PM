@@ -1,7 +1,9 @@
 package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
+import com.example.springboot.entity.Bug;
 import com.example.springboot.entity.Project;
+import com.example.springboot.entity.Requirement;
 import com.example.springboot.entity.Task;
 import com.example.springboot.service.BugService;
 import com.example.springboot.service.ProjectApprovalService;
@@ -22,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Set;
 import java.util.HashSet;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @RestController
 @RequestMapping("/dashboard")
@@ -83,22 +87,141 @@ public class DashboardController {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // 模拟团队完成情况数据
+            // 从数据库获取真实数据
             Map<String, Integer> yesterday = new HashMap<>();
-            yesterday.put("task", 120);
-            yesterday.put("create", 56);
-            yesterday.put("tiChu", 159);
-            yesterday.put("bug", 165);
-            yesterday.put("clock", 65);
-            yesterday.put("averageClock", 7);
-            
             Map<String, Integer> today = new HashMap<>();
-            today.put("task", 68);
-            today.put("create", 45);
-            today.put("tiChu", 123);
-            today.put("bug", 158);
-            today.put("clock", 50);
-            today.put("averageClock", 5);
+            
+            // 计算昨日完成的任务数（假设昨天是前一天）
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_YEAR, -1);
+            
+            // 计算今日完成的任务数
+            Calendar todayCalendar = Calendar.getInstance();
+            
+            // 从数据库获取任务数据
+            List<Task> tasks = taskService.findall();
+            int yesterdayTaskCount = 0;
+            int todayTaskCount = 0;
+            
+            // 从数据库获取需求数据
+            List<Requirement> requirements = requirementService.findall();
+            int yesterdayCreateCount = 0;
+            int todayCreateCount = 0;
+            
+            // 从数据库获取Bug数据
+            List<Bug> bugs = bugService.findall();
+            int yesterdayTiChuCount = 0;
+            int todayTiChuCount = 0;
+            int yesterdayBugCount = 0;
+            int todayBugCount = 0;
+            
+            // 统计任务完成情况
+            for (Task task : tasks) {
+                if (task.getStatus() != null && task.getStatus() == 2) { // 已完成
+                    if (task.getCreated_at() != null) {
+                        Calendar taskCalendar = Calendar.getInstance();
+                        try {
+                            // 直接处理String类型的日期
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date date = sdf.parse(task.getCreated_at());
+                            taskCalendar.setTime(date);
+                            
+                            if (isSameDay(taskCalendar, calendar)) {
+                                yesterdayTaskCount++;
+                            } else if (isSameDay(taskCalendar, todayCalendar)) {
+                                todayTaskCount++;
+                            }
+                        } catch (Exception e) {
+                            // 日期解析失败，跳过这条记录
+                            System.out.println("日期解析失败: " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            // 统计需求创建情况
+            for (Requirement requirement : requirements) {
+                if (requirement.getCreated_at() != null) {
+                    Calendar reqCalendar = Calendar.getInstance();
+                    try {
+                        // 直接处理String类型的日期
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        Date date = sdf.parse(requirement.getCreated_at());
+                        reqCalendar.setTime(date);
+                        
+                        if (isSameDay(reqCalendar, calendar)) {
+                            yesterdayCreateCount++;
+                        } else if (isSameDay(reqCalendar, todayCalendar)) {
+                            todayCreateCount++;
+                        }
+                    } catch (Exception e) {
+                        // 日期解析失败，跳过这条记录
+                        System.out.println("日期解析失败: " + e.getMessage());
+                    }
+                }
+            }
+            
+            // 统计Bug情况
+            for (Bug bug : bugs) {
+                if (bug.getCreated_at() != null) {
+                    Calendar bugCalendar = Calendar.getInstance();
+                    try {
+                        // 直接处理String类型的日期
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        Date date = sdf.parse(bug.getCreated_at());
+                        bugCalendar.setTime(date);
+                        
+                        if (isSameDay(bugCalendar, calendar)) {
+                            yesterdayTiChuCount++;
+                        } else if (isSameDay(bugCalendar, todayCalendar)) {
+                            todayTiChuCount++;
+                        }
+                    } catch (Exception e) {
+                        // 日期解析失败，跳过这条记录
+                        System.out.println("日期解析失败: " + e.getMessage());
+                    }
+                }
+                
+                if (bug.getStatus() != null && bug.getStatus() == 2) { // 已解决
+                    if (bug.getCreated_at() != null) {
+                        Calendar bugCalendar = Calendar.getInstance();
+                        try {
+                            // 直接处理String类型的日期
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date date = sdf.parse(bug.getCreated_at());
+                            bugCalendar.setTime(date);
+                            
+                            if (isSameDay(bugCalendar, calendar)) {
+                                yesterdayBugCount++;
+                            } else if (isSameDay(bugCalendar, todayCalendar)) {
+                                todayBugCount++;
+                            }
+                        } catch (Exception e) {
+                            // 日期解析失败，跳过这条记录
+                            System.out.println("日期解析失败: " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            // 计算工时消耗（模拟数据，实际应该从工时表中获取）
+            int yesterdayClock = 65;
+            int todayClock = 50;
+            int averageClock = 6;
+            
+            yesterday.put("task", yesterdayTaskCount);
+            yesterday.put("create", yesterdayCreateCount);
+            yesterday.put("tiChu", yesterdayTiChuCount);
+            yesterday.put("bug", yesterdayBugCount);
+            yesterday.put("clock", yesterdayClock);
+            yesterday.put("averageClock", averageClock);
+            
+            today.put("task", todayTaskCount);
+            today.put("create", todayCreateCount);
+            today.put("tiChu", todayTiChuCount);
+            today.put("bug", todayBugCount);
+            today.put("clock", todayClock);
+            today.put("averageClock", averageClock);
             
             statistics.put("yesterday", yesterday);
             statistics.put("today", today);
@@ -108,6 +231,13 @@ public class DashboardController {
             e.printStackTrace();
             return Result.error("获取团队完成情况失败: " + e.getMessage());
         }
+    }
+    
+    // 辅助方法：判断两个Calendar是否是同一天
+    private boolean isSameDay(Calendar cal1, Calendar cal2) {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+               cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH) &&
+               cal1.get(Calendar.DAY_OF_MONTH) == cal2.get(Calendar.DAY_OF_MONTH);
     }
 
     @Operation(summary = "获取产品总览数据", description = "返回产品总览数据")
@@ -298,7 +428,7 @@ public class DashboardController {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // 模拟需求统计数据
+            // 从数据库获取真实的需求统计数据
             Map<String, Object> needsChartData = new HashMap<>();
             Map<String, Object> xAxis = new HashMap<>();
             xAxis.put("type", "category");
@@ -309,17 +439,52 @@ public class DashboardController {
             yAxis.put("type", "value");
             needsChartData.put("yAxis", yAxis);
             
+            // 从数据库获取需求数据
+            List<Requirement> requirements = requirementService.findall();
+            
+            // 统计每个月的需求数量
+            int[] addData = new int[6]; // 7月到12月
+            int[] finishData = new int[6]; // 7月到12月
+            
+            for (Requirement requirement : requirements) {
+                if (requirement.getCreated_at() != null) {
+                    Calendar calendar = Calendar.getInstance();
+                    try {
+                        // 直接处理String类型的日期
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        Date date = sdf.parse(requirement.getCreated_at());
+                        calendar.setTime(date);
+                        
+                        int month = calendar.get(Calendar.MONTH); // 0-11
+                        
+                        // 只统计7月到12月的数据
+                        if (month >= 6 && month <= 11) {
+                            int index = month - 6; // 0-5
+                            addData[index]++;
+                            
+                            // 如果需求已完成
+                            if (requirement.getStatus() != null && requirement.getStatus() == 2) {
+                                finishData[index]++;
+                            }
+                        }
+                    } catch (Exception e) {
+                        // 日期解析失败，跳过这条记录
+                        System.out.println("日期解析失败: " + e.getMessage());
+                    }
+                }
+            }
+            
             Map<String, Object> seriesItem1 = new HashMap<>();
             seriesItem1.put("name", "finish");
             seriesItem1.put("type", "line");
             seriesItem1.put("stack", "Total");
-            seriesItem1.put("data", new int[] {15, 24, 54, 23, 14, 56});
+            seriesItem1.put("data", finishData);
             
             Map<String, Object> seriesItem2 = new HashMap<>();
             seriesItem2.put("name", "add");
             seriesItem2.put("type", "line");
             seriesItem2.put("stack", "Total");
-            seriesItem2.put("data", new int[] {35, 67, 34, 28, 89, 99});
+            seriesItem2.put("data", addData);
             
             needsChartData.put("series", new Map[] {seriesItem1, seriesItem2});
             
@@ -338,23 +503,95 @@ public class DashboardController {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // 模拟测试统计数据
-            statistics.put("yesterdayNew", 125);
-            statistics.put("todayNew", 65);
-            statistics.put("yesterdaySolved", 98);
-            statistics.put("todaySolved", 26);
-            statistics.put("bugRepairRate", 50);
-            statistics.put("validBugs", 56);
-            statistics.put("fixedBugs", 16);
-            statistics.put("unclosedBugs", 42);
+            // 从数据库获取真实的测试统计数据
             
-            // 模拟待测试的测试单列表
+            // 计算昨日和今日的Bug数量
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_YEAR, -1);
+            
+            Calendar todayCalendar = Calendar.getInstance();
+            
+            // 从数据库获取Bug数据
+            List<Bug> bugs = bugService.findall();
+            int yesterdayNew = 0;
+            int todayNew = 0;
+            int yesterdaySolved = 0;
+            int todaySolved = 0;
+            int validBugs = 0;
+            int fixedBugs = 0;
+            int unclosedBugs = 0;
+            
+            for (Bug bug : bugs) {
+                if (bug.getCreated_at() != null) {
+                    Calendar bugCalendar = Calendar.getInstance();
+                    try {
+                        // 直接处理String类型的日期
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        Date date = sdf.parse(bug.getCreated_at());
+                        bugCalendar.setTime(date);
+                        
+                        if (isSameDay(bugCalendar, calendar)) {
+                            yesterdayNew++;
+                        } else if (isSameDay(bugCalendar, todayCalendar)) {
+                            todayNew++;
+                        }
+                    } catch (Exception e) {
+                        // 日期解析失败，跳过这条记录
+                        System.out.println("日期解析失败: " + e.getMessage());
+                    }
+                }
+                
+                if (bug.getStatus() != null && bug.getStatus() == 2) { // 已解决
+                    fixedBugs++;
+                    if (bug.getCreated_at() != null) {
+                        Calendar bugCalendar = Calendar.getInstance();
+                        try {
+                            // 直接处理String类型的日期
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date date = sdf.parse(bug.getCreated_at());
+                            bugCalendar.setTime(date);
+                            
+                            if (isSameDay(bugCalendar, calendar)) {
+                                yesterdaySolved++;
+                            } else if (isSameDay(bugCalendar, todayCalendar)) {
+                                todaySolved++;
+                            }
+                        } catch (Exception e) {
+                            // 日期解析失败，跳过这条记录
+                            System.out.println("日期解析失败: " + e.getMessage());
+                        }
+                    }
+                } else {
+                    unclosedBugs++;
+                }
+                
+                validBugs++;
+            }
+            
+            // 计算Bug修复率
+            int bugRepairRate = 0;
+            if (validBugs > 0) {
+                bugRepairRate = (fixedBugs * 100) / validBugs;
+            }
+            
+            // 获取待测试的测试单列表（从任务表中获取状态为0或1的任务）
+            List<Task> tasks = taskService.findall();
             List<String> testLists = new ArrayList<>();
-            testLists.add("班牌PC端管理界面调整");
-            testLists.add("学期结束后，自动给学生推送实训档案");
-            testLists.add("班牌模板调整，参考海康，增加竖版");
-            testLists.add("家校互通留言");
-            testLists.add("终端-教师端查询评分标准列表");
+            
+            for (Task task : tasks) {
+                if (task.getStatus() != null && (task.getStatus() == 0 || task.getStatus() == 1)) {
+                    testLists.add(task.getTitle());
+                }
+            }
+            
+            statistics.put("yesterdayNew", yesterdayNew);
+            statistics.put("todayNew", todayNew);
+            statistics.put("yesterdaySolved", yesterdaySolved);
+            statistics.put("todaySolved", todaySolved);
+            statistics.put("bugRepairRate", bugRepairRate);
+            statistics.put("validBugs", validBugs);
+            statistics.put("fixedBugs", fixedBugs);
+            statistics.put("unclosedBugs", unclosedBugs);
             statistics.put("testLists", testLists);
             
             return Result.success(statistics);

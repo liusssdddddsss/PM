@@ -118,8 +118,16 @@ const router = createRouter({
 
           ]},
       {path:'/AI',component:()=>import('@/views/home/Home.vue'),
+          meta:{
+              tabs:[
+                  {name:'AI智能助手',route:'/AI/assistant'}
+              ]
+          },
           children:[
+              {path:'assistant',component:()=>import('@/views/AI/AIAssistant.vue')},
               {path:'marketAI',component:()=>import('@/views/AI/Market.vue')},
+              {path:'analysis',component:()=>import('@/views/AI/Analysis.vue')},
+              {path:'report',component:()=>import('@/views/AI/Report.vue')}
 
           ]},
       {path:'/teams',component:()=>import('@/views/home/Home.vue'),

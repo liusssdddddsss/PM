@@ -181,7 +181,7 @@ const handleCurrentChange = (current) => {
 }
 
 .feedback-content {
-  padding: 20px;
+  margin-left: 20px;
 }
 
 .content-header {
