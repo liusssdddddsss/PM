@@ -361,7 +361,7 @@
           <div>
             <span>
               <p>{{taskAllCount}}</p>
-              项目总数
+              任务总数
             </span>
             <el-divider direction="vertical" />
             <span>
@@ -388,7 +388,7 @@
                 <ProjectList/>
               </div>
             </div>
-            <!-- 右侧：Bug统计（红色框内） -->
+            <!-- 右侧：Bug统计-->
             <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff; min-height: 200px;">
               <div class="bug-statistics">
                 <h3>Bug统计</h3>

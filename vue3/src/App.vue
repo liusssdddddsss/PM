@@ -6,13 +6,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import Watermark from './components/Watermark.vue';
 
 const userInfo = ref({});
+const route = useRoute();
 
-onMounted(() => {
-  // 从本地存储中获取用户信息
+// 从本地存储中获取用户信息的函数
+const fetchUserInfo = () => {
   const userStr = localStorage.getItem('user');
   console.log('获取到的用户信息字符串:', userStr);
   if (userStr) {
@@ -25,8 +27,21 @@ onMounted(() => {
     }
   } else {
     console.log('本地存储中没有用户信息');
+    userInfo.value = {};
   }
+};
+
+onMounted(() => {
+  fetchUserInfo();
 });
+
+// 监听路由变化，每次路由变化时检查用户信息
+watch(
+  () => route.path,
+  () => {
+    fetchUserInfo();
+  }
+);
 </script>
 
 <style scoped>

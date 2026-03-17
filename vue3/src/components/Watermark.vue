@@ -93,7 +93,7 @@ onMounted(() => {
 });
 
 watch(
-  () => [props.text, props.fontSize, props.color, props.opacity, props.rotate, props.spacing],
+  () => [props.userInfo, props.fontSize, props.color, props.opacity, props.rotate, props.spacing],
   () => {
     addWatermark();
   },

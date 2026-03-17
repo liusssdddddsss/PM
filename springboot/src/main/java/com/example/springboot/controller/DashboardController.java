@@ -1,10 +1,13 @@
 package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
+import com.example.springboot.entity.Project;
+import com.example.springboot.entity.Task;
 import com.example.springboot.service.BugService;
 import com.example.springboot.service.ProjectApprovalService;
 import com.example.springboot.service.TaskService;
 import com.example.springboot.service.RequirementService;
+import com.example.springboot.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -16,6 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Set;
+import java.util.HashSet;
 
 @RestController
 @RequestMapping("/dashboard")
@@ -30,6 +36,8 @@ public class DashboardController {
     TaskService taskService;
     @Resource
     RequirementService requirementService;
+    @Resource
+    ProjectService projectService;
 
     @Operation(summary = "获取工作台统计数据", description = "返回工作台的统计数据，包括待审批数、任务数、BUG数等")
     @GetMapping("/statistics")
@@ -108,10 +116,43 @@ public class DashboardController {
         try {
             Map<String, Integer> overview = new HashMap<>();
             
-            // 模拟产品总览数据
-            overview.put("projectCount", 24);
-            overview.put("thisYearIssue", 23);
-            overview.put("closeCount", 24);
+            // 从数据库获取项目数据，计算产品相关统计
+            Iterable<Project> projects = projectService.findAll();
+            List<Project> projectList = new ArrayList<>();
+            projects.forEach(projectList::add);
+            
+            // 计算产品总数（基于唯一的product_id）
+            Set<Long> productIds = new HashSet<>();
+            for (Project project : projectList) {
+                if (project.getProduct_id() != null) {
+                    productIds.add(project.getProduct_id());
+                }
+            }
+            int productCount = productIds.size();
+            
+            // 计算今年发布的产品数（基于项目的创建年份）
+            int thisYearIssue = 0;
+            int closeCount = 0;
+            Calendar calendar = Calendar.getInstance();
+            int currentYear = calendar.get(Calendar.YEAR);
+            
+            for (Project project : projectList) {
+                // 今年发布的产品
+                if (project.getCreated_at() != null) {
+                    calendar.setTime(project.getCreated_at());
+                    if (calendar.get(Calendar.YEAR) == currentYear) {
+                        thisYearIssue++;
+                    }
+                }
+                // 已关闭的产品（基于项目状态）
+                if (project.getStatus() != null && project.getStatus() == 2) {
+                    closeCount++;
+                }
+            }
+            
+            overview.put("projectCount", productCount);
+            overview.put("thisYearIssue", thisYearIssue);
+            overview.put("closeCount", closeCount);
             
             return Result.success(overview);
         } catch (Exception e) {
@@ -126,11 +167,51 @@ public class DashboardController {
         try {
             Map<String, Object> overview = new HashMap<>();
             
-            // 模拟项目总览数据
-            overview.put("xiangMuCount", 12);
-            overview.put("thisYearFinish", 12);
+            // 从数据库获取项目数据
+            Iterable<Project> projects = projectService.findAll();
+            List<Project> projectList = new ArrayList<>();
+            projects.forEach(projectList::add);
             
-            // 模拟项目年份分布数据
+            // 计算项目总数
+            int projectCount = projectList.size();
+            overview.put("xiangMuCount", projectCount);
+            
+            // 计算今年完成的项目数（status = 2 表示已完成）
+            int thisYearFinish = 0;
+            Calendar calendar = Calendar.getInstance();
+            int currentYear = calendar.get(Calendar.YEAR);
+            
+            // 统计近三年的项目数量
+            int[] yearCounts = new int[3]; // 2022, 2023, 2024
+            
+            for (Project project : projectList) {
+                // 检查是否是今年完成的项目
+                if (project.getStatus() != null && project.getStatus() == 2) {
+                    if (project.getEnd_date() != null) {
+                        calendar.setTime(project.getEnd_date());
+                        if (calendar.get(Calendar.YEAR) == currentYear) {
+                            thisYearFinish++;
+                        }
+                    }
+                }
+                
+                // 统计年份分布
+                if (project.getCreated_at() != null) {
+                    calendar.setTime(project.getCreated_at());
+                    int projectYear = calendar.get(Calendar.YEAR);
+                    if (projectYear == 2022) {
+                        yearCounts[0]++;
+                    } else if (projectYear == 2023) {
+                        yearCounts[1]++;
+                    } else if (projectYear == 2024) {
+                        yearCounts[2]++;
+                    }
+                }
+            }
+            
+            overview.put("thisYearFinish", thisYearFinish);
+            
+            // 项目年份分布数据
             Map<String, Object> projectYearsData = new HashMap<>();
             Map<String, Object> xAxis = new HashMap<>();
             xAxis.put("type", "category");
@@ -143,7 +224,7 @@ public class DashboardController {
             
             Map<String, Object> seriesItem = new HashMap<>();
             seriesItem.put("type", "bar");
-            seriesItem.put("data", new int[] {20, 100, 30});
+            seriesItem.put("data", yearCounts);
             projectYearsData.put("series", new Map[] {seriesItem});
             
             overview.put("projectYearsData", projectYearsData);
@@ -161,15 +242,36 @@ public class DashboardController {
         try {
             Map<String, Object> overview = new HashMap<>();
             
-            // 模拟任务完成总览数据
-            overview.put("taskAllCount", 1222);
-            overview.put("taskFinishCount", 1000);
+            // 从数据库获取任务数据
+            List<Task> tasks = taskService.findall();
             
-            // 模拟任务分布数据
+            // 计算任务总数
+            int taskAllCount = tasks.size();
+            overview.put("taskAllCount", taskAllCount);
+            
+            // 计算完成的任务数（status = 2 表示已完成）
+            int taskFinishCount = 0;
+            // 统计任务状态分布
+            int[] statusCounts = new int[3]; // 未开始(0), 进行中(1), 已完成(2)
+            
+            for (Task task : tasks) {
+                if (task.getStatus() != null) {
+                    if (task.getStatus() == 2) {
+                        taskFinishCount++;
+                    }
+                    if (task.getStatus() >= 0 && task.getStatus() < 3) {
+                        statusCounts[task.getStatus()]++;
+                    }
+                }
+            }
+            
+            overview.put("taskFinishCount", taskFinishCount);
+            
+            // 任务分布数据
             Map<String, Object> taskDistributionData = new HashMap<>();
             Map<String, Object> xAxis = new HashMap<>();
             xAxis.put("type", "category");
-            xAxis.put("data", new String[] {"未开始", "进行中", "已排期"});
+            xAxis.put("data", new String[] {"未开始", "进行中", "已完成"});
             taskDistributionData.put("xAxis", xAxis);
             
             Map<String, Object> yAxis = new HashMap<>();
@@ -178,7 +280,7 @@ public class DashboardController {
             
             Map<String, Object> seriesItem = new HashMap<>();
             seriesItem.put("type", "bar");
-            seriesItem.put("data", new int[] {20, 100, 30});
+            seriesItem.put("data", statusCounts);
             taskDistributionData.put("series", new Map[] {seriesItem});
             
             overview.put("taskDistributionData", taskDistributionData);
