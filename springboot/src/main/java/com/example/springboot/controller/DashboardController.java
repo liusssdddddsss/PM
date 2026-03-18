@@ -118,12 +118,12 @@ public class DashboardController {
             // 统计任务完成情况
             for (Task task : tasks) {
                 if (task.getStatus() != null && task.getStatus() == 2) { // 已完成
-                    if (task.getCreated_at() != null) {
+                    if (task.getCreatedAt() != null) {
                         Calendar taskCalendar = Calendar.getInstance();
                         try {
                             // 直接处理String类型的日期
                             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            Date date = sdf.parse(task.getCreated_at());
+                            Date date = sdf.parse(task.getCreatedAt());
                             taskCalendar.setTime(date);
                             
                             if (isSameDay(taskCalendar, calendar)) {

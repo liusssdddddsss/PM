@@ -9,10 +9,15 @@ public class ProjectMember {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "project_id")
     private Long projectId;
+    @Column(name = "user_id")
     private Long userId;
+    @Column(name = "role_type")
     private String roleType;
+    @Column(name = "joined_at")
     private Date joinedAt;
+    @Column(name = "joined_by")
     private Long joinedBy;
 
     public Long getId() {
