@@ -71,7 +71,7 @@ import {useRouter} from "vue-router";
 import axios from 'axios';
 
 const tabs = ref([
-  {name:'全部',type:'all',count:16},
+  {name:'全部',type:'all'},
   {name:'进行中',type:'ing',count:9},
   {name:'未开始',type:'noBegin',count:5},
   {name:'已关闭',type:'close',count:2},

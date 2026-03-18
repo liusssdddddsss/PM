@@ -118,6 +118,7 @@ public class WorkbenchController {
                 taskMap.put("parent_id", task.getParentId());
                 taskMap.put("creator_id", task.getCreatorId());
                 taskMap.put("assignee_id", task.getAssigneeId());
+                taskMap.put("assignee_name", "未指派"); // 默认值
                 taskMap.put("priority", task.getPriority());
                 taskMap.put("status", task.getStatus());
                 taskMap.put("progress", task.getProgress());
@@ -126,6 +127,8 @@ public class WorkbenchController {
                 taskMap.put("start_date", task.getStartDate());
                 taskMap.put("due_date", task.getDueDate());
                 taskMap.put("created_at", task.getCreatedAt());
+                taskMap.put("type", ""); // 默认值
+                taskMap.put("solution", ""); // 默认值
                 
                 // 获取项目名称
                 String projectName = "未知项目";

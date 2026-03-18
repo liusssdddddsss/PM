@@ -18,17 +18,7 @@
           <el-tab-pane label="待处理 19" name="pending"></el-tab-pane>
           <el-tab-pane label="处理中" name="processing"></el-tab-pane>
           <el-tab-pane label="待关闭" name="toClose"></el-tab-pane>
-<!--          <el-tab-pane label="待归档" name="toArchive"></el-tab-pane>-->
-<!--          <el-tab-pane label="由我反馈" name="myFeedback"></el-tab-pane>-->
-<!--          <el-tab-pane label="公开" name="public"></el-tab-pane>-->
-<!--          <el-tab-pane label="更多" name="more">-->
-<!--            <template #default>-->
-<!--              <div class="more-options">-->
-<!--                <el-button size="small">选项1</el-button>-->
-<!--                <el-button size="small">选项2</el-button>-->
-<!--              </div>-->
-<!--            </template>-->
-<!--          </el-tab-pane>-->
+
         </el-tabs>
 
         <div class="search-bar">
@@ -42,36 +32,7 @@
           <el-button type="primary" size="small">导入</el-button>
         </div>
       </div>
-
-<!--      <div class="feedback-list">-->
-<!--        <el-table-->
-<!--            :data="feedbackList"-->
-<!--            style="width: 100%"-->
-<!--            border-->
-<!--        >-->
-<!--          <el-table-column type="selection" width="40"></el-table-column>-->
-<!--          <el-table-column prop="id" label="ID" width="80"></el-table-column>-->
-<!--          <el-table-column prop="title" label="标题" min-width="300"></el-table-column>-->
-<!--          <el-table-column prop="priority" label="P" width="40" align="center">-->
-<!--            <template #default="scope">-->
-<!--              <el-tag size="small" :type="getPriorityType(scope.row.priority)">-->
-<!--                {{ scope.row.priority }}-->
-<!--              </el-tag>-->
-<!--            </template>-->
-<!--          </el-table-column>-->
-<!--          <el-table-column prop="status" label="状态" width="100"></el-table-column>-->
-<!--          <el-table-column prop="type" label="类型" width="100"></el-table-column>-->
-<!--          <el-table-column prop="assignee" label="指派给" width="120"></el-table-column>-->
-<!--          <el-table-column label="操作" width="150" fixed="right">-->
-<!--            <template #default="scope">-->
-<!--              <el-button size="small" @click="viewDetail(scope.row)">查看</el-button>-->
-<!--              <el-button size="small" @click="assignFeedback(scope.row)">指派</el-button>-->
-<!--            </template>-->
-<!--          </el-table-column>-->
-
-<!--        </el-table>-->
-
-      <TaskList/>
+      <FeedbackList :activeTab="activeTab" :searchQuery="searchQuery"/>
 
         <div class="pagination">
           <span>共 19 项</span>
@@ -82,6 +43,7 @@
               :current-page="1"
               @size-change="handleSizeChange"
               @current-change="handleCurrentChange"
+              style="margin-right: 10px"
           />
 <!--        </div>-->
       </div>
@@ -92,7 +54,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import TaskList from "@/views/workbenchView/listView/TaskList.vue";
+import FeedbackList from "@/views/workbenchView/listView/FeedbackList.vue";
 
 const router = useRouter();
 
@@ -199,11 +161,7 @@ const handleCurrentChange = (current) => {
   display: flex;
   gap: 10px;
   align-items: center;
-}
-
-.feedback-list {
-  background-color: white;
-  padding: 15px;
+  margin-right:10px;
 }
 
 .pagination {
@@ -213,9 +171,4 @@ const handleCurrentChange = (current) => {
   align-items: center;
 }
 
-.more-options {
-  padding: 10px;
-  display: flex;
-  gap: 10px;
-}
 </style>
