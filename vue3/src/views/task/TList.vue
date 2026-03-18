@@ -8,7 +8,7 @@
           @click="handleTabClick(tab.type)"
       >
         {{tab.name}}
-        {{tab.count}}
+        <span class="count">{{tab.count}}</span>
       </span>
       <div class="addProduct">
         <el-button class="button" @click="goToAddForm">
@@ -65,21 +65,33 @@ const handleTabClick = (type) => {
 <style scoped>
 .product-comment{
   background-color: white;
-  height: 100vh;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 .option{
   height: 40px;
-  padding: 10px;
+  //padding: 10px 0;
+  //margin-bottom: 20px;
+  border-bottom: 1px solid #ebeef5;
 }
 .option span{
   display: inline-block;
-  width: 80px;
+  padding: 0 10px;
   text-align: center;
-  margin-left: 10px;
+  //margin-right: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 .option span.active{
   color: #238EFF;
   border-bottom: 2px solid #238EFF;
+  font-weight: 500;
+}
+.count {
+  margin-left: 5px;
+  font-size: 12px;
+  color: #909399;
 }
 .addProduct{
   display: inline-block;
@@ -88,5 +100,6 @@ const handleTabClick = (type) => {
 .button{
   background-color: #238EFF;
   color: #fff;
+  margin-left: 10px;
 }
 </style>

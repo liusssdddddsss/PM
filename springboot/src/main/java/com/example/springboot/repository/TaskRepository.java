@@ -4,7 +4,18 @@ import com.example.springboot.entity.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Integer> {
-    // 可以添加自定义查询方法
+
+    // 根据迭代ID查询任务列表
+    List<Task> findByIteration_id(Integer iterationId);
+
+    // 根据项目ID查询任务列表
+    List<Task> findByProject_id(Integer projectId);
+
+    // 根据状态查询任务列表
+    List<Task> findByStatus(Integer status);
+
 }

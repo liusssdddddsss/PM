@@ -17,6 +17,7 @@ public class Task {
     private Integer project_id;
     private Integer requirement_id;
     private Integer parent_id;
+    private Integer iteration_id;
     private Integer creator_id;
     private Integer assignee_id;
     private Integer priority;
@@ -32,13 +33,14 @@ public class Task {
     public Task() {
     }
 
-    public Task(Integer id, String title, String description, Integer project_id, Integer requirement_id, Integer parent_id, Integer creator_id, Integer assignee_id, Integer priority, Integer status, Integer progress, Double estimated_hours, Double actual_hours, String start_date, String due_date, String created_at) {
+    public Task(Integer id, String title, String description, Integer project_id, Integer requirement_id, Integer parent_id, Integer iteration_id, Integer creator_id, Integer assignee_id, Integer priority, Integer status, Integer progress, Double estimated_hours, Double actual_hours, String start_date, String due_date, String created_at) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.project_id = project_id;
         this.requirement_id = requirement_id;
         this.parent_id = parent_id;
+        this.iteration_id = iteration_id;
         this.creator_id = creator_id;
         this.assignee_id = assignee_id;
         this.priority = priority;
@@ -98,6 +100,14 @@ public class Task {
 
     public void setParent_id(Integer parent_id) {
         this.parent_id = parent_id;
+    }
+
+    public Integer getIteration_id() {
+        return iteration_id;
+    }
+
+    public void setIteration_id(Integer iteration_id) {
+        this.iteration_id = iteration_id;
     }
 
     public Integer getCreator_id() {

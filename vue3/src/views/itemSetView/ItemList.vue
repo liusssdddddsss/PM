@@ -1,4 +1,5 @@
 <template>
+<!--  项目集-->
   <div class="projects-comment">
     <div class="option">
       <span
@@ -24,36 +25,37 @@
           :data="filteredData"
           style="width: 100%"
           class="ProjectTable"
-          :header-cell-style="{backgroundColor: '#f5f7fa', color: '#303133', fontSize: '14px', fontWeight: '500', padding: '8px 0'}"
-          :cell-style="{padding: '8px 0'}"
-          :row-style="{height: '40px'}"
+          :row-style="{height: '45px'}"
+          :cell-style="{padding: '4px'}"
       >
-        <el-table-column prop="id" label="序号" width="60"></el-table-column>
+        <el-table-column label="序号" width="80">
+          <template #default="scope">
+            {{ scope.$index + 1 }}
+          </template>
+        </el-table-column>
         <el-table-column prop="title" label="项目名称" min-width="180">
           <template #default="scope">
-            <a class="project-name">{{ scope.row.title }}</a>
+            <span class="project-name">{{ scope.row.title }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="person" label="负责人" width="90"></el-table-column>
         <el-table-column prop="startTime" label="开始时间" width="130"></el-table-column>
         <el-table-column prop="finishTime" label="预计完成时间" width="130"></el-table-column>
-        <el-table-column prop="jinDu" label="进度" width="70">
+        <el-table-column prop="jinDu" label="进度" width="100">
           <template #default="scope">
-            <div class="progress-circle">
-              <span class="progress-text">{{ scope.row.jinDu }}</span>
-            </div>
+            <el-progress type="circle" :percentage="scope.row.jinDu" :width="20" :stroke-width="3" />
           </template>
         </el-table-column>
         <el-table-column prop="states" label="状态" width="90">
           <template #default="scope">
-            <span class="status-tag" :class="getStateClass(scope.row.states)">{{ scope.row.states }}</span>
+            <span :class="getStateClass(scope.row.states)">{{ scope.row.states }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="action" label="操作" min-width="150">
+        <el-table-column label="操作" width="200">
           <template #default="scope">
-            <el-button size="mini" type="primary" plain style="margin-right: 5px;">关闭</el-button>
-            <el-button size="mini" type="success" plain style="margin-right: 5px;">编辑</el-button>
-            <el-button size="mini" type="danger" plain>删除</el-button>
+            <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+            <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
+            <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
           </template>
         </el-table-column>
       </el-table>
@@ -86,17 +88,6 @@ const projectData = ref([
   {id: 3, title: '电子班牌管理系统', person: '张三', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
   {id: 4, title: '智慧校园(中学版)', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '已关闭'},
   {id: 5, title: '宿舍管理系统', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '已关闭'},
-  {id: 6, title: '教务考试系统', person: '胡一刀', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 0, states: '进行中'},
-  {id: 7, title: '在线试卷批改', person: '张三', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 8, title: '家校互通平台', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 9, title: '智慧教室_智慧云盘', person: '胡一刀', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '未开始'},
-  {id: 10, title: '实践教学管理平台', person: '张三', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '未开始'},
-  {id: 11, title: '电子班牌管理系统', person: '张三', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 12, title: '智慧校园(中学版)', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 13, title: '宿舍管理系统', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 0, states: '已关闭'},
-  {id: 14, title: '教务考试系统', person: '胡一刀', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 15, title: '在线试卷批改', person: '张三', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 0, states: '未开始'},
-  {id: 16, title: '家校互通平台', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 0, states: '未开始'},
 ]);
 
 // 根据当前标签过滤数据
@@ -116,34 +107,48 @@ const filteredData = computed(() => {
 // 获取状态标签的类名
 const getStateClass = (state) => {
   if (state === '进行中') {
-    return 'in-progress';
+    return 'status-in-progress';
   } else if (state === '未开始') {
-    return 'scheduled';
+    return 'status-scheduled';
   } else if (state === '已关闭') {
-    return 'closed';
+    return 'status-closed';
   }
   return '';
+};
+
+// 处理操作
+const handleClose = (project) => {
+  console.log('关闭项目:', project);
+};
+
+const handleEdit = (id) => {
+  router.push('/itemSet/itemEdit');
+};
+
+const handleDelete = (id) => {
+  console.log('删除项目:', id);
 };
 </script>
 
 <style scoped>
 .projects-comment{
   background-color: white;
+  height: 100vh;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 .option{
   height: 40px;
-  padding: 10px 0;
-  margin-bottom: 20px;
+  //padding: 10px 0;
+  //margin-bottom: 20px;
   border-bottom: 1px solid #ebeef5;
 }
 .option span{
   display: inline-block;
-  padding: 0 15px;
+  padding: 0 10px;
   text-align: center;
-  margin-right: 10px;
+  //margin-right: 10px;
   cursor: pointer;
   transition: all 0.3s;
 }
@@ -168,57 +173,103 @@ const getStateClass = (state) => {
 }
 
 .ProjectTable {
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
+  border: none !important;
 }
 
 .project-name {
   color: #409EFF;
-  text-decoration: none;
   font-weight: 500;
+  font-size: 13px;
 }
 
 .project-name:hover {
   text-decoration: underline;
 }
 
-.status-tag {
-  padding: 2px 8px;
-  border-radius: 10px;
+.status-in-progress {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-scheduled {
+  color: #909399;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-closed {
+  color: #F56C6C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.action-text {
+  display: inline-block;
+  margin: 0 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.3s;
+}
+
+.close-action {
+  color: #409EFF;
+}
+
+.edit-action {
+  color: #E6A23C;
+}
+
+.delete-action {
+  color: #F56C6C;
+}
+
+.action-text:hover {
+  text-decoration: underline;
+}
+
+.el-table .cell {
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.el-table th {
   font-size: 12px;
   font-weight: 500;
+  background-color: #f9f9f9;
+  padding: 4px 12px;
+  text-align: center;
+  vertical-align: middle;
+  height: 28px !important;
 }
 
-.status-tag.in-progress {
-  background-color: #fff7e6;
-  color: #e6a23c;
+.el-table__row {
+  height: 28px !important;
+  line-height: 28px !important;
 }
 
-.status-tag.scheduled {
-  background-color: #f0f0f0;
-  color: #909399;
+.el-table--border th {
+  border: none !important;
 }
 
-.status-tag.closed {
-  background-color: #fef0f0;
-  color: #f56c6c;
+.el-table--border td {
+  border: none !important;
+  vertical-align: middle;
 }
 
-.progress-circle {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #ecf5ff;
+.el-progress {
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 0 auto;
-  position: relative;
 }
 
-.progress-text {
-  font-size: 14px;
-  font-weight: bold;
-  color: #409EFF;
+.el-progress__text {
+  font-size: 10px !important;
+  margin: 0;
 }
 </style>

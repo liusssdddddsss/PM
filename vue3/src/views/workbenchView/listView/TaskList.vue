@@ -1,53 +1,55 @@
 <template>
   <div class="task-table-container">
-    <el-table
-        :data="taskList"
-        style="width: 100%"
-        class="TaskTable"
-        :row-style="{height: '45px'}"
-        :cell-style="{padding: '4px'}"
-    >
-      <el-table-column label="序号" width="80">
-        <template #default="scope">
-          {{ scope.$index + 1 }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="projectName" label="项目名称" width="200">
-        <template #default="scope">
-          <span class="task-name">{{ scope.row.projectName }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="name" label="任务描述" width="350">
-        <template #default="scope">
-          <span class="task-name">{{ scope.row.name }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="priority" label="优先级" width="100">
-        <template #default="scope">
-          <span :class="getPriorityClass(scope.row.priority)">{{ scope.row.priority }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
-        <template #default="scope">
-          <span :class="getStatusClass(scope.row.status)">{{ scope.row.status }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="deadline" label="截止时间" width="110"></el-table-column>
-      <el-table-column prop="progress" label="进度" width="100">
-        <template #default="scope">
-          <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
-        </template>
-      </el-table-column>
-      <el-table-column prop="workTime" label="工时" width="100"></el-table-column>
-      <el-table-column prop="remainingTime" label="剩余工时" width="100"></el-table-column>
-      <el-table-column label="操作" width="200">
+    <div class="table-container">
+      <el-table
+          :data="taskList"
+          style="width: 100%"
+          class="TaskTable"
+          :row-style="{height: '45px'}"
+          :cell-style="{padding: '4px'}"
+      >
+        <el-table-column label="序号" width="60">
           <template #default="scope">
-            <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-            <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
-            <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+            {{ scope.$index + 1 }}
           </template>
         </el-table-column>
-    </el-table>
+        <el-table-column prop="projectName" label="项目名称" min-width="120">
+          <template #default="scope">
+            <span class="task-name">{{ scope.row.projectName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="任务描述" min-width="180">
+          <template #default="scope">
+            <span class="task-name">{{ scope.row.name }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="priority" label="优先级" width="80">
+          <template #default="scope">
+            <span :class="getPriorityClass(scope.row.priority)">{{ scope.row.priority }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="80">
+          <template #default="scope">
+            <span :class="getStatusClass(scope.row.status)">{{ scope.row.status }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="deadline" label="截止时间" width="120"></el-table-column>
+        <el-table-column prop="progress" label="进度" width="80">
+          <template #default="scope">
+            <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="workTime" label="工时" width="80"></el-table-column>
+        <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
+        <el-table-column label="操作" width="180">
+            <template #default="scope">
+              <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+              <span class="action-text edit-action" @click="goToProductEdit">编辑</span>
+              <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+            </template>
+          </el-table-column>
+      </el-table>
+    </div>
 
     <!-- 关闭任务对话框 -->
     <el-dialog
@@ -109,6 +111,9 @@ import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
 
 const router = useRouter();
+const goToProductEdit = () =>{
+  router.push('/productResearch/productEdit');
+}
 
 // 任务数据
 const taskList = ref([]);
@@ -243,6 +248,12 @@ const confirmClose = () => {
   background-color: #fff;
   border-radius: 0;
   box-shadow: none;
+  overflow-x: auto;
+}
+
+.table-container {
+  width: 100%;
+  min-width: 800px;
 }
 
 .TaskTable {
@@ -253,36 +264,6 @@ const confirmClose = () => {
 
 .task-name {
   color: #409EFF;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.priority-urgent {
-  color: #F56C6C;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.priority-normal {
-  color: #E6A23C;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.priority-regular {
-  color: #67C23A;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.status-in-progress {
-  color: #409EFF;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.status-completed {
-  color: #67C23A;
   font-weight: 500;
   font-size: 13px;
 }
@@ -311,26 +292,13 @@ const confirmClose = () => {
   text-decoration: underline;
 }
 
-.el-table .cell {
-  font-size: 12px;
-  text-align: center;
-  vertical-align: middle;
-  line-height: 1.2;
-}
-
 .el-table th {
-  font-size: 12px;
-  font-weight: 500;
+  //font-size: 12px;
+  //font-weight: 500;
   background-color: #f9f9f9;
-  padding: 4px 12px;
+  //padding: 4px 12px;
   text-align: center;
   vertical-align: middle;
-  height: 28px !important;
-}
-
-.el-table__row {
-  height: 28px !important;
-  line-height: 28px !important;
 }
 
 .el-table--border th {
@@ -340,18 +308,6 @@ const confirmClose = () => {
 .el-table--border td {
   border: none !important;
   vertical-align: middle;
-}
-
-.el-progress {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 auto;
-}
-
-.el-progress__text {
-  font-size: 10px !important;
-  margin: 0;
 }
 
 /* 对话框样式 */

@@ -5,7 +5,7 @@
           v-for="tab in tabs"
           :key="tab.type"
           :class="{active:activeTab===tab.type}"
-          @Click="activeTab=tab.type"
+          @click="activeTab=tab.type"
       >
         {{tab.name}}
         {{tab.count}}
@@ -36,7 +36,7 @@ const activeTab=ref('all');
   background-color: white;
 }
 .option{
-  height: 40px;
+  height: 20px;
   padding: 10px;
 }
 .option span{

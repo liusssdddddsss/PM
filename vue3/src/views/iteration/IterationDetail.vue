@@ -1,6 +1,6 @@
 <template>
   <div class="iteration-detail">
-    <h3>项目计划：智慧教室 智慧云盘</h3>
+    <h3>项目计划：{{ projectName }}</h3>
 
     <div class="main-content">
       <!-- 左侧内容 -->

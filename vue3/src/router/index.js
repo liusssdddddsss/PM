@@ -69,14 +69,15 @@ const router = createRouter({
       {path:'/iteration',component:()=>import('@/views/home/Home.vue'),
           meta:{
               tabs:[
-                  {name:'项目列表',route:'/iteration/iterationList'},
+                  {name:'迭代列表',route:'/iteration/iterationList'},
                   {name:'项目看板',route:'/iteration/iterationBorder'},
               ]
           },
           children:[
               {path:'iterationList',component:()=>import('@/views/iteration/IterationList.vue')},
               {path:'iterationBorder',component:()=>import('@/views/iteration/IterationBorder.vue')},
-              {path:'iterationDetail',component:()=>import('@/views/iteration/IterationDetail.vue')}
+              {path:'iterationDetail',component:()=>import('@/views/iteration/IterationDetail.vue')},
+              {path:'iterationEdit',component:()=>import('@/views/iteration/IterationEdit.vue')}
 
           ]},
       {path:'/test',component:()=>import('@/views/home/Home.vue'),
