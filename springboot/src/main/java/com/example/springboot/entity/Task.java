@@ -14,43 +14,43 @@ public class Task {
     private Integer id;
     private String title;
     private String description;
-    private Integer project_id;
-    private Integer requirement_id;
-    private Integer parent_id;
-    private Integer iteration_id;
-    private Integer creator_id;
-    private Integer assignee_id;
+    private Integer projectId;
+    private Integer requirementId;
+    private Integer parentId;
+    private Integer iterationId;
+    private Integer creatorId;
+    private Integer assigneeId;
     private Integer priority;
     private Integer status;
     private Integer progress;
-    private Double estimated_hours;
-    private Double actual_hours;
-    private String start_date;
-    private String due_date;
-    private String created_at;
+    private Double estimatedHours;
+    private Double actualHours;
+    private String startDate;
+    private String dueDate;
+    private String createdAt;
 
     // 构造方法
     public Task() {
     }
 
-    public Task(Integer id, String title, String description, Integer project_id, Integer requirement_id, Integer parent_id, Integer iteration_id, Integer creator_id, Integer assignee_id, Integer priority, Integer status, Integer progress, Double estimated_hours, Double actual_hours, String start_date, String due_date, String created_at) {
+    public Task(Integer id, String title, String description, Integer projectId, Integer requirementId, Integer parentId, Integer iterationId, Integer creatorId, Integer assigneeId, Integer priority, Integer status, Integer progress, Double estimatedHours, Double actualHours, String startDate, String dueDate, String createdAt) {
         this.id = id;
         this.title = title;
         this.description = description;
-        this.project_id = project_id;
-        this.requirement_id = requirement_id;
-        this.parent_id = parent_id;
-        this.iteration_id = iteration_id;
-        this.creator_id = creator_id;
-        this.assignee_id = assignee_id;
+        this.projectId = projectId;
+        this.requirementId = requirementId;
+        this.parentId = parentId;
+        this.iterationId = iterationId;
+        this.creatorId = creatorId;
+        this.assigneeId = assigneeId;
         this.priority = priority;
         this.status = status;
         this.progress = progress;
-        this.estimated_hours = estimated_hours;
-        this.actual_hours = actual_hours;
-        this.start_date = start_date;
-        this.due_date = due_date;
-        this.created_at = created_at;
+        this.estimatedHours = estimatedHours;
+        this.actualHours = actualHours;
+        this.startDate = startDate;
+        this.dueDate = dueDate;
+        this.createdAt = createdAt;
     }
 
     // Getter 和 Setter 方法
@@ -78,52 +78,52 @@ public class Task {
         this.description = description;
     }
 
-    public Integer getProject_id() {
-        return project_id;
+    public Integer getProjectId() {
+        return projectId;
     }
 
-    public void setProject_id(Integer project_id) {
-        this.project_id = project_id;
+    public void setProjectId(Integer projectId) {
+        this.projectId = projectId;
     }
 
-    public Integer getRequirement_id() {
-        return requirement_id;
+    public Integer getRequirementId() {
+        return requirementId;
     }
 
-    public void setRequirement_id(Integer requirement_id) {
-        this.requirement_id = requirement_id;
+    public void setRequirementId(Integer requirementId) {
+        this.requirementId = requirementId;
     }
 
-    public Integer getParent_id() {
-        return parent_id;
+    public Integer getParentId() {
+        return parentId;
     }
 
-    public void setParent_id(Integer parent_id) {
-        this.parent_id = parent_id;
+    public void setParentId(Integer parentId) {
+        this.parentId = parentId;
     }
 
-    public Integer getIteration_id() {
-        return iteration_id;
+    public Integer getIterationId() {
+        return iterationId;
     }
 
-    public void setIteration_id(Integer iteration_id) {
-        this.iteration_id = iteration_id;
+    public void setIterationId(Integer iterationId) {
+        this.iterationId = iterationId;
     }
 
-    public Integer getCreator_id() {
-        return creator_id;
+    public Integer getCreatorId() {
+        return creatorId;
     }
 
-    public void setCreator_id(Integer creator_id) {
-        this.creator_id = creator_id;
+    public void setCreatorId(Integer creatorId) {
+        this.creatorId = creatorId;
     }
 
-    public Integer getAssignee_id() {
-        return assignee_id;
+    public Integer getAssigneeId() {
+        return assigneeId;
     }
 
-    public void setAssignee_id(Integer assignee_id) {
-        this.assignee_id = assignee_id;
+    public void setAssigneeId(Integer assigneeId) {
+        this.assigneeId = assigneeId;
     }
 
     public Integer getPriority() {
@@ -150,44 +150,44 @@ public class Task {
         this.progress = progress;
     }
 
-    public Double getEstimated_hours() {
-        return estimated_hours;
+    public Double getEstimatedHours() {
+        return estimatedHours;
     }
 
-    public void setEstimated_hours(Double estimated_hours) {
-        this.estimated_hours = estimated_hours;
+    public void setEstimatedHours(Double estimatedHours) {
+        this.estimatedHours = estimatedHours;
     }
 
-    public Double getActual_hours() {
-        return actual_hours;
+    public Double getActualHours() {
+        return actualHours;
     }
 
-    public void setActual_hours(Double actual_hours) {
-        this.actual_hours = actual_hours;
+    public void setActualHours(Double actualHours) {
+        this.actualHours = actualHours;
     }
 
-    public String getStart_date() {
-        return start_date;
+    public String getStartDate() {
+        return startDate;
     }
 
-    public void setStart_date(String start_date) {
-        this.start_date = start_date;
+    public void setStartDate(String startDate) {
+        this.startDate = startDate;
     }
 
-    public String getDue_date() {
-        return due_date;
+    public String getDueDate() {
+        return dueDate;
     }
 
-    public void setDue_date(String due_date) {
-        this.due_date = due_date;
+    public void setDueDate(String dueDate) {
+        this.dueDate = dueDate;
     }
 
-    public String getCreated_at() {
-        return created_at;
+    public String getCreatedAt() {
+        return createdAt;
     }
 
-    public void setCreated_at(String created_at) {
-        this.created_at = created_at;
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
     }
 
 }

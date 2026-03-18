@@ -10,12 +10,12 @@ import java.util.List;
 public interface IterationRepository extends JpaRepository<Iteration, Integer> {
 
     // 根据项目ID查询迭代列表
-    List<Iteration> findByProject_id(Integer projectId);
+    List<Iteration> findByProjectId(Integer projectId);
 
     // 根据状态查询迭代列表
     List<Iteration> findByStatus(Integer status);
 
     // 根据项目ID和状态查询迭代列表
-    List<Iteration> findByProject_idAndStatus(Integer projectId, Integer status);
+    List<Iteration> findByProjectIdAndStatus(Integer projectId, Integer status);
 
 }

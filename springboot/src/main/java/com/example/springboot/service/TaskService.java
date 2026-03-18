@@ -28,12 +28,12 @@ public class TaskService {
 
     // 根据迭代ID获取任务列表
     public List<Task> findByIterationId(Integer iterationId) {
-        return taskRepository.findByIteration_id(iterationId);
+        return taskRepository.findByIterationId(iterationId);
     }
 
     // 根据项目ID获取任务列表
     public List<Task> findByProjectId(Integer projectId) {
-        return taskRepository.findByProject_id(projectId);
+        return taskRepository.findByProjectId(projectId);
     }
 
     // 根据状态获取任务列表

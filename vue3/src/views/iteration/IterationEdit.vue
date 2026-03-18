@@ -11,7 +11,7 @@
           <el-input v-model="iterationForm.name" placeholder="请输入迭代名称" />
         </el-form-item>
         <el-form-item label="所属项目">
-          <el-select v-model="iterationForm.project_id" placeholder="请选择项目">
+          <el-select v-model="iterationForm.projectId" placeholder="请选择项目">
             <el-option
               v-for="project in projects"
               :key="project.id"
@@ -22,7 +22,7 @@
         </el-form-item>
         <el-form-item label="开始时间">
           <el-date-picker
-            v-model="iterationForm.start_date"
+            v-model="iterationForm.startDate"
             type="date"
             placeholder="选择开始日期"
             style="width: 100%"
@@ -30,7 +30,7 @@
         </el-form-item>
         <el-form-item label="结束时间">
           <el-date-picker
-            v-model="iterationForm.end_date"
+            v-model="iterationForm.endDate"
             type="date"
             placeholder="选择结束日期"
             style="width: 100%"
@@ -73,9 +73,9 @@ const iterationId = ref(route.query.id);
 const iterationForm = ref({
   name: '',
   description: '',
-  project_id: '',
-  start_date: '',
-  end_date: '',
+  projectId: '',
+  startDate: '',
+  endDate: '',
   status: 0
 });
 

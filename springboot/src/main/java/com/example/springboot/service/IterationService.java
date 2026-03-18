@@ -26,7 +26,7 @@ public class IterationService {
 
     // 根据项目ID获取迭代列表
     public List<Iteration> findByProjectId(Integer projectId) {
-        return iterationRepository.findByProject_id(projectId);
+        return iterationRepository.findByProjectId(projectId);
     }
 
     // 根据状态获取迭代列表
@@ -36,7 +36,7 @@ public class IterationService {
 
     // 根据项目ID和状态获取迭代列表
     public List<Iteration> findByProjectIdAndStatus(Integer projectId, Integer status) {
-        return iterationRepository.findByProject_idAndStatus(projectId, status);
+        return iterationRepository.findByProjectIdAndStatus(projectId, status);
     }
 
     // 保存迭代

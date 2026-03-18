@@ -113,25 +113,25 @@ public class WorkbenchController {
                 taskMap.put("id", task.getId());
                 taskMap.put("title", task.getTitle());
                 taskMap.put("description", task.getDescription());
-                taskMap.put("project_id", task.getProject_id());
-                taskMap.put("requirement_id", task.getRequirement_id());
-                taskMap.put("parent_id", task.getParent_id());
-                taskMap.put("creator_id", task.getCreator_id());
-                taskMap.put("assignee_id", task.getAssignee_id());
+                taskMap.put("project_id", task.getProjectId());
+                taskMap.put("requirement_id", task.getRequirementId());
+                taskMap.put("parent_id", task.getParentId());
+                taskMap.put("creator_id", task.getCreatorId());
+                taskMap.put("assignee_id", task.getAssigneeId());
                 taskMap.put("priority", task.getPriority());
                 taskMap.put("status", task.getStatus());
                 taskMap.put("progress", task.getProgress());
-                taskMap.put("estimated_hours", task.getEstimated_hours());
-                taskMap.put("actual_hours", task.getActual_hours());
-                taskMap.put("start_date", task.getStart_date());
-                taskMap.put("due_date", task.getDue_date());
-                taskMap.put("created_at", task.getCreated_at());
+                taskMap.put("estimated_hours", task.getEstimatedHours());
+                taskMap.put("actual_hours", task.getActualHours());
+                taskMap.put("start_date", task.getStartDate());
+                taskMap.put("due_date", task.getDueDate());
+                taskMap.put("created_at", task.getCreatedAt());
                 
                 // 获取项目名称
                 String projectName = "未知项目";
-                if (task.getProject_id() != null) {
+                if (task.getProjectId() != null) {
                     try {
-                        var project = projectService.findById(task.getProject_id().longValue());
+                        var project = projectService.findById(task.getProjectId().longValue());
                         if (project.isPresent()) {
                             projectName = project.get().getName();
                         }
@@ -289,9 +289,9 @@ public class WorkbenchController {
                     int totalHours = 0;
                     List<Task> tasks = taskService.findall();
                     for (Task task : tasks) {
-                        if (task.getProject_id() != null && task.getProject_id().equals(projectId)) {
-                            if (task.getEstimated_hours() != null) {
-                                totalHours += task.getEstimated_hours().intValue();
+                        if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
+                            if (task.getEstimatedHours() != null) {
+                                totalHours += task.getEstimatedHours().intValue();
                             }
                         }
                     }
@@ -313,7 +313,7 @@ public class WorkbenchController {
                     // 计算剩余任务数量（从tasks表中获取）
                     int remainingTasks = 0;
                     for (Task task : tasks) {
-                        if (task.getProject_id() != null && task.getProject_id().equals(projectId)) {
+                        if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
                             // 假设任务状态为0或1表示未完成
                             if (task.getStatus() == null || task.getStatus() < 2) {
                                 remainingTasks++;

@@ -13,25 +13,25 @@ public class Iteration {
     private Integer id;
     private String name;
     private String description;
-    private Integer project_id;
-    private String start_date;
-    private String end_date;
+    private Integer projectId;
+    private String startDate;
+    private String endDate;
     private Integer status; // 0: 未开始, 1: 进行中, 2: 已关闭
-    private String created_at;
+    private String createdAt;
 
     // 构造方法
     public Iteration() {
     }
 
-    public Iteration(Integer id, String name, String description, Integer project_id, String start_date, String end_date, Integer status, String created_at) {
+    public Iteration(Integer id, String name, String description, Integer projectId, String startDate, String endDate, Integer status, String createdAt) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.project_id = project_id;
-        this.start_date = start_date;
-        this.end_date = end_date;
+        this.projectId = projectId;
+        this.startDate = startDate;
+        this.endDate = endDate;
         this.status = status;
-        this.created_at = created_at;
+        this.createdAt = createdAt;
     }
 
     // Getter 和 Setter 方法
@@ -59,28 +59,28 @@ public class Iteration {
         this.description = description;
     }
 
-    public Integer getProject_id() {
-        return project_id;
+    public Integer getProjectId() {
+        return projectId;
     }
 
-    public void setProject_id(Integer project_id) {
-        this.project_id = project_id;
+    public void setProjectId(Integer projectId) {
+        this.projectId = projectId;
     }
 
-    public String getStart_date() {
-        return start_date;
+    public String getStartDate() {
+        return startDate;
     }
 
-    public void setStart_date(String start_date) {
-        this.start_date = start_date;
+    public void setStartDate(String startDate) {
+        this.startDate = startDate;
     }
 
-    public String getEnd_date() {
-        return end_date;
+    public String getEndDate() {
+        return endDate;
     }
 
-    public void setEnd_date(String end_date) {
-        this.end_date = end_date;
+    public void setEndDate(String endDate) {
+        this.endDate = endDate;
     }
 
     public Integer getStatus() {
@@ -91,12 +91,12 @@ public class Iteration {
         this.status = status;
     }
 
-    public String getCreated_at() {
-        return created_at;
+    public String getCreatedAt() {
+        return createdAt;
     }
 
-    public void setCreated_at(String created_at) {
-        this.created_at = created_at;
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
     }
 
 }

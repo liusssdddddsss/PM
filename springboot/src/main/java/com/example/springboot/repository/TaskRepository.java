@@ -10,10 +10,10 @@ import java.util.List;
 public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     // 根据迭代ID查询任务列表
-    List<Task> findByIteration_id(Integer iterationId);
+    List<Task> findByIterationId(Integer iterationId);
 
     // 根据项目ID查询任务列表
-    List<Task> findByProject_id(Integer projectId);
+    List<Task> findByProjectId(Integer projectId);
 
     // 根据状态查询任务列表
     List<Task> findByStatus(Integer status);

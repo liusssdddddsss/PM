@@ -40,8 +40,8 @@
             <span>{{ scope.row.projectName }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="start_date" label="开始时间" width="130"></el-table-column>
-        <el-table-column prop="end_date" label="预计完成时间" width="130"></el-table-column>
+        <el-table-column prop="startDate" label="开始时间" width="130"></el-table-column>
+        <el-table-column prop="endDate" label="预计完成时间" width="130"></el-table-column>
         <el-table-column prop="progress" label="进度" width="100">
           <template #default="scope">
             <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
