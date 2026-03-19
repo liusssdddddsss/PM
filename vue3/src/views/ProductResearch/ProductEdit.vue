@@ -1,6 +1,6 @@
 <template>
   <div class="add-product">
-    <h3>新增产品</h3>
+    <h3>编辑产品</h3>
     <div class="form-container">
       <el-form :model="productForm" label-width="120px">
         <el-row :gutter="20">
@@ -124,6 +124,8 @@ const goBack = () => {
 }
 
 .form-buttons {
-  margin-top: 20px;
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;
 }
 </style>

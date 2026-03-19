@@ -8,9 +8,9 @@
           :row-style="{height: '45px'}"
           :cell-style="{padding: '4px'}"
       >
-        <el-table-column prop="id" label="ID" width="60">
+        <el-table-column label="序号" width="60">
           <template #default="scope">
-            {{ scope.row.id }}
+            {{ scope.$index + 1 }}
           </template>
         </el-table-column>
         <el-table-column prop="title" label="标题" min-width="200">
@@ -116,6 +116,9 @@ const props = defineProps({
   }
 });
 
+// 定义emit事件
+const emit = defineEmits(['update:total']);
+
 // 反馈数据
 const feedbackList = ref([]);
 
@@ -161,6 +164,8 @@ const fetchFeedbacks = async () => {
         relatedObjects: item.relatedObjects || 0
       }));
       console.log('转换后的反馈列表数据:', feedbackList.value);
+      // 发送实际数据数量给父组件
+      emit('update:total', feedbackList.value.length);
     }
   } catch (error) {
     console.error('获取反馈列表失败:', error);
@@ -250,10 +255,21 @@ const handleClose = (feedback) => {
 
 const handleEdit = (id) => {
   console.log('编辑反馈:', id);
+  // 跳转到编辑页面
+  router.push(`/feedbacks/edit/${id}`);
 };
 
-const handleDelete = (id) => {
-  console.log('删除反馈:', id);
+const handleDelete = async (id) => {
+  try {
+    const response = await request.delete(`/api/feedback/delete/${id}`);
+    if (response.code === 200) {
+      console.log('删除反馈成功:', id);
+      // 重新获取反馈列表
+      await fetchFeedbacks();
+    }
+  } catch (error) {
+    console.error('删除反馈失败:', error);
+  }
 };
 
 // 确认关闭反馈

@@ -30,9 +30,9 @@ import {useRouter} from "vue-router";
 
 const tabs = ref([
   {name:'全部',type:'all'},
-  {name:'指派我的',type:'zhiPaiMe',count:9},
-  {name:'我参与的',type:'meJoin',count:5},
-  {name:'我指派的',type:'meZhiPai',count:5},
+  {name:'指派我的',type:'zhiPaiMe'},
+  {name:'我参与的',type:'meJoin'},
+  {name:'我指派的',type:'meZhiPai'},
 ]);
 const activeTab=ref('all');
 

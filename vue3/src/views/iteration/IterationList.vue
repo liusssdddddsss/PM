@@ -12,7 +12,7 @@
         <span class="count">{{tab.count}}</span>
       </span>
       <div class="addIteration">
-        <el-button class="button">
+        <el-button class="button" @click="goToAddIteration">
           添加迭代
         </el-button>
       </div>
@@ -33,6 +33,11 @@
         <el-table-column prop="name" label="迭代名称" min-width="180">
           <template #default="scope">
             <span class="iteration-name">{{ scope.row.name }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="200">
+          <template #default="scope">
+            <span>{{ scope.row.description }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="projectName" label="所属项目" width="180">
@@ -72,9 +77,9 @@ import axios from 'axios';
 
 const tabs = ref([
   {name:'全部',type:'all'},
-  {name:'进行中',type:'ing',count:9},
-  {name:'未开始',type:'noBegin',count:5},
-  {name:'已关闭',type:'close',count:2},
+  {name:'进行中',type:'ing'},
+  {name:'未开始',type:'noBegin'},
+  {name:'已关闭',type:'close'},
 ]);
 const activeTab=ref('all');
 const iterations = ref([]);
@@ -84,20 +89,30 @@ const goToIterationEdit = () =>{
   router.push('/iteration/iterationEdit');
 }
 
+// 跳转到添加迭代页面
+const goToAddIteration = () => {
+  router.push('/iteration/iterationEdit');
+};
+
 // 获取迭代数据
 const fetchIterations = async () => {
   try {
     const response = await axios.get('http://localhost:9090/iteration/list');
     if (response.data.code === 200) {
+      // 更新迭代列表
       iterations.value = response.data.data;
-      // 模拟项目名称数据
+      
+      // 为每个迭代设置项目名称和进度（如果不存在）
       iterations.value.forEach(iteration => {
-        // 这里应该根据project_id从项目表获取项目名称
-        // 暂时使用模拟数据
-        const projectNames = ['智慧教室_智慧云盘', '实践教学管理平台', '电子班牌管理系统', '智慧校园(中学版)', '宿舍管理系统'];
-        iteration.projectName = projectNames[Math.floor(Math.random() * projectNames.length)];
-        // 模拟进度数据
-        iteration.progress = Math.floor(Math.random() * 101);
+        // 如果没有项目名称，设置一个默认值
+        if (!iteration.projectName) {
+          const projectNames = ['智慧教室_智慧云盘', '实践教学管理平台', '电子班牌管理系统', '智慧校园(中学版)', '宿舍管理系统'];
+          iteration.projectName = projectNames[Math.floor(Math.random() * projectNames.length)];
+        }
+        // 如果没有进度，设置为0
+        if (iteration.progress === undefined || iteration.progress === null) {
+          iteration.progress = 0;
+        }
       });
     }
   } catch (error) {
@@ -149,16 +164,50 @@ const getStateClass = (status) => {
 };
 
 // 处理操作
-const handleClose = (iteration) => {
-  console.log('关闭迭代:', iteration);
+const handleClose = async (iteration) => {
+  try {
+    console.log('关闭迭代:', iteration);
+    // 确保id是数字类型
+    const iterationId = parseInt(iteration.id);
+    console.log('迭代ID:', iterationId);
+    
+    // 发送请求关闭迭代，包含所有必要字段
+    const response = await axios.put(`http://localhost:9090/iteration/update`, {
+      id: iterationId,
+      name: iteration.name,
+      description: iteration.description,
+      projectId: iteration.projectId,
+      startDate: iteration.startDate,
+      endDate: iteration.endDate,
+      status: 2 // 2表示已关闭
+    });
+    console.log('关闭迭代响应:', response);
+    if (response.data.code === 200) {
+      console.log('关闭迭代成功:', iterationId);
+      // 重新获取迭代列表
+      await fetchIterations();
+    }
+  } catch (error) {
+    console.error('关闭迭代失败:', error);
+    console.error('错误详情:', error.response);
+  }
 };
 
 const handleEdit = (id) => {
   router.push(`/iteration/iterationEdit?id=${id}`);
 };
 
-const handleDelete = (id) => {
-  console.log('删除迭代:', id);
+const handleDelete = async (id) => {
+  try {
+    const response = await axios.delete(`http://localhost:9090/iteration/delete/${id}`);
+    if (response.data.code === 200) {
+      console.log('删除迭代成功:', id);
+      // 重新获取迭代列表
+      await fetchIterations();
+    }
+  } catch (error) {
+    console.error('删除迭代失败:', error);
+  }
 };
 </script>
 

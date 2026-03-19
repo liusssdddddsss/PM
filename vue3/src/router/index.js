@@ -116,6 +116,7 @@ const router = createRouter({
           children:[
               {path:'feedback',component:()=>import('@/views/feedbacks/FeedBack.vue')},
               {path:'workOrder',component:()=>import('@/views/feedbacks/WorkOrder.vue')},
+              {path:'edit/:id',component:()=>import('@/views/feedbacks/FeedbackEdit.vue')},
 
           ]},
       {path:'/AI',component:()=>import('@/views/home/Home.vue'),

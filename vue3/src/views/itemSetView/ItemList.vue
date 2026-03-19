@@ -67,12 +67,13 @@
 
 import {ref, computed} from "vue";
 import {useRouter} from "vue-router";
+import request from "@/utils/request.js";
 
 const tabs = ref([
-  {name:'全部',type:'all',count:16},
-  {name:'进行中',type:'ing',count:9},
-  {name:'未开始',type:'noBegin',count:5},
-  {name:'已关闭',type:'close',count:2},
+  {name:'全部',type:'all'},
+  {name:'进行中',type:'ing'},
+  {name:'未开始',type:'noBegin'},
+  {name:'已关闭',type:'close'},
 ]);
 const activeTab=ref('all');
 
@@ -125,8 +126,18 @@ const handleEdit = (id) => {
   router.push('/itemSet/itemEdit');
 };
 
-const handleDelete = (id) => {
-  console.log('删除项目:', id);
+const handleDelete = async (id) => {
+  try {
+    // 尝试从数据库删除项目
+    const response = await request.delete(`/itemSet/delete/${id}`);
+    if (response.code === 200) {
+      console.log('删除项目成功:', id);
+      // 从本地数据中移除删除的项目
+      projectData.value = projectData.value.filter(project => project.id !== id);
+    }
+  } catch (error) {
+    console.error('删除项目失败:', error);
+  }
 };
 </script>
 

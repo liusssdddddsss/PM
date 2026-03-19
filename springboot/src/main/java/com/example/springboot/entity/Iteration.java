@@ -17,13 +17,14 @@ public class Iteration {
     private String startDate;
     private String endDate;
     private Integer status; // 0: 未开始, 1: 进行中, 2: 已关闭
+    private Integer progress; // 进度百分比
     private String createdAt;
 
     // 构造方法
     public Iteration() {
     }
 
-    public Iteration(Integer id, String name, String description, Integer projectId, String startDate, String endDate, Integer status, String createdAt) {
+    public Iteration(Integer id, String name, String description, Integer projectId, String startDate, String endDate, Integer status, Integer progress, String createdAt) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -31,6 +32,7 @@ public class Iteration {
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = status;
+        this.progress = progress;
         this.createdAt = createdAt;
     }
 
@@ -89,6 +91,14 @@ public class Iteration {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getProgress() {
+        return progress;
+    }
+
+    public void setProgress(Integer progress) {
+        this.progress = progress;
     }
 
     public String getCreatedAt() {

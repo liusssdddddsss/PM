@@ -15,7 +15,7 @@
       <div class="content-header">
         <el-tabs v-model="activeTab" class="feedback-tabs">
           <el-tab-pane label="全部" name="all"></el-tab-pane>
-          <el-tab-pane label="待处理 19" name="pending"></el-tab-pane>
+          <el-tab-pane label="待处理" name="pending"></el-tab-pane>
           <el-tab-pane label="处理中" name="processing"></el-tab-pane>
           <el-tab-pane label="待关闭" name="toClose"></el-tab-pane>
 
@@ -32,13 +32,13 @@
           <el-button type="primary" size="small">导入</el-button>
         </div>
       </div>
-      <FeedbackList :activeTab="activeTab" :searchQuery="searchQuery"/>
+      <FeedbackList :activeTab="activeTab" :searchQuery="searchQuery" @update:total="updateTotal"/>
 
         <div class="pagination">
-          <span>共 19 项</span>
+          <span>共 {{ total }} 项</span>
           <el-pagination
               layout="total, sizes, prev, pager, next, jumper"
-              :total="19"
+              :total="total"
               :page-size="20"
               :current-page="1"
               @size-change="handleSizeChange"
@@ -62,11 +62,14 @@ const router = useRouter();
 const activeTab = ref('all');
 // 搜索查询
 const searchQuery = ref('');
+// 数据总数
+const total = ref(0);
 
-// 反馈列表数据
-const feedbackList = ref([
-
-]);
+// 更新数据总数
+const updateTotal = (count) => {
+  total.value = count;
+  console.log('更新数据总数:', count);
+};
 
 // 根据优先级获取标签类型
 const getPriorityType = (priority) => {

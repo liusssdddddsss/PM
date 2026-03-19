@@ -30,7 +30,11 @@
           :row-style="{height: '45px'}"
           :cell-style="{padding: '4px'}"
       >
-        <el-table-column prop="id" label="序号" width="80"></el-table-column>
+        <el-table-column label="序号" width="80">
+          <template #default="scope">
+            {{ scope.$index + 1 }}
+          </template>
+        </el-table-column>
         <el-table-column prop="name" label="任务名称" width="350">
           <template #default="scope">
             <span class="task-name">{{ scope.row.name }}</span>
@@ -69,6 +73,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import request from "@/utils/request.js";
 
 const tabs = ref([
   {name:'全部',type:'all',count:16},
@@ -146,8 +151,17 @@ const handleEdit = (id) => {
   console.log('编辑任务:', id);
 };
 
-const handleDelete = (id) => {
-  console.log('删除任务:', id);
+const handleDelete = async (id) => {
+  try {
+    const response = await request.delete(`/workbench/tasks/${id}`);
+    if (response.code === 200) {
+      console.log('删除任务成功:', id);
+      // 从本地数据中移除删除的任务
+      assignedTasks.value = assignedTasks.value.filter(task => task.id !== id);
+    }
+  } catch (error) {
+    console.error('删除任务失败:', error);
+  }
 };
 </script>
 

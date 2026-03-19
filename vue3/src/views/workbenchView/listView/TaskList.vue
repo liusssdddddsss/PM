@@ -229,8 +229,17 @@ const handleEdit = (id) => {
   router.push('/task/taskEdit');
 };
 
-const handleDelete = (id) => {
-  console.log('删除任务:', id);
+const handleDelete = async (id) => {
+  try {
+    const response = await request.delete(`/workbench/tasks/${id}`);
+    if (response.code === 200) {
+      console.log('删除任务成功:', id);
+      // 重新获取任务列表
+      await fetchTasks();
+    }
+  } catch (error) {
+    console.error('删除任务失败:', error);
+  }
 };
 
 // 确认关闭任务
