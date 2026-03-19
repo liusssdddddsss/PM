@@ -115,7 +115,7 @@
 
 <!--      未完成项目列表-->
       <el-card style="max-width: 98%;margin-top: 10px">
-        <h3>未完成的项目列表</h3>
+        <h3 style="margin-bottom: 15px">未完成的项目列表</h3>
         <div class="unfinish-project">
           <NoFinishList/>
         </div>
@@ -128,11 +128,11 @@
           <ProjectList/>
           <div class="project-statistics-task">
             <div class="project-header-info">
-              <div class="project-name">智慧教室_智慧云盘</div>
+              <div class="project-name">{{ projectDetail.projectName || '暂无项目' }}</div>
               <div class="project-meta">
-                <span class="finish-time">预计完成时间: 2023-08-08</span>
-                <span class="risk-count">存在风险 <span class="risk-number">9</span></span>
-                <span class="problem-count">存在问题 <span class="problem-number">26</span></span>
+                <span class="finish-time">预计完成时间: {{ formatDate(projectDetail.finishTime) || '—' }}</span>
+                <span class="risk-count">存在风险 <span class="risk-number">0</span></span>
+                <span class="problem-count">存在问题 <span class="problem-number">0</span></span>
               </div>
             </div>
             <div class="project-statistics-task-kuai">
@@ -140,33 +140,33 @@
                 <el-col :span="5" class="stat-card">
                   <div class="stat-card-header">投入</div>
                   <div class="stat-card-content">
-                    <div class="stat-item">已投入工时 <span class="stat-value">1234h</span></div>
-                    <div class="stat-item">消耗工时 <span class="stat-value">350h</span></div>
-                    <div class="stat-item">预计剩余 <span class="stat-value">160h</span></div>
+                    <div class="stat-item">已投入工时 <span class="stat-value">{{ projectDetail.workTimeTotal || 0 }}h</span></div>
+                    <div class="stat-item">消耗工时 <span class="stat-value">{{ projectDetail.workTimeConsumed || 0 }}h</span></div>
+                    <div class="stat-item">预计剩余 <span class="stat-value">{{ projectDetail.workTimeRemaining || 0 }}h</span></div>
                   </div>
                 </el-col>
                 <el-col :span="5" class="stat-card">
                   <div class="stat-card-header">需求</div>
                   <div class="stat-card-content">
-                    <div class="stat-item">总需求数 <span class="stat-value">1596个</span></div>
-                    <div class="stat-item">已完成 <span class="stat-value">152个</span></div>
-                    <div class="stat-item">未关闭 <span class="stat-value">168个</span></div>
+                    <div class="stat-item">总需求数 <span class="stat-value">{{ projectDetail.needTotal || 0 }}个</span></div>
+                    <div class="stat-item">已完成 <span class="stat-value">{{ projectDetail.needFinished || 0 }}个</span></div>
+                    <div class="stat-item">未关闭 <span class="stat-value">{{ projectDetail.needUnclosed || 0 }}个</span></div>
                   </div>
                 </el-col>
                 <el-col :span="5" class="stat-card">
                   <div class="stat-card-header">任务</div>
                   <div class="stat-card-content">
-                    <div class="stat-item">总任务数 <span class="stat-value">59个</span></div>
-                    <div class="stat-item">未开始 <span class="stat-value">26个</span></div>
-                    <div class="stat-item">进行中 <span class="stat-value">168个</span></div>
+                    <div class="stat-item">总任务数 <span class="stat-value">{{ projectDetail.taskTotal || 0 }}个</span></div>
+                    <div class="stat-item">未开始 <span class="stat-value">{{ projectDetail.taskNotStarted || 0 }}个</span></div>
+                    <div class="stat-item">进行中 <span class="stat-value">{{ projectDetail.taskInProgress || 0 }}个</span></div>
                   </div>
                 </el-col>
                 <el-col :span="5" class="stat-card">
                   <div class="stat-card-header">Bug</div>
                   <div class="stat-card-content">
-                    <div class="stat-item">总Bug数 <span class="stat-value">153个</span></div>
-                    <div class="stat-item">已关闭 <span class="stat-value">52个</span></div>
-                    <div class="stat-item">未关闭 <span class="stat-value">69个</span></div>
+                    <div class="stat-item">总Bug数 <span class="stat-value">{{ projectDetail.bugTotal || 0 }}个</span></div>
+                    <div class="stat-item">已关闭 <span class="stat-value">{{ projectDetail.bugClosed || 0 }}个</span></div>
+                    <div class="stat-item">未关闭 <span class="stat-value">{{ projectDetail.bugUnclosed || 0 }}个</span></div>
                   </div>
                 </el-col>
               </el-row>
@@ -181,29 +181,27 @@
         <div class="product-statistics">
           <div class="product-list">
             <ul>
-              <li class="active">班牌模板调整</li>
-              <li>班牌PC端管理界面调整</li>
-              <li>界面优化调整</li>
-              <li>家校互通留言</li>
-              <li>实训教学资源大数据</li>
-              <li>教师端查询评分标准列表</li>
+              <li class="active">全部产品</li>
+              <li v-for="product in productStatistics.productList" :key="product.id">
+                {{ product.name }}
+              </li>
             </ul>
           </div>
           <div class="product-statistics-content">
             <div class="delivery-rate">
               <h4>需求交付率</h4>
-              <el-progress type="circle" :percentage="50" />
+              <el-progress type="circle" :percentage="productStatistics.deliveryRate || 0" />
               <div class="delivery-stats">
-                <span>有效需求 <span class="stat-number">56</span></span>
-                <span>已交付 <span class="stat-number">16</span></span>
-                <span>未关闭 <span class="stat-number">42</span></span>
+                <span>有效需求 <span class="stat-number">{{ productStatistics.validNeeds || 0 }}</span></span>
+                <span>已交付 <span class="stat-number">{{ productStatistics.deliveredNeeds || 0 }}</span></span>
+                <span>未关闭 <span class="stat-number">{{ productStatistics.unclosedNeeds || 0 }}</span></span>
               </div>
             </div>
             <div class="needs-statistics">
               <h4>需求统计</h4>
               <div class="monthly-stats">
-                <span>本月完成 <span class="stat-number">26</span></span>
-                <span>本月新增 <span class="stat-number">12</span></span>
+                <span>本月完成 <span class="stat-number">{{ productStatistics.monthFinish || 0 }}</span></span>
+                <span>本月新增 <span class="stat-number">{{ productStatistics.monthAdd || 0 }}</span></span>
               </div>
               <div ref="needsDom" style="width: 100%; height: 200px;"></div>
             </div>
@@ -494,13 +492,13 @@ const currentTime = ref(new Date()).value.toLocaleDateString('zh-CN', {
 
 // 用户信息
 const name = ref('');
-const bug = ref(10);
-const approveState = ref(17);
-const taskState = ref(13);
-const bugState = ref(10);
-const needsState = ref(10);
-const userState = ref(10);
-const passageState = ref(10);
+const bug = ref(0);
+const approveState = ref(0);
+const taskState = ref(0);
+const bugState = ref(0);
+const needsState = ref(0);
+const userState = ref(0);
+const passageState = ref(0);
 
 //我参与的项目数
 const projectList = ref([]);
@@ -514,8 +512,8 @@ const fetchProjects = async () => {
       const user = JSON.parse(userStr);
       const response = await request.get(`/workbench/projects?username=${user.username}`);
       console.log('获取项目列表响应:', response);
-      if (response.code === 200) {
-        projectList.value = response.data;
+      if (response.data.code === 200) {
+        projectList.value = response.data.data;
         console.log('转换后的项目列表数据:', projectList.value);
       }
     }
@@ -529,9 +527,9 @@ const fetchUserInfo = async (username) => {
   try {
     // 从后端获取管理员信息
     const response = await request.get('/admin/findAll');
-    if (response.code === 200) {
+    if (response.data.code === 200) {
       // 找到当前登录用户的信息
-      const currentUser = response.data.find(user => user.username === username);
+      const currentUser = response.data.data.find(user => user.username === username);
       if (currentUser) {
         // 使用数据库中的name字段
         name.value = currentUser.name || currentUser.username || '用户';
@@ -547,9 +545,9 @@ const fetchStatistics = async () => {
   try {
     // 从后端获取工作台统计数据
     const response = await request.get('/dashboard/statistics');
-    if (response.code === 200) {
+    if (response.data.code === 200) {
       // 更新统计数据
-      const data = response.data;
+      const data = response.data.data;
       bug.value = data.bug || 0;
       approveState.value = data.approveState || 0;
       taskState.value = data.taskState || 0;
@@ -564,7 +562,7 @@ const fetchStatistics = async () => {
 };
 
 // 页面加载时获取用户信息、统计数据和项目列表
-onMounted(() => {
+onMounted(async () => {
   // 从本地存储中获取用户信息
   const userStr = localStorage.getItem('user');
   if (userStr) {
@@ -577,28 +575,39 @@ onMounted(() => {
   }
   
   // 从后端获取统计数据
-  fetchStatistics();
+  await fetchStatistics();
   
   // 从后端获取项目列表
-  fetchProjects();
+  await fetchProjects();
   
   // 从后端获取团队完成情况数据
-  fetchTeamStatistics();
+  await fetchTeamStatistics();
   
   // 从后端获取产品总览数据
-  fetchProductOverview();
+  await fetchProductOverview();
+  // 从后端获取单个项目统计详情
+  await fetchProjectDetail();
   
   // 从后端获取项目总览数据
-  fetchProjectOverview();
+  await fetchProjectOverview();
   
   // 从后端获取任务完成总览数据
-  fetchTaskOverview();
+  await fetchTaskOverview();
   
   // 从后端获取需求统计数据
-  fetchNeedsStatistics();
+  await fetchNeedsStatistics();
   
   // 从后端获取测试统计数据
-  fetchTestStatistics();
+  await fetchTestStatistics();
+  // 从后端获取未关闭产品统计数据
+  await fetchProductStatistics();
+  
+  // 初始化图表
+  setTimeout(() => {
+    initProjectChart(projectYearsData.value);
+    initTaskChart(taskDistributionData.value);
+    initNeedsChart(needsChartData.value);
+  }, 100);
 });
 
 // 格式化日期
@@ -635,6 +644,35 @@ const projectCount=ref(0);
 const thisYearIssue=ref(0);
 const closeCount=ref(0);
 
+// 单个项目统计详情（项目统计卡片）
+const projectDetail = ref({
+  projectName: '',
+  finishTime: null,
+  workTimeTotal: 0,
+  workTimeConsumed: 0,
+  workTimeRemaining: 0,
+  needTotal: 0,
+  needFinished: 0,
+  needUnclosed: 0,
+  taskTotal: 0,
+  taskNotStarted: 0,
+  taskInProgress: 0,
+  bugTotal: 0,
+  bugClosed: 0,
+  bugUnclosed: 0
+});
+
+// 未关闭产品统计
+const productStatistics = ref({
+  deliveryRate: 0,
+  validNeeds: 0,
+  deliveredNeeds: 0,
+  unclosedNeeds: 0,
+  monthFinish: 0,
+  monthAdd: 0,
+  productList: []
+});
+
 // 项目总览
 const xiangMuCount=ref(0);
 const thisYearFinish=ref(0);
@@ -651,7 +689,7 @@ const projectYearsData=ref({
     data:[0,0,0]
   }]
 });
-const {chartRef: chartDom} = useEcharts(projectYearsData.value);
+const {chartRef: chartDom, initChart: initProjectChart, updateChart: updateProjectChart} = useEcharts();
 
 // 任务数量总览
 const taskAllCount=ref(0);
@@ -669,7 +707,7 @@ const taskDistributionData=ref({
     data:[0,0,0]
   }]
 });
-const {chartRef: taskDom} = useEcharts(taskDistributionData.value);
+const {chartRef: taskDom, initChart: initTaskChart, updateChart: updateTaskChart} = useEcharts();
 
 // 需求统计图
 const needsChartData=ref({
@@ -695,7 +733,7 @@ const needsChartData=ref({
     }
   ]
 });
-const {chartRef: needsDom} = useEcharts(needsChartData.value);
+const {chartRef: needsDom, initChart: initNeedsChart, updateChart: updateNeedsChart} = useEcharts();
 
 // 测试统计数据
 const testStatistics = ref({
@@ -714,8 +752,8 @@ const testStatistics = ref({
 const fetchTeamStatistics = async () => {
   try {
     const response = await request.get('/dashboard/team-statistics');
-    if (response.code === 200) {
-      const data = response.data;
+    if (response.data.code === 200) {
+      const data = response.data.data;
       yesterday.value = data.yesterday || yesterday.value;
       today.value = data.today || today.value;
     }
@@ -728,8 +766,8 @@ const fetchTeamStatistics = async () => {
 const fetchProductOverview = async () => {
   try {
     const response = await request.get('/dashboard/product-overview');
-    if (response.code === 200) {
-      const data = response.data;
+    if (response.data.code === 200) {
+      const data = response.data.data;
       projectCount.value = data.projectCount || 0;
       thisYearIssue.value = data.thisYearIssue || 0;
       closeCount.value = data.closeCount || 0;
@@ -739,16 +777,42 @@ const fetchProductOverview = async () => {
   }
 };
 
+// 从后端获取单个项目统计详情
+const fetchProjectDetail = async () => {
+  try {
+    const response = await request.get('/dashboard/project-detail');
+    if (response.data.code === 200 && response.data.data) {
+      projectDetail.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('获取项目统计详情失败:', error);
+  }
+};
+
+// 从后端获取未关闭产品统计数据
+const fetchProductStatistics = async () => {
+  try {
+    const response = await request.get('/dashboard/product-statistics');
+    if (response.data.code === 200 && response.data.data) {
+      productStatistics.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('获取未关闭产品统计数据失败:', error);
+  }
+};
+
 // 从后端获取项目总览数据
 const fetchProjectOverview = async () => {
   try {
     const response = await request.get('/dashboard/project-overview');
-    if (response.code === 200) {
-      const data = response.data;
+    if (response.data.code === 200) {
+      const data = response.data.data;
       xiangMuCount.value = data.xiangMuCount || 0;
       thisYearFinish.value = data.thisYearFinish || 0;
       if (data.projectYearsData) {
         projectYearsData.value = data.projectYearsData;
+        // 更新图表
+        updateProjectChart(projectYearsData.value);
       }
     }
   } catch (error) {
@@ -760,12 +824,14 @@ const fetchProjectOverview = async () => {
 const fetchTaskOverview = async () => {
   try {
     const response = await request.get('/dashboard/task-overview');
-    if (response.code === 200) {
-      const data = response.data;
+    if (response.data.code === 200) {
+      const data = response.data.data;
       taskAllCount.value = data.taskAllCount || 0;
       taskFinishCount.value = data.taskFinishCount || 0;
       if (data.taskDistributionData) {
         taskDistributionData.value = data.taskDistributionData;
+        // 更新图表
+        updateTaskChart(taskDistributionData.value);
       }
     }
   } catch (error) {
@@ -777,10 +843,12 @@ const fetchTaskOverview = async () => {
 const fetchNeedsStatistics = async () => {
   try {
     const response = await request.get('/dashboard/needs-statistics');
-    if (response.code === 200) {
-      const data = response.data;
+    if (response.data.code === 200) {
+      const data = response.data.data;
       if (data.needsChartData) {
         needsChartData.value = data.needsChartData;
+        // 更新图表
+        updateNeedsChart(needsChartData.value);
       }
     }
   } catch (error) {
@@ -792,8 +860,8 @@ const fetchNeedsStatistics = async () => {
 const fetchTestStatistics = async () => {
   try {
     const response = await request.get('/dashboard/test-statistics');
-    if (response.code === 200) {
-      const data = response.data;
+    if (response.data.code === 200) {
+      const data = response.data.data;
       testStatistics.value = {
         yesterdayNew: data.yesterdayNew || 0,
         todayNew: data.todayNew || 0,
@@ -1135,7 +1203,11 @@ ProjectList{
   background-color: #ecf5ff;
 }
 
+.product-statistics{
+  height: 250px;
+}
 .product-statistics-content {
+  height: 250px;
   flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1158,12 +1230,6 @@ ProjectList{
 
 .delivery-rate {
   text-align: center;
-}
-
-.delivery-rate .el-progress {
-  width: 120px !important;
-  height: 120px !important;
-  margin: 0 auto 15px;
 }
 
 .delivery-stats {
@@ -1400,10 +1466,6 @@ ProjectList{
 }
 
 .bug-repair {
-  padding: 15px;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   text-align: center;
   height: 100%;
 }
@@ -1413,12 +1475,6 @@ ProjectList{
   font-size: 14px;
   font-weight: 500;
   color: #303133;
-}
-
-.bug-repair .el-progress {
-  width: 120px !important;
-  height: 120px !important;
-  margin: 0 auto 15px;
 }
 
 .bug-repair-stats {
@@ -1446,11 +1502,29 @@ ProjectList{
 }
 
 .staying-test-list {
-  padding: 15px;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  height: 100%;
+  //padding: 15px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.staying-test-list .test-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.staying-test-list .test-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.staying-test-list .test-list::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.staying-test-list .test-list::-webkit-scrollbar-thumb {
+  background: #409EFF;
+  border-radius: 3px;
 }
 
 .staying-test-list h3 {

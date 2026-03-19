@@ -15,7 +15,7 @@ const request = axios.create({
 // response拦截器
 request.interceptors.response.use(
     response=>{
-        return response.data;
+        return response;
     },
     error => {
         return Promise.reject(error);

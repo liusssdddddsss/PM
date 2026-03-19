@@ -3,9 +3,11 @@ package com.example.springboot.controller;
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.Bug;
 import com.example.springboot.entity.Project;
+import com.example.springboot.entity.Product;
 import com.example.springboot.entity.Requirement;
 import com.example.springboot.entity.Task;
 import com.example.springboot.entity.TestSuite;
+import com.example.springboot.repository.ProductRepository;
 import com.example.springboot.service.BugService;
 import com.example.springboot.service.ProjectApprovalService;
 import com.example.springboot.service.TaskService;
@@ -30,7 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @RestController
-@RequestMapping("/dashboard")
+@RequestMapping(value = "/dashboard", produces = "application/json;charset=UTF-8")
 @Tag(name="工作台模块")
 public class DashboardController {
 
@@ -46,6 +48,8 @@ public class DashboardController {
     ProjectService projectService;
     @Resource
     TestSuiteService testSuiteService;
+    @Resource
+    ProductRepository productRepository;
 
     @Operation(summary = "获取工作台统计数据", description = "返回工作台的统计数据，包括待审批数、任务数、BUG数等")
     @GetMapping("/statistics")
@@ -68,15 +72,52 @@ public class DashboardController {
             
             // 获取用户需求数（type = 2）
             long userNeedsCount = requirementService.countByType(2);
-            
-            // 其他统计数据暂时使用模拟数据，等其他表创建后再修改为真实查询
+
+            // 昨日处理任务和Bug数（不再使用模拟数据）
+            int yesterdayHandled = 0;
+            Calendar yesterdayCal = Calendar.getInstance();
+            yesterdayCal.add(Calendar.DAY_OF_YEAR, -1);
+
+            List<Task> tasks = taskService.findall();
+            for (Task task : tasks) {
+                if (task.getStatus() != null && task.getStatus() == 2 && task.getCreatedAt() != null) {
+                    Date d = tryParseDate(task.getCreatedAt());
+                    if (d != null) {
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(d);
+                        if (isSameDay(c, yesterdayCal)) {
+                            yesterdayHandled++;
+                        }
+                    }
+                }
+            }
+
+            List<Bug> bugs = bugService.findall();
+            for (Bug bug : bugs) {
+                if (bug.getStatus() != null && bug.getStatus() == 2) {
+                    String timeStr = bug.getResolved_at() != null ? bug.getResolved_at() : bug.getCreated_at();
+                    if (timeStr != null) {
+                        Date d = tryParseDate(timeStr);
+                        if (d != null) {
+                            Calendar c = Calendar.getInstance();
+                            c.setTime(d);
+                            if (isSameDay(c, yesterdayCal)) {
+                                yesterdayHandled++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 不再返回模拟数据
             statistics.put("approveState", (int) approveCount);  // 待审批数
             statistics.put("taskState", (int) taskCount);      // 任务数
             statistics.put("bugState", (int) bugCount);        // BUG数
             statistics.put("needsState", (int) researchNeedsCount);      // 研发需求数
             statistics.put("userState", (int) userNeedsCount);       // 用户需求数
-            statistics.put("passageState", 10);    // 文档数
-            statistics.put("bug", 10);             // 昨日处理任务和Bug数
+            // 当前无文档表，返回 0（避免模拟数据）
+            statistics.put("passageState", 0);    // 文档数
+            statistics.put("bug", yesterdayHandled);             // 昨日处理任务和Bug数
             
             return Result.success(statistics);
         } catch (Exception e) {
@@ -208,10 +249,47 @@ public class DashboardController {
                 }
             }
             
-            // 计算工时消耗（模拟数据，实际应该从工时表中获取）
-            int yesterdayClock = 65;
-            int todayClock = 50;
-            int averageClock = 6;
+            // 计算工时消耗（不再使用模拟数据：基于 tasks.actualHours/estimatedHours 统计）
+            int yesterdayClock = 0;
+            int todayClock = 0;
+            int yesterdayTaskForClock = 0;
+            int todayTaskForClock = 0;
+
+            for (Task task : tasks) {
+                if (task.getStatus() == null || task.getStatus() != 2 || task.getCreatedAt() == null) {
+                    continue;
+                }
+
+                Date d = tryParseDate(task.getCreatedAt());
+                if (d == null) {
+                    continue;
+                }
+                Calendar c = Calendar.getInstance();
+                c.setTime(d);
+
+                double hours = 0.0;
+                if (task.getActualHours() != null) {
+                    hours = task.getActualHours();
+                } else if (task.getEstimatedHours() != null) {
+                    hours = task.getEstimatedHours();
+                }
+
+                int rounded = (int) Math.round(hours);
+
+                if (isSameDay(c, calendar)) {
+                    yesterdayClock += rounded;
+                    yesterdayTaskForClock++;
+                } else if (isSameDay(c, todayCalendar)) {
+                    todayClock += rounded;
+                    todayTaskForClock++;
+                }
+            }
+
+            int totalTasksForClock = yesterdayTaskForClock + todayTaskForClock;
+            int averageClock = 0;
+            if (totalTasksForClock > 0) {
+                averageClock = (int) Math.round((yesterdayClock + todayClock) * 1.0 / totalTasksForClock);
+            }
             
             yesterday.put("task", yesterdayTaskCount);
             yesterday.put("create", yesterdayCreateCount);
@@ -242,6 +320,15 @@ public class DashboardController {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH) &&
                cal1.get(Calendar.DAY_OF_MONTH) == cal2.get(Calendar.DAY_OF_MONTH);
+    }
+
+    private Date tryParseDate(String str) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            return sdf.parse(str);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     @Operation(summary = "获取产品总览数据", description = "返回产品总览数据")
@@ -423,6 +510,221 @@ public class DashboardController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取任务完成总览失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取单个项目统计详情", description = "用于工作台右侧“项目统计”卡片，返回一个代表性项目的工时、需求、任务、Bug 等统计")
+    @GetMapping("/project-detail")
+    public Result getProjectDetail() {
+        try {
+            // 选择一个代表性项目：优先选择未关闭/未归档的；如果没有就取任意一个
+            Iterable<Project> allProjects = projectService.findAll();
+            Project targetProject = null;
+
+            for (Project p : allProjects) {
+                if (p.getStatus() == null || (p.getStatus() != 2 && p.getStatus() != 3)) {
+                    targetProject = p;
+                    break;
+                }
+            }
+
+            if (targetProject == null) {
+                for (Project p : projectService.findAll()) {
+                    targetProject = p;
+                    break;
+                }
+            }
+
+            if (targetProject == null) {
+                // 没有任何项目时，直接返回空统计
+                Map<String, Object> empty = new HashMap<>();
+                empty.put("projectName", "暂无项目");
+                empty.put("finishTime", null);
+                empty.put("workTimeTotal", 0);
+                empty.put("workTimeConsumed", 0);
+                empty.put("workTimeRemaining", 0);
+                empty.put("needTotal", 0);
+                empty.put("needFinished", 0);
+                empty.put("needUnclosed", 0);
+                empty.put("taskTotal", 0);
+                empty.put("taskNotStarted", 0);
+                empty.put("taskInProgress", 0);
+                empty.put("bugTotal", 0);
+                empty.put("bugClosed", 0);
+                empty.put("bugUnclosed", 0);
+                return Result.success(empty);
+            }
+
+            Integer projectId = targetProject.getId().intValue();
+
+            // 统计工时（从 tasks 表中获取）
+            double totalHours = 0.0;
+            double consumedHours = 0.0;
+            int taskTotal = 0;
+            int taskNotStarted = 0;
+            int taskInProgress = 0;
+
+            List<Task> tasks = taskService.findall();
+            for (Task task : tasks) {
+                if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
+                    taskTotal++;
+
+                    if (task.getEstimatedHours() != null) {
+                        totalHours += task.getEstimatedHours();
+                    }
+                    if (task.getActualHours() != null) {
+                        consumedHours += task.getActualHours();
+                    }
+
+                    Integer status = task.getStatus();
+                    if (status == null || status == 0) {
+                        taskNotStarted++;
+                    } else if (status == 1) {
+                        taskInProgress++;
+                    }
+                }
+            }
+
+            int workTimeTotal = (int) Math.round(totalHours);
+            int workTimeConsumed = (int) Math.round(consumedHours);
+            int workTimeRemaining = Math.max(0, workTimeTotal - workTimeConsumed);
+
+            // 统计需求（从 requirements 表中获取）
+            int needTotal = 0;
+            int needFinished = 0;
+            int needUnclosed = 0;
+            List<Requirement> requirements = requirementService.findall();
+            for (Requirement req : requirements) {
+                if (req.getProject_id() != null && req.getProject_id().equals(projectId)) {
+                    needTotal++;
+                    Integer status = req.getStatus();
+                    if (status != null && status == 2) {
+                        needFinished++;
+                    }
+                    if (status == null || status < 2) {
+                        needUnclosed++;
+                    }
+                }
+            }
+
+            // 统计 Bug（从 bugs 表中获取）
+            int bugTotal = 0;
+            int bugClosed = 0;
+            int bugUnclosed = 0;
+            List<Bug> bugs = bugService.findall();
+            for (Bug bug : bugs) {
+                if (bug.getProject_id() != null && bug.getProject_id().equals(projectId)) {
+                    bugTotal++;
+                    Integer status = bug.getStatus();
+                    if (status != null && status == 2) {
+                        bugClosed++;
+                    }
+                    if (status == null || status < 2) {
+                        bugUnclosed++;
+                    }
+                }
+            }
+
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("projectName", targetProject.getName());
+            detail.put("finishTime", targetProject.getEnd_date());
+            detail.put("workTimeTotal", workTimeTotal);
+            detail.put("workTimeConsumed", workTimeConsumed);
+            detail.put("workTimeRemaining", workTimeRemaining);
+            detail.put("needTotal", needTotal);
+            detail.put("needFinished", needFinished);
+            detail.put("needUnclosed", needUnclosed);
+            detail.put("taskTotal", taskTotal);
+            detail.put("taskNotStarted", taskNotStarted);
+            detail.put("taskInProgress", taskInProgress);
+            detail.put("bugTotal", bugTotal);
+            detail.put("bugClosed", bugClosed);
+            detail.put("bugUnclosed", bugUnclosed);
+
+            return Result.success(detail);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目统计详情失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取未关闭产品统计数据", description = "用于工作台“未关闭的产品统计”卡片，基于需求和Bug计算整体交付情况")
+    @GetMapping("/product-statistics")
+    public Result getProductStatistics() {
+        try {
+            Map<String, Object> result = new HashMap<>();
+
+            // 需求相关统计
+            int validNeeds = 0;
+            int deliveredNeeds = 0;
+            int unclosedNeeds = 0;
+            int monthFinish = 0;
+            int monthAdd = 0;
+
+            List<Requirement> requirements = requirementService.findall();
+            Calendar now = Calendar.getInstance();
+            int currentYear = now.get(Calendar.YEAR);
+            int currentMonth = now.get(Calendar.MONTH);
+
+            for (Requirement req : requirements) {
+                Integer status = req.getStatus();
+                if (status != null) {
+                    validNeeds++;
+                    if (status == 2) {
+                        deliveredNeeds++;
+                    }
+                    if (status < 2) {
+                        unclosedNeeds++;
+                    }
+                } else {
+                    // 没有状态的也算有效且未关闭
+                    validNeeds++;
+                    unclosedNeeds++;
+                }
+
+                if (req.getCreated_at() != null) {
+                    Date d = tryParseDate(req.getCreated_at());
+                    if (d != null) {
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(d);
+                        if (c.get(Calendar.YEAR) == currentYear && c.get(Calendar.MONTH) == currentMonth) {
+                            monthAdd++;
+                            if (status != null && status == 2) {
+                                monthFinish++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            int deliveryRate = 0;
+            if (validNeeds > 0) {
+                deliveryRate = (deliveredNeeds * 100) / validNeeds;
+            }
+
+            // 获取产品列表
+            List<Map<String, Object>> productList = new ArrayList<>();
+            // 从产品表中获取所有产品
+            Iterable<Product> products = productRepository.findAll();
+            for (Product product : products) {
+                Map<String, Object> productMap = new HashMap<>();
+                productMap.put("id", product.getId());
+                productMap.put("name", product.getName());
+                productList.add(productMap);
+            }
+
+            result.put("deliveryRate", deliveryRate);
+            result.put("validNeeds", validNeeds);
+            result.put("deliveredNeeds", deliveredNeeds);
+            result.put("unclosedNeeds", unclosedNeeds);
+            result.put("monthFinish", monthFinish);
+            result.put("monthAdd", monthAdd);
+            result.put("productList", productList);
+
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取未关闭产品统计数据失败: " + e.getMessage());
         }
     }
 

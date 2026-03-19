@@ -1,23 +1,30 @@
-import {onMounted, onUnmounted,ref} from "vue";
+import {onMounted, onUnmounted, ref, watch} from "vue";
 import * as echarts from 'echarts';
 
-export function useEcharts(option){
+export function useEcharts(){
     const chartRef = ref(null);
     let chartInstance = null;
     let resizeObserver = null;
 
-    onMounted(() => {
+    const initChart = (options) => {
         if (chartRef.value){
-            chartInstance=echarts.init(chartRef.value);
-            chartInstance.setOption(option);
+            chartInstance = echarts.init(chartRef.value);
+            chartInstance.setOption(options);
             resizeObserver = new ResizeObserver(() => chartInstance.resize());
             resizeObserver.observe(chartRef.value);
         }
-    });
+    };
+
+    const updateChart = (options) => {
+        if (chartInstance) {
+            chartInstance.setOption(options);
+        }
+    };
+
     onUnmounted(() => {
         chartInstance?.dispose();
-        chartInstance?.dispose();
+        resizeObserver?.disconnect();
     });
 
-    return {chartRef};
+    return {chartRef, initChart, updateChart};
 }

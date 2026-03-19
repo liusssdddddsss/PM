@@ -11,8 +11,8 @@ const router = createRouter({
                 {name:'日程',route:'/workbench/schedule'},
                 {name:'待处理',route:'/workbench/pending'},
                 {name:'待审批',route:'/workbench/approval'},
-                {name:'项目',route:'/workbench/projects'},
-                {name:'任务',route:'/workbench/tasks'}
+                // {name:'项目',route:'/workbench/projects'},
+                // {name:'任务',route:'/workbench/tasks'}
             ]
         },
         children:[
@@ -32,8 +32,8 @@ const router = createRouter({
         {path:'schedule',component:()=>import('@/views/workbenchView/Schedule.vue')},
         {path:'pending',component:()=>import('@/views/workbenchView/Pending.vue')},
         {path:'approval',component:()=>import('@/views/workbenchView/Approval.vue')},
-        {path:'projects',component:()=>import('@/views/workbenchView/Projects.vue')},
-        {path:'tasks',component:()=>import('@/views/workbenchView/Tasks.vue')},
+        // {path:'projects',component:()=>import('@/views/workbenchView/Projects.vue')},
+        // {path:'tasks',component:()=>import('@/views/workbenchView/Tasks.vue')},
 
         ]
     },

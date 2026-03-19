@@ -148,9 +148,9 @@ const fetchFeedbacks = async () => {
   try {
     const response = await request.get('/api/feedback/list');
     console.log('获取反馈列表响应:', response);
-    if (response.code === 200) {
+    if (response.data.code === 200) {
       // 转换数据格式以匹配前端组件
-      feedbackList.value = response.data.map(item => ({
+      feedbackList.value = response.data.data.map(item => ({
         id: item.id,
         title: item.title,
         priority: item.priority || 3,

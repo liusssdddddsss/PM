@@ -47,9 +47,9 @@ const fetchBugs = async () => {
   try {
     const response = await request.get('/workbench/bugs');
     console.log('获取Bug列表响应:', response);
-    if (response.code === 200) {
+    if (response.data.code === 200) {
       // 转换数据格式以匹配前端组件
-      tableData.value = response.data.map(item => ({
+      tableData.value = response.data.data.map(item => ({
         id: item.id,
         title: item.title,
         priority: getPriorityText(item.priority),
