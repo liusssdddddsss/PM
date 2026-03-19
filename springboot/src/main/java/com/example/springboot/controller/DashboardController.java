@@ -5,11 +5,13 @@ import com.example.springboot.entity.Bug;
 import com.example.springboot.entity.Project;
 import com.example.springboot.entity.Requirement;
 import com.example.springboot.entity.Task;
+import com.example.springboot.entity.TestSuite;
 import com.example.springboot.service.BugService;
 import com.example.springboot.service.ProjectApprovalService;
 import com.example.springboot.service.TaskService;
 import com.example.springboot.service.RequirementService;
 import com.example.springboot.service.ProjectService;
+import com.example.springboot.service.TestSuiteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -42,6 +44,8 @@ public class DashboardController {
     RequirementService requirementService;
     @Resource
     ProjectService projectService;
+    @Resource
+    TestSuiteService testSuiteService;
 
     @Operation(summary = "获取工作台统计数据", description = "返回工作台的统计数据，包括待审批数、任务数、BUG数等")
     @GetMapping("/statistics")
@@ -574,14 +578,12 @@ public class DashboardController {
                 bugRepairRate = (fixedBugs * 100) / validBugs;
             }
             
-            // 获取待测试的测试单列表（从任务表中获取状态为0或1的任务）
-            List<Task> tasks = taskService.findall();
+            // 获取待测试的测试单列表（从测试套件表中获取）
+            List<TestSuite> testSuites = testSuiteService.findAll();
             List<String> testLists = new ArrayList<>();
             
-            for (Task task : tasks) {
-                if (task.getStatus() != null && (task.getStatus() == 0 || task.getStatus() == 1)) {
-                    testLists.add(task.getTitle());
-                }
+            for (TestSuite testSuite : testSuites) {
+                testLists.add(testSuite.getName());
             }
             
             statistics.put("yesterdayNew", yesterdayNew);

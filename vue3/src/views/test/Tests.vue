@@ -9,11 +9,13 @@
             <!-- 近期模块审核 -->
             <div class="list-name">
               <h3>近期模块审核</h3>
-              <ul>
-                <li v-for="item in testList">
-                  {{item}}
-                </li>
-              </ul>
+              <div class="list-content">
+                <ul>
+                  <li v-for="item in testList">
+                    {{item}}
+                  </li>
+                </ul>
+              </div>
             </div>
             
             <!-- Bug统计 -->
@@ -51,9 +53,11 @@
             <!-- 未关闭的测试单 -->
             <div class="unclosed-tests">
               <h3>未关闭的测试单</h3>
-              <ul class="test-list">
-                <li v-for="(item, index) in unclosedTestCases" :key="index">{{ item }}</li>
-              </ul>
+              <div class="list-content">
+                <ul class="test-list">
+                  <li v-for="(item, index) in unclosedTestCases" :key="index">{{ item }}</li>
+                </ul>
+              </div>
             </div>
           </div>
         </el-card>
@@ -67,17 +71,19 @@
                          @click="goToTestList"
               >更多</el-button>
             </div>
-            <el-table :data="pendingTestCases" stripe style="width: 100%">
-              <el-table-column prop="name" label="测试单名称" min-width="200" />
-              <el-table-column prop="priority" label="优先级" width="100">
-                <template #default="scope">
-                  <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="product" label="所属产品" width="150" />
-              <el-table-column prop="startDate" label="开始日期" width="120" />
-              <el-table-column prop="endDate" label="结束日期" width="120" />
-            </el-table>
+            <div class="card-content">
+              <el-table :data="pendingTestCases" stripe style="width: 100%">
+                <el-table-column prop="name" label="测试单名称" min-width="200" />
+                <el-table-column prop="priority" label="优先级" width="100">
+                  <template #default="scope">
+                    <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="product" label="所属产品" width="150" />
+                <el-table-column prop="startDate" label="开始日期" width="120" />
+                <el-table-column prop="endDate" label="结束日期" width="120" />
+              </el-table>
+            </div>
           </div>
         </el-card>
       </div>
@@ -91,19 +97,21 @@
             <h3>指派给我的Bug列表</h3>
             <el-button type="text" icon="el-icon-setting">更多</el-button>
           </div>
-          <el-table :data="assignedBugs" stripe style="width: 100%">
-            <el-table-column prop="name" label="Bug名称" min-width="200" />
-            <el-table-column prop="priority" label="优先级" width="100">
-              <template #default="scope">
-                <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="scope">
-                <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="card-content">
+            <el-table :data="assignedBugs" stripe style="width: 100%">
+              <el-table-column prop="name" label="Bug名称" min-width="200" />
+              <el-table-column prop="priority" label="优先级" width="100">
+                <template #default="scope">
+                  <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" label="状态" width="100">
+                <template #default="scope">
+                  <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </div>
         </el-card>
 
@@ -113,8 +121,10 @@
           <div class="section-header">
             <h3>指派给我的用例列表</h3>
           </div>
-          <div class="no-data">
-            <p>暂无</p>
+          <div class="card-content">
+            <div class="no-data">
+              <p>暂无</p>
+            </div>
           </div>
         </div>
         </el-card>
@@ -124,53 +134,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import {useRouter} from "vue-router";
+import request from "@/utils/request.js";
 
-const testList = ref([
-  '班牌模板调整',
-  '班牌PC端管理界面调整',
-  '界面优化调整',
-  '家校互通留言台',
-  '实训教学资源大数据',
-  '教师端查询评分标准列表'
-])
+// 近期模块审核
+const testList = ref([]);
 
 // bug统计
 const bugStats = ref({
-  youXiaoBug: 56,
-  bugRepair: 16,
-  noClose: 42,
+  youXiaoBug: 0,
+  bugRepair: 0,
+  noClose: 0,
   detail: [
-    {name: '昨天新增', count: 125, percentage: 100},
-    {name: '昨天解决', count: 98, percentage: 78},
-    {name: '今日新增', count: 26, percentage: 21},
+    {name: '昨天新增', count: 0, percentage: 0},
+    {name: '昨天解决', count: 0, percentage: 0},
+    {name: '今日新增', count: 0, percentage: 0},
     {name: '昨天关闭', count: 0, percentage: 0},
-    {name: '今日关闭', count: 10, percentage: 8}
+    {name: '今日关闭', count: 0, percentage: 0}
   ]
 });
 
 // 未关闭的测试单
-const unclosedTestCases = ref([
-  '班牌PC端管理界面调整',
-  '学期结束后，自动给学生推送实训档案',
-  '班牌模板调整，参考海康，增加竖版',
-  '家校互通留言台',
-  '终端教师端查询评分标准列表'
-]);
+const unclosedTestCases = ref([]);
 
 // 待测试的测试单
-const pendingTestCases = ref([
-  { name: '家长端，界面优化调整，新增功能：授权监控', priority: '一般', product: '智慧教室 智慧云盘', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '班牌PC端管理界面调整，样式统一，菜单归类', priority: '严重', product: '实践教学管理平台', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '班牌模板调整，参考海康，增加竖版', priority: '严重', product: '电子班牌管理系统', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '数据大屏-实训教学资源大数据', priority: '一般', product: '智慧校园(中学版)', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '终端教师端查询评分标准列表', priority: '一般', product: '教务考试系统', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '实训任务、示范列表表情优化', priority: '严重', product: '在线试卷批改', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '学期结束后，自动给学生推送实训档案', priority: '严重', product: '家校互通平台', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '终端教师端查询评分标准列表', priority: '严重', product: '智慧园区OA办公系统', startDate: '2023-08-08', endDate: '2023-08-08' },
-  { name: '实训任务、示范列表表情优化', priority: '严重', product: '物业管理平台', startDate: '2023-08-08', endDate: '2023-08-08' }
-]);
+const pendingTestCases = ref([]);
 
 const router = useRouter();
 const goToTestList =()=>{
@@ -178,16 +167,71 @@ const goToTestList =()=>{
 };
 
 // 指派给我的Bug列表
-const assignedBugs = ref([
-  { name: '切换季度弹窗错误', priority: '一般', status: '解决中' },
-  { name: '移动应用崩溃现象', priority: '严重', status: '已解决' },
-  { name: '导出数据含有错误信息的数据', priority: '严重', status: '已解决' },
-  { name: '项目归档功能失效', priority: '一般', status: '已解决' },
-  { name: '自定义工作流后缺少步骤', priority: '一般', status: '已解决' },
-  { name: '项目成员列表重复显示', priority: '一般', status: '已解决' },
-  { name: '预算调整表单验证失败', priority: '严重', status: '已解决' },
-  { name: '实训任务、示范列表表情优化', priority: '严重', status: '已解决' }
-]);
+const assignedBugs = ref([]);
+
+// 获取测试统计数据
+const fetchTestStatistics = async () => {
+  try {
+    const response = await request.get('/dashboard/test-statistics');
+    if (response.code === 200) {
+      const data = response.data;
+      
+      // 更新Bug统计数据
+      bugStats.value = {
+        youXiaoBug: data.validBugs,
+        bugRepair: data.fixedBugs,
+        noClose: data.unclosedBugs,
+        detail: [
+          {name: '昨天新增', count: data.yesterdayNew, percentage: 100},
+          {name: '昨天解决', count: data.yesterdaySolved, percentage: data.yesterdayNew > 0 ? (data.yesterdaySolved * 100) / data.yesterdayNew : 0},
+          {name: '今日新增', count: data.todayNew, percentage: data.yesterdayNew > 0 ? (data.todayNew * 100) / data.yesterdayNew : 0},
+          {name: '昨天关闭', count: 0, percentage: 0},
+          {name: '今日关闭', count: data.todaySolved, percentage: data.yesterdayNew > 0 ? (data.todaySolved * 100) / data.yesterdayNew : 0}
+        ]
+      };
+      
+      // 更新未关闭的测试单
+      unclosedTestCases.value = data.testLists || [];
+      
+      // 更新待测试的测试单（这里使用测试列表数据，实际应该从测试单表中获取）
+      pendingTestCases.value = data.testLists ? data.testLists.map((item, index) => ({
+        name: item,
+        priority: index % 2 === 0 ? '一般' : '严重',
+        product: '测试产品',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0]
+      })) : [];
+      
+      // 更新近期模块审核列表
+      testList.value = data.testLists || [];
+    }
+  } catch (error) {
+    console.error('获取测试统计数据失败:', error);
+  }
+};
+
+// 获取Bug列表
+const fetchBugs = async () => {
+  try {
+    const response = await request.get('/workbench/bugs');
+    if (response.code === 200) {
+      // 转换Bug数据格式
+      assignedBugs.value = response.data.map(bug => ({
+        name: bug.title || bug.description,
+        priority: bug.priority === 1 ? '严重' : bug.priority === 2 ? '一般' : '正常',
+        status: bug.status === 1 ? '解决中' : bug.status === 2 ? '已解决' : '待处理'
+      }));
+    }
+  } catch (error) {
+    console.error('获取Bug列表失败:', error);
+  }
+};
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchTestStatistics();
+  fetchBugs();
+});
 
 // 获取优先级对应的标签类型
 const getPriorityType = (priority) => {
@@ -240,12 +284,16 @@ const getStatusType = (status) => {
   display: flex;
   width: 100%;
   gap: 20px;
+  height: 200px;
 }
 
 /* 近期模块审核 */
 .list-name{
   flex: 1;
   padding: 0 10px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-name h3 {
@@ -253,6 +301,12 @@ const getStatusType = (status) => {
   font-weight: bold;
   color: #303133;
   margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.list-content {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .list-name ul {
@@ -278,12 +332,15 @@ const getStatusType = (status) => {
   padding: 0 10px;
   border-left: 1px solid #f0f0f0;
   border-right: 1px solid #f0f0f0;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
 }
 
 .bug-content {
   display: flex;
   gap: 20px;
-  height: 100%;
+  flex: 1;
   align-items: flex-start;
 }
 
@@ -412,6 +469,9 @@ const getStatusType = (status) => {
 .unclosed-tests {
   flex: 1;
   padding: 0 10px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
 }
 
 .unclosed-tests h3 {
@@ -419,12 +479,18 @@ const getStatusType = (status) => {
   font-weight: bold;
   color: #303133;
   margin-bottom: 15px;
+  flex-shrink: 0;
 }
 
 .test-list {
   list-style: none;
   padding: 0;
   margin: 0;
+}
+
+.unclosed-tests .list-content {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .test-list li {
@@ -441,6 +507,9 @@ const getStatusType = (status) => {
 /* 待测试的测试单样式 */
 .pending-tests {
   background-color: #fff;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .pending-header {
@@ -448,6 +517,12 @@ const getStatusType = (status) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.pending-tests .card-content {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .pending-header h3 {
@@ -460,6 +535,9 @@ const getStatusType = (status) => {
 .assigned-bugs,
 .assigned-cases {
   background-color: #fff;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-header {
@@ -467,6 +545,12 @@ const getStatusType = (status) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.card-content {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .section-header h3 {
@@ -479,5 +563,12 @@ const getStatusType = (status) => {
   text-align: center;
   padding: 40px 0;
   color: #909399;
+}
+
+.no-permission {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 </style>

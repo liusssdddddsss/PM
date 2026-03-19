@@ -35,7 +35,6 @@ com\example\springboot\entity\User.class
 com\example\springboot\repository\BugRepository.class
 com\example\springboot\repository\ProjectMemberRepository.class
 com\example\springboot\repository\ProjectApprovalRepository.class
-com\example\springboot\controller\DashboardController.class
 com\example\springboot\entity\Task.class
 com\example\springboot\repository\FeedbackRepository.class
 com\example\springboot\service\UserService.class
