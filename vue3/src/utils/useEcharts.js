@@ -7,12 +7,20 @@ export function useEcharts(){
     let resizeObserver = null;
 
     const initChart = (options) => {
-        if (chartRef.value){
-            chartInstance = echarts.init(chartRef.value);
-            chartInstance.setOption(options);
-            resizeObserver = new ResizeObserver(() => chartInstance.resize());
-            resizeObserver.observe(chartRef.value);
+        if (!chartRef.value) return;
+
+        // 反复 initChart 时，先清理旧实例，避免多重 init/多重 ResizeObserver
+        if (chartInstance) {
+            chartInstance.dispose();
+            chartInstance = null;
         }
+        resizeObserver?.disconnect();
+        resizeObserver = null;
+
+        chartInstance = echarts.init(chartRef.value);
+        chartInstance.setOption(options);
+        resizeObserver = new ResizeObserver(() => chartInstance?.resize());
+        resizeObserver.observe(chartRef.value);
     };
 
     const updateChart = (options) => {

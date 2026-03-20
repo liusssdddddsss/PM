@@ -81,8 +81,6 @@
               </div>
             </div>
           </div>
-          <!-- 需求统计图 -->
-          <div ref="needsDom" style="width: 100%; height: 250px; margin-top: 20px;"></div>
         </el-card>
 
 <!--        产品列表整合-->
@@ -388,7 +386,12 @@ const fetchYearWorkStatistics = async () => {
 };
 
 // 产品发布统计图表
-const faBuDom = ref(null);
+const {
+  chartRef: faBuDom,
+  initChart: initFaBuEchart,
+  updateChart: updateFaBuEchart
+} = useEcharts();
+let faBuInited = false;
 const initFaBuChart = async () => {
   if (!faBuDom.value) return;
   try {
@@ -397,7 +400,7 @@ const initFaBuChart = async () => {
     });
     if (response.data.code === 200) {
       const data = response.data.data;
-      useEcharts(faBuDom.value, {
+      const option = {
         title: {
           text: '月度发布次数趋势图(个)',
           left: 'center',
@@ -458,100 +461,16 @@ const initFaBuChart = async () => {
           symbol: 'circle',
           symbolSize: 8
         }]
-      });
+      };
+
+      if (faBuInited) updateFaBuEchart(option);
+      else {
+        initFaBuEchart(option);
+        faBuInited = true;
+      }
     }
   } catch (error) {
     console.error('获取月度发布数据失败:', error);
-  }
-};
-
-// 需求统计图
-const needsDom = ref(null);
-const initNeedsChart = async () => {
-  if (!needsDom.value) return;
-  try {
-    const response = await request.get('/dashboard/needs-statistics', {
-      params: { year: selectedYear.value }
-    });
-    if (response.data.code === 200) {
-      const data = response.data.data;
-      // 处理后端返回的数据结构
-      const chartData = data.needsChartData || {};
-      const xAxisData = chartData.xAxis ? chartData.xAxis.data : ['7月','8月','9月','10月','11月','12月'];
-      const seriesData = chartData.series || [];
-      const completedData = seriesData[0] ? seriesData[0].data : [0, 0, 0, 0, 0, 0];
-      const newData = seriesData[1] ? seriesData[1].data : [0, 0, 0, 0, 0, 0];
-      
-      useEcharts(needsDom.value, {
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis:{
-          type: 'category',
-          boundaryGap: false,
-          data: xAxisData,
-          axisLine: {
-            lineStyle: {
-              color: '#d9d9d9'
-            }
-          },
-          axisLabel: {
-            fontSize: 11
-          }
-        },
-        yAxis:{
-          type: 'value',
-          min: 0,
-          axisLine: {
-            show: false
-          },
-          axisTick: {
-            show: false
-          },
-          splitLine: {
-            lineStyle: {
-              color: '#f0f0f0'
-            }
-          },
-          axisLabel: {
-            fontSize: 11
-          }
-        },
-        series:[
-            {
-              name:'完成',
-              type:'line',
-              stack:'Total',
-              data: completedData,
-              lineStyle: {
-                color: '#409EFF',
-                width: 2
-              },
-              itemStyle: {
-                color: '#409EFF'
-              }
-            },
-          {
-            name:'新增',
-            type:'line',
-            stack:'Total',
-            data: newData,
-            lineStyle: {
-              color: '#67C23A',
-              width: 2
-            },
-            itemStyle: {
-              color: '#67C23A'
-            }
-          }
-        ]
-      });
-    }
-  } catch (error) {
-    console.error('获取需求统计数据失败:', error);
   }
 };
 
@@ -591,7 +510,6 @@ const initRankingChart = async () => {
 // 初始化图表
 const initCharts = async () => {
   await initFaBuChart();
-  await initNeedsChart();
 };
 
 // 在数据加载后初始化图表
@@ -653,6 +571,39 @@ h3{
   display: flex;
 }
 /*产品年度工作量统计样式*/
+.yearWorkStatistic{
+  height: 210px;
+  display: flex;
+  flex-direction: column;
+}
+.yearWorkStatistic h3{
+  padding: 0;
+  margin: 0 0 10px 0;
+}
+.yearWorkStatistic .container{
+  flex: 1;
+  height: 100%;
+  display: flex;
+}
+.yearWorkStatistic .container > div{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.yearWorkStatistic .container > div ul{
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.yearWorkStatistic .container > div li{
+  margin: 0;
+  padding: 0;
+}
 .container{
   display: flex;
 }
