@@ -1,10 +1,13 @@
 <template>
   <div class="task-table-container">
-    <el-table
-        :data="tableData"
-        style="width: 100%"
-        class="BudTable"
-    >
+    <div class="table-container">
+      <el-table
+          :data="tableData"
+          style="width: 100%"
+          class="TaskTable"
+          :row-style="{height: '45px'}"
+          :cell-style="{padding: '4px'}"
+      >
     <el-table-column label="序号" width="80">
       <template #default="scope">
         {{ scope.$index + 1 }}
@@ -27,7 +30,8 @@
     </el-table-column>
     <el-table-column prop="sure" label="确认" width="90"></el-table-column>
     <el-table-column prop="finishTime" label="完成时间" width="180"></el-table-column>
-    </el-table>
+      </el-table>
+    </div>
   </div>
 </template>
 
@@ -123,19 +127,6 @@ const getStatusClass = (state) => {
 </script>
 
 <style scoped>
-.task-table-container {
-  padding: 0;
-  background-color: #fff;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.BudTable {
-  border-radius: 0;
-  overflow: hidden;
-  border: none !important;
-}
-
 .task-name {
   color: #409EFF;
   font-weight: 500;
@@ -172,26 +163,29 @@ const getStatusClass = (state) => {
   font-size: 13px;
 }
 
-.el-table .cell {
-  font-size: 12px;
-  text-align: center;
-  vertical-align: middle;
-  line-height: 1.2;
+.task-table-container {
+  padding: 0;
+  background-color: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  overflow-x: auto;
+}
+
+.table-container {
+  width: 100%;
+  min-width: 800px;
+}
+
+.TaskTable {
+  border-radius: 0;
+  overflow: hidden;
+  border: none !important;
 }
 
 .el-table th {
-  font-size: 12px;
-  font-weight: 500;
   background-color: #f9f9f9;
-  padding: 4px 12px;
   text-align: center;
   vertical-align: middle;
-  height: 28px !important;
-}
-
-.el-table__row {
-  height: 28px !important;
-  line-height: 28px !important;
 }
 
 .el-table--border th {

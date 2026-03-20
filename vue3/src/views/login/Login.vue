@@ -93,8 +93,8 @@ const handleLogin = async () => {
     
     // 发送登录请求
     const response = await request.post('/admin/login', formData);
-    if (response.code === 200) {
-      const user = response.data;
+    if (response.data.code === 200) {
+      const user = response.data.data;
       // 存储用户信息到本地存储
       localStorage.setItem('user', JSON.stringify(user));
       
@@ -116,7 +116,7 @@ const handleLogin = async () => {
         await router.push('/workbench/dashboard');
       }
     } else {
-      alert(response.msg);
+      alert(response.data.msg);
     }
   } catch (error) {
     console.error('登录失败:', error);

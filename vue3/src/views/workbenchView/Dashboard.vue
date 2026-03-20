@@ -73,14 +73,21 @@
                 :key="item.id"
                 class="project-item"
             >
-              <el-card class="project-list">
-                <h1>{{item.projectName}}</h1>
-                <p>项目成员: 共{{item.projectMember}}人</p><br>
-                <p>计划完成时间: {{formatDate(item.finishTime)}}</p>
-                <div class="progress-bar">
-                  <el-progress :percentage="item.degree"/>
+              <div class="project-card">
+                <div class="project-header">
+                  <h3 class="project-title">{{item.projectName}}</h3>
+                  <div class="project-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #409EFF;">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </div>
                 </div>
-              </el-card>
+                <p class="project-member">项目成员: 共{{item.projectMember}}人</p>
+                <p class="project-time">计划完成时间: {{formatDate(item.finishTime)}}</p>
+                <div class="project-progress">
+                  <el-progress :percentage="item.degree" color="#409EFF"/>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -122,10 +129,12 @@
       </el-card>
 
 <!--      项目统计-->
-      <el-card style="max-width: 98%;margin-top: 10px">
-        <h3>项目统计</h3>
+      <el-card style="max-width: 98%;margin-top: 10px" :body-style="{ padding: '15px' }">
+        <h3 style="margin-bottom: 5px">项目统计</h3>
         <div class="project-statistics">
-          <ProjectList/>
+          <div class="project-list-container">
+            <ProjectList @project-click="handleProjectClick"/>
+          </div>
           <div class="project-statistics-task">
             <div class="project-header-info">
               <div class="project-name">{{ projectDetail.projectName || '暂无项目' }}</div>
@@ -176,13 +185,23 @@
       </el-card>
 
 <!--      未关闭的产品统计-->
-      <el-card style="max-width: 98%;margin-top: 10px">
-        <h3>未关闭的产品统计</h3>
+      <el-card style="max-width: 98%;margin-top: 10px" :body-style="{ padding: '15px' }">
+        <h3 style="margin-bottom: 5px">未关闭的产品统计</h3>
         <div class="product-statistics">
-          <div class="product-list">
-            <ul>
-              <li class="active">全部产品</li>
-              <li v-for="product in productStatistics.productList" :key="product.id">
+          <div class="product-list-container">
+            <ul class="project-list">
+<!--              <li -->
+<!--                :class="{ active: activeProductIndex === -1 }"-->
+<!--                @click="handleProductClick(-1, '全部产品')"-->
+<!--              >-->
+<!--                全部产品-->
+<!--              </li>-->
+              <li 
+                v-for="(product, index) in productStatistics.productList" 
+                :key="product.id"
+                :class="{ active: activeProductIndex === index }"
+                @click="handleProductClick(index, product.name)"
+              >
                 {{ product.name }}
               </li>
             </ul>
@@ -748,6 +767,25 @@ const testStatistics = ref({
   testLists: []
 });
 
+// 产品统计相关
+const activeProductIndex = ref(-1); // -1表示全部产品
+
+// 处理产品点击事件
+const handleProductClick = async (index, productName) => {
+  activeProductIndex.value = index;
+  // 这里可以添加从数据库获取对应产品数据的逻辑
+  console.log('点击了产品:', productName);
+  // 调用后端API获取产品统计数据
+  await fetchProductStatistics(productName);
+};
+
+// 处理项目点击事件
+const handleProjectClick = async (projectName) => {
+  console.log('点击了项目:', projectName);
+  // 调用后端API获取项目统计数据
+  await fetchProjectDetail(projectName);
+};
+
 // 从后端获取团队完成情况数据
 const fetchTeamStatistics = async () => {
   try {
@@ -778,9 +816,13 @@ const fetchProductOverview = async () => {
 };
 
 // 从后端获取单个项目统计详情
-const fetchProjectDetail = async () => {
+const fetchProjectDetail = async (projectName = '') => {
   try {
-    const response = await request.get('/dashboard/project-detail');
+    let url = '/dashboard/project-detail';
+    if (projectName) {
+      url += `?projectName=${encodeURIComponent(projectName)}`;
+    }
+    const response = await request.get(url);
     if (response.data.code === 200 && response.data.data) {
       projectDetail.value = response.data.data;
     }
@@ -790,9 +832,13 @@ const fetchProjectDetail = async () => {
 };
 
 // 从后端获取未关闭产品统计数据
-const fetchProductStatistics = async () => {
+const fetchProductStatistics = async (productName = '') => {
   try {
-    const response = await request.get('/dashboard/product-statistics');
+    let url = '/dashboard/product-statistics';
+    if (productName && productName !== '全部产品') {
+      url += `?productName=${encodeURIComponent(productName)}`;
+    }
+    const response = await request.get(url);
     if (response.data.code === 200 && response.data.data) {
       productStatistics.value = response.data.data;
     }
@@ -963,41 +1009,105 @@ p{
 
 .project-container {
   display: flex;
+  width: 700px;
+  overflow-x: hidden;
+  padding: 10px 0;
+}
+
+.project-container:hover {
   overflow-x: auto;
-  padding-bottom: 10px;
   scrollbar-width: thin;
   scrollbar-color: #409EFF #f0f0f0;
 }
 
-.project-container::-webkit-scrollbar {
+.project-container:hover::-webkit-scrollbar {
   height: 6px;
 }
 
-.project-container::-webkit-scrollbar-track {
+.project-container:hover::-webkit-scrollbar-track {
   background: #f0f0f0;
   border-radius: 3px;
 }
 
-.project-container::-webkit-scrollbar-thumb {
+.project-container:hover::-webkit-scrollbar-thumb {
   background: #409EFF;
   border-radius: 3px;
 }
 
 .project-item {
-  flex: 0 0 33.333%;
-  max-width: 33.333%;
-  padding: 0 10px;
+  flex: 0 0 calc(33.333% - 10px);
+  max-width: calc(33.333% - 10px);
+  margin-right: 15px;
   box-sizing: border-box;
 }
 
-.project-list{
-  width: 100%;
-  height: 150px;
-  margin-top: 10px;
-  box-shadow: none;
+.project-item:last-child {
+  margin-right: 0;
 }
-.progress-bar{
-  margin-top: 30px;
+
+.project-card {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.project-card:hover {
+  border-color: #409EFF;
+  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.1);
+}
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.project-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #409EFF;
+  margin: 0;
+  flex: 1;
+}
+
+.project-arrow {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.project-arrow:hover {
+  transform: translateX(3px);
+}
+
+.project-member {
+  font-size: 14px;
+  color: #606266;
+  margin: 5px 0;
+  display: block;
+}
+
+.project-time {
+  font-size: 14px;
+  color: #606266;
+  margin: 5px 0 10px 0;
+  display: block;
+}
+
+.project-progress {
+  margin-top: 10px;
+}
+
+.project-progress .el-progress {
+  width: 100%;
+}
+
+.project-progress .el-progress__text {
+  font-size: 12px;
+  color: #409EFF;
 }
 
 /*我的待处理样式*/
@@ -1074,18 +1184,22 @@ p{
 /*项目统计样式*/
 .project-statistics{
   display: flex;
+  gap: 20px;
 }
-ProjectList{
+
+.project-list-container {
   flex: 1;
+  min-width: 150px;
 }
+
 .exit-count{
   display: inline-block;
   float: right;
   margin-right: 10px;
 }
+
 .project-statistics-task{
-  flex: 5;
-  margin-left: 10px;
+  flex: 4;
 }
 .project-statistics-task-kuai .stat-card{
   height: 140px;
@@ -1164,43 +1278,44 @@ ProjectList{
 /*未关闭的产品统计样式*/
 .product-statistics{
   display: flex;
-  align-items: flex-start;
-  gap:20px;
-  padding: 10px 0;
+  gap: 20px;
 }
 
-.product-list {
-  flex-shrink: 0;
+.product-list-container {
+  flex: 0 0 150px;
+  max-width: 150px;
+  //background-color: red;
+}
+
+.product-statistics-content {
+  flex: 4;
+}
+
+.project-list {
   width: 150px;
-  border-right: 1px solid #ebeef5;
-  padding-right: 15px;
-}
-
-.product-list ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.product-list li {
-  padding: 8px 0;
+.project-list li {
+  padding: 10px 0;
   cursor: pointer;
-  font-size: 13px;
-  color: #606266;
-  transition: all 0.3s;
-  border-radius: 4px;
-  padding-left: 10px;
-}
-
-.product-list li:hover {
-  color: #409EFF;
-  background-color: #ecf5ff;
-}
-
-.product-list li.active {
+  font-size: 14px;
   color: #409EFF;
   font-weight: 500;
+  transition: all 0.3s ease;
+  padding-left: 10px;
+  border-radius: 4px;
+}
+
+.project-list li:hover {
   background-color: #ecf5ff;
+}
+
+.project-list li.active {
+  background-color: #ecf5ff;
+  border-left: 3px solid #409EFF;
 }
 
 .product-statistics{

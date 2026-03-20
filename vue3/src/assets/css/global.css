@@ -10,3 +10,27 @@
 * ul{
     list-style-type:none;
 }
+
+/* 隐藏滚动条但保持滚动功能 */
+::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: transparent;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+}

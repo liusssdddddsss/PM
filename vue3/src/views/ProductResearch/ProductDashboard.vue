@@ -10,7 +10,7 @@
               :key="index"
           >
             <div>{{item.name}}</div>
-            <dvi>{{item.count}}</dvi>
+            <div>{{item.count}}</div>
           </span>
         </div>
       </div>
@@ -20,7 +20,7 @@
       <div class="right">
         <h3 style="display: inline-block">产品年度推进统计</h3>
 <!--        下拉菜单待改-->
-        <el-select v-model="selectedYear" placeholder="请选择年份" size="small" style="display: inline-block;width: 80px;">
+        <el-select v-model="selectedYear" @change="handleYearChange" placeholder="请选择年份" size="small" style="display: inline-block;width: 80px;">
           <el-option label="2023" value="2023"/>
           <el-option label="2024" value="2024" />
           <el-option label="2025" value="2025" />
@@ -31,7 +31,7 @@
               :key="index"
           >
             <div>{{item.name}}</div>
-            <dvi>{{item.count}}</dvi>
+            <div>{{item.count}}</div>
           </span>
         </div>
       </div>
@@ -81,110 +81,69 @@
               </div>
             </div>
           </div>
+          <!-- 需求统计图 -->
+          <div ref="needsDom" style="width: 100%; height: 250px; margin-top: 20px;"></div>
         </el-card>
 
-<!--        未关闭的产品统计-->
+<!--        产品列表整合-->
         <el-card style="max-width: 98%;margin-top: 10px">
-          <h3>未关闭的产品统计</h3>
-          <div class="product-statistics">
-            <div class="product-list">
-              <ul>
-                <li class="active">班牌模板调整</li>
-                <li>班牌PC端管理界面调整</li>
-                <li>界面优化调整</li>
-                <li>家校互通留言</li>
-                <li>实训教学资源大数据</li>
-                <li>教师端查询评分标准列表</li>
-              </ul>
+          <div class="product-list-tabs">
+            <div class="tab-header">
+              <span 
+                v-for="(tab, index) in tabs" 
+                :key="index"
+                :class="['tab-item', { active: activeTab === index }]"
+                @click="activeTab = index"
+              >
+                {{ tab.name }}
+              </span>
             </div>
-            <div class="product-statistics-content">
-              <div class="delivery-rate">
-                <h4>需求交付率</h4>
-                <el-progress type="circle" :percentage="50" />
-                <div class="delivery-stats">
-                  <span>有效需求 <span class="stat-number">56</span></span>
-                  <span>已交付 <span class="stat-number">16</span></span>
-                  <span>未关闭 <span class="stat-number">42</span></span>
-                </div>
+            <div class="tab-content">
+              <!-- 产品发布列表 -->
+              <div v-if="activeTab === 1" class="product-release-list">
+                <el-table :data="productReleases" stripe style="width: 100%">
+                  <el-table-column prop="projectName" label="项目名称" min-width="250">
+                    <template #default="scope">
+                      <a href="#" class="project-link">{{ scope.row.projectName }}</a>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="product" label="所属产品" min-width="150" />
+                  <el-table-column prop="releaseDate" label="计划发布日期" min-width="120" />
+                  <el-table-column prop="status" label="状态" min-width="100">
+                    <template #default="scope">
+                      <span class="status-tag">{{ scope.row.status }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
               </div>
-              <div class="needs-statistics">
-                <h4>需求统计</h4>
-                <div class="monthly-stats">
-                  <span>本月完成 <span class="stat-number">26</span></span>
-                  <span>本月新增 <span class="stat-number">12</span></span>
-                </div>
-                <div ref="needsDom" style="width: 100%; height: 250px;"></div>
-              </div>
-              <div class="latest-progress">
-                <h4>产品最新推进</h4>
-                <div class="latest-task">
-                  <p>最新任务</p>
-                  <div class="task-item">
-                    <a class="task-name">班牌PC端管理界面调整</a>
-                    <span class="task-status">未开始</span>
-                  </div>
-                </div>
-                <div class="latest-release">
-                  <p>最新发布</p>
-                  <div class="release-item">
-                    <a class="release-name">自动给学生推送实训档案</a>
-                    <span class="release-status">进行中</span>
-                  </div>
-                </div>
+              <!-- 未关闭的产品列表 -->
+              <div v-if="activeTab === 0" class="unclosed-product-list">
+                <el-table :data="unclosedProducts" stripe style="width: 100%">
+                  <el-table-column prop="projectName" label="项目名称" min-width="200">
+                    <template #default="scope">
+                      <a href="#" class="project-link">{{ scope.row.projectName }}</a>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="manager" label="负责人" min-width="100" />
+                  <el-table-column prop="activeNeeds" label="激活需求" min-width="80" />
+                  <el-table-column prop="completionRate" label="需求完成率" min-width="100">
+                    <template #default="scope">
+                      <div class="completion-rate">
+                        <el-progress
+                            type="circle"
+                            :percentage="scope.row.completionRate"
+                            :width="40"
+                            :stroke-width="4"
+                        />
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="plan" label="计划" min-width="80" />
+                  <el-table-column prop="activeBugs" label="激活Bug" min-width="80" />
+                  <el-table-column prop="release" label="发布" min-width="80" />
+                </el-table>
               </div>
             </div>
-          </div>
-        </el-card>
-
-<!--        未关闭的产品列表-->
-        <el-card style="max-width: 98%;margin-top: 10px">
-          <h3>未关闭的产品列表</h3>
-          <div class="unclosed-product-list">
-            <el-table :data="unclosedProducts" stripe style="width: 100%">
-              <el-table-column prop="projectName" label="项目名称" min-width="200">
-                <template #default="scope">
-                  <a href="#" class="project-link">{{ scope.row.projectName }}</a>
-                </template>
-              </el-table-column>
-              <el-table-column prop="manager" label="负责人" min-width="100" />
-              <el-table-column prop="activeNeeds" label="激活需求" min-width="80" />
-              <el-table-column prop="completionRate" label="需求完成率" min-width="100">
-                <template #default="scope">
-                  <div class="completion-rate">
-                    <el-progress 
-                      type="circle" 
-                      :percentage="scope.row.completionRate" 
-                      :width="40" 
-                      :stroke-width="4"
-                    />
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column prop="plan" label="计划" min-width="80" />
-              <el-table-column prop="activeBugs" label="激活Bug" min-width="80" />
-              <el-table-column prop="release" label="发布" min-width="80" />
-            </el-table>
-          </div>
-        </el-card>
-
-<!--        产品发布列表-->
-        <el-card style="max-width: 98%;margin-top: 10px">
-          <h3>产品发布列表</h3>
-          <div class="product-release-list">
-            <el-table :data="productReleases" stripe style="width: 100%">
-              <el-table-column prop="projectName" label="项目名称" min-width="250">
-                <template #default="scope">
-                  <a href="#" class="project-link">{{ scope.row.projectName }}</a>
-                </template>
-              </el-table-column>
-              <el-table-column prop="product" label="所属产品" min-width="150" />
-              <el-table-column prop="releaseDate" label="计划发布日期" min-width="120" />
-              <el-table-column prop="status" label="状态" min-width="100">
-                <template #default="scope">
-                  <span class="status-tag">{{ scope.row.status }}</span>
-                </template>
-              </el-table-column>
-            </el-table>
           </div>
         </el-card>
       </div>
@@ -261,82 +220,7 @@
           </div>
         </div>
         </el-card>
-        <!--      测试统计-->
-        <el-card style="max-width: 98%;margin-top: 10px">
-          <div class="measure">
-            <h3>测试统计</h3>
-            <el-divider/>
-            <div style="display: flex; gap: 20px;">
-              <!-- 左侧：项目列表 -->
-              <div style="width: 150px; flex-shrink: 0;">
-                <div class="system-list">
-                  <ProjectList/>
-                </div>
-              </div>
-              <!-- 右侧：Bug统计 -->
-              <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px; background-color: #ffffff;">
-                <div class="bug-statistics">
-                  <h3>Bug统计</h3>
-                  <div class="bug-stat-item">
-                    <div class="bug-stat-label">昨天新增</div>
-                    <div class="bug-stat-value">125</div>
-                    <el-progress :percentage="70" :height="6" />
-                  </div>
-                  <div class="bug-stat-item">
-                    <div class="bug-stat-label">今日新增</div>
-                    <div class="bug-stat-value">65</div>
-                    <el-progress :percentage="40" :height="6" />
-                  </div>
-                  <div class="bug-stat-item">
-                    <div class="bug-stat-label">昨天解决</div>
-                    <div class="bug-stat-value">98</div>
-                    <el-progress :percentage="60" :height="6" />
-                  </div>
-                  <div class="bug-stat-item">
-                    <div class="bug-stat-label">今日解决</div>
-                    <div class="bug-stat-value">26</div>
-                    <el-progress :percentage="20" :height="6" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- 下排：Bug修复率和待测试的测试单 -->
-            <div style="display: flex; gap: 15px; margin-top: 15px;">
-              <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px; background-color: #ffffff;">
-                <div class="bug-repair">
-                  <h3>Bug修复率</h3>
-                  <el-progress type="circle" :percentage="50" :width="80" :stroke-width="6" />
-                  <div class="bug-repair-stats">
-                    <span>
-                      <div class="stat-value">56</div>
-                      <div class="stat-label">有效Bug</div>
-                    </span>
-                    <span>
-                      <div class="stat-value">16</div>
-                      <div class="stat-label">已修复</div>
-                    </span>
-                    <span>
-                      <div class="stat-value">42</div>
-                      <div class="stat-label">未关闭</div>
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px; background-color: #ffffff;">
-                <div class="staying-test-list">
-                  <h3>待测试的测试单</h3>
-                  <ul class="test-list">
-                    <li><a href="#">班牌PC端管理界面调整</a></li>
-                    <li><a href="#">学期结束后，自动给学生推送实训档案</a></li>
-                    <li><a href="#">班牌模板调整，参考海康，增加竖版</a></li>
-                    <li><a href="#">家校互通留言</a></li>
-                    <li><a href="#">终端-教师端查询评分标准列表</a></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </el-card>
+
       </div>
     </div>
   </div>
@@ -344,40 +228,44 @@
 
 <script setup>
 // 产品总览数据
-import {ref} from "vue";
+import {ref, onMounted} from "vue";
 import ProductList from "@/views/workbenchView/listView/ProductList.vue";
 import {useEcharts} from "@/utils/useEcharts.js";
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
 import ProjectList from "@/views/workbenchView/listView/ProjectList.vue";
-
-const ovCount = ref([
-  { name: '产品线总量', count: 10 },
-  { name: '产品总数', count: 10 },
-  { name: '未完成计划数', count: 6 },
-  { name: '未关闭需求数', count: 4 },
-  { name: '激活Bug数', count: 10 },
-]);
-// 产品年度推进统计数据
-const tuiJinCount = ref([
-  { name: '已完成发布数', count: 120 },
-  { name: '已完成需求数', count: 80 },
-  { name: '已完成Bug数', count: 543}
-]);
+import request from "@/utils/request.js";
 // 选择的年份
 const selectedYear = ref('2023');
 
 // 指派给我的研发需求数据
-const requirements = ref([
-  { id: 1, name: '家长端，界面优化调整，新增功能：授权监控', priority: '紧急' },
-  { id: 2, name: '班牌PC端管理界面调整，样式统一，菜单归类', priority: '紧急' },
-  { id: 3, name: '班牌模板调整，参考海康，增加竖版', priority: '紧急' },
-  { id: 4, name: '家校互通留言', priority: '严重' },
-  { id: 5, name: '数据大屏 实训教学资源大数据', priority: '一般' },
-  { id: 6, name: '终端-教师端查询评分标准列表', priority: '一般' },
-  { id: 7, name: '实训任务、示范列表详情优化', priority: '正常' },
-  { id: 8, name: '学期结束后，自动给学生推送实训档案', priority: '正常' },
-  { id: 9, name: '智慧教室_智慧云盘', priority: '一般' },
-  { id: 10, name: '终端-教师端查询评分标准列表', priority: '一般' }
+const requirements = ref([]);
+
+// 未关闭的产品列表数据
+const unclosedProducts = ref([]);
+
+// 产品发布列表数据
+const productReleases = ref([]);
+
+// 完成需求规模数据
+const demandSizeList = ref([]);
+
+// 完成需求数数据
+const demandCountList = ref([]);
+
+// 修复Bug数数据
+const repairBugList = ref([]);
+
+// 产品总览数据
+const ovCount = ref([]);
+
+// 产品年度推进统计数据
+const tuiJinCount = ref([]);
+
+// 标签页数据
+const activeTab = ref(0);
+const tabs = ref([
+  { name: '发布列表' },
+  { name: '未关闭列表' }
 ]);
 
 // 获取优先级样式
@@ -396,213 +284,333 @@ const getPriorityClass = (priority) => {
   }
 };
 
-// 未关闭的产品列表数据
-const unclosedProducts = ref([
-  { projectName: '智慧教室.智慧云盘', manager: '张三三', activeNeeds: 102, completionRate: 25, plan: 102, activeBugs: 25, release: 15 },
-  { projectName: '实践教学管理平台', manager: '李四四', activeNeeds: 12, completionRate: 25, plan: 12, activeBugs: 36, release: 63 },
-  { projectName: '电子班牌管理系统', manager: '张三三', activeNeeds: 56, completionRate: 25, plan: 56, activeBugs: 59, release: 72 },
-  { projectName: '智慧校园(中学版)', manager: '王麻子', activeNeeds: 85, completionRate: 0, plan: 85, activeBugs: 86, release: 0 },
-  { projectName: '宿舍管理系统', manager: '王麻子', activeNeeds: 20, completionRate: 0, plan: 20, activeBugs: 26, release: 0 },
-  { projectName: '教务考试系统', manager: '胡一刀', activeNeeds: 28, completionRate: 25, plan: 28, activeBugs: 75, release: 152 },
-  { projectName: '在线试卷批改', manager: '张三三', activeNeeds: 45, completionRate: 25, plan: 45, activeBugs: 102, release: 3 },
-  { projectName: '家校互通平台', manager: '王麻子', activeNeeds: 13, completionRate: 25, plan: 13, activeBugs: 160, release: 9 }
-]);
-
-// 产品发布列表数据
-const productReleases = ref([
-  { projectName: '家长端，界面优化调整，新增功能：授权监控', product: '智慧教室_智慧云盘', releaseDate: '2023-08-08', status: '已发布' },
-  { projectName: '班牌PC端管理界面调整，样式统一，菜单归类', product: '实践教学管理平台', releaseDate: '2023-08-08', status: '已发布' },
-  { projectName: '班牌模板调整，参考海康，增加竖版', product: '电子班牌管理系统', releaseDate: '2023-08-08', status: '已发布' },
-  { projectName: '家校互通留言', product: '智慧校园(中学版)', releaseDate: '2023-08-08', status: '已发布' },
-  { projectName: '数据大屏 实训教学资源大数据', product: '宿舍管理系统', releaseDate: '2023-08-08', status: '已发布' },
-  { projectName: '终端-教师端查询评分标准列表', product: '教务考试系统', releaseDate: '2023-08-08', status: '已发布' },
-  { projectName: '实训任务、示范列表详情优化', product: '在线试卷批改', releaseDate: '2023-08-08', status: '已发布' },
-  { projectName: '学期结束后，自动给学生推送实训档案', product: '家校互通平台', releaseDate: '2023-08-08', status: '已发布' }
-]);
-
 // 格式化进度条显示
 const formatProgress = (percentage) => {
   return `${percentage}`;
 };
 
-// 完成需求规模数据
-const demandSizeList = ref([
-  { name: '智慧教室 智慧云盘', count: 123 },
-  { name: '实践教学管理平台', count: 110 },
-  { name: '电子班牌管理系统', count: 142 },
-  { name: '智慧校园(中学版)', count: 80 },
-  { name: '宿舍管理系统', count: 63 },
-  { name: '家校互通平台', count: 86 }
-]);
-
-// 完成需求数数据
-const demandCountList = ref([
-  { name: '智慧教室 智慧云盘', count: 123 },
-  { name: '实践教学管理平台', count: 110 },
-  { name: '电子班牌管理系统', count: 142 },
-  { name: '智慧校园(中学版)', count: 80 },
-  { name: '宿舍管理系统', count: 63 },
-  { name: '家校互通平台', count: 86 }
-]);
-
-// 修复Bug数数据
-const repairBugList = ref([
-  { name: '智慧教室 智慧云盘', count: 123 },
-  { name: '实践教学管理平台', count: 110 },
-  { name: '电子班牌管理系统', count: 142 },
-  { name: '智慧校园(中学版)', count: 80 },
-  { name: '宿舍管理系统', count: 63 },
-  { name: '家校互通平台', count: 86 }
-]);
-
-const {chartRef: faBuDom} = useEcharts({
-  title: {
-    text: '月度发布次数趋势图(个)',
-    left: 'center',
-    textStyle: {
-      fontSize: 14,
-      fontWeight: 'normal'
+// 从后端获取产品总览数据
+const fetchProductOverview = async () => {
+  try {
+    const response = await request.get('/dashboard/product-overview');
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      ovCount.value = [
+        { name: '产品线总量', count: data.productLineCount || 0 },
+        { name: '产品总数', count: data.productCount || 0 },
+        { name: '未完成计划数', count: data.unfinishedPlanCount || 0 },
+        { name: '未关闭需求数', count: data.unclosedNeedCount || 0 },
+        { name: '激活Bug数', count: data.activeBugCount || 0 }
+      ];
     }
-  },
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
-    containLabel: true
-  },
-  xAxis:{
-    type: 'category',
-    boundaryGap: false,
-    data:['6月','7月','8月','9月','10月','11月'],
-    axisLine: {
-      lineStyle: {
-        color: '#d9d9d9'
+  } catch (error) {
+    console.error('获取产品总览数据失败:', error);
+  }
+};
+
+// 从后端获取产品年度推进统计数据
+const fetchProductProgress = async () => {
+  try {
+    const response = await request.get('/dashboard/product-progress', {
+      params: { year: selectedYear.value }
+    });
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      tuiJinCount.value = [
+        { name: '已完成发布数', count: data.completedReleaseCount || 0 },
+        { name: '已完成需求数', count: data.completedNeedCount || 0 },
+        { name: '已完成Bug数', count: data.completedBugCount || 0 }
+      ];
+    }
+  } catch (error) {
+    console.error('获取产品年度推进统计数据失败:', error);
+  }
+};
+
+// 从后端获取研发需求数据
+const fetchRequirements = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get('/dashboard/requirements', {
+        params: { username: user.username }
+      });
+      if (response.data.code === 200) {
+        requirements.value = response.data.data || [];
       }
-    },
-    axisLabel: {
-      fontSize: 11
     }
-  },
-  yAxis:{
-    type: 'value',
-    min: 0,
-    max: 30,
-    interval: 5,
-    axisLine: {
-      show: false
-    },
-    axisTick: {
-      show: false
-    },
-    splitLine: {
-      lineStyle: {
-        color: '#f0f0f0'
-      }
-    },
-    axisLabel: {
-      fontSize: 11
+  } catch (error) {
+    console.error('获取研发需求数据失败:', error);
+  }
+};
+
+// 从后端获取未关闭的产品列表数据
+const fetchUnclosedProducts = async () => {
+  try {
+    const response = await request.get('/dashboard/unclosed-products');
+    if (response.data.code === 200) {
+      unclosedProducts.value = response.data.data || [];
     }
-  },
-  series:[{
-    type:'line',
-    data:[10, 15, 20, 25, 10, 20, 15],
-    lineStyle: {
-      color: '#409EFF',
-      width: 2
-    },
-    itemStyle: {
-      color: '#409EFF',
-      borderWidth: 2,
-      borderColor: '#fff'
-    },
-    symbol: 'circle',
-    symbolSize: 8
-  }]
-});
-const { chartRef: rankingChart } = useEcharts({
-  title: { text: '年度发布榜' },
-  xAxis: {
-    type: 'category',
-    data: ['实践教学管理平台', '电子班牌管理系统', '智慧校园(中学版)', '宿舍管理系统', '教务考试系统']
-  },
-  yAxis: { type: 'value' },
-  series: [{
-    type: 'bar',
-    data: [123, 101, 86, 71, 66],
-    label: { show: true, position: 'top' }
-  }]
-});
+  } catch (error) {
+    console.error('获取未关闭的产品列表数据失败:', error);
+  }
+};
+
+// 从后端获取产品发布列表数据
+const fetchProductReleases = async () => {
+  try {
+    const response = await request.get('/dashboard/product-releases');
+    if (response.data.code === 200) {
+      productReleases.value = response.data.data || [];
+    }
+  } catch (error) {
+    console.error('获取产品发布列表数据失败:', error);
+  }
+};
+
+// 从后端获取产品年度工作量统计数据
+const fetchYearWorkStatistics = async () => {
+  try {
+    const response = await request.get('/dashboard/year-work-statistics', {
+      params: { year: selectedYear.value }
+    });
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      demandSizeList.value = data.demandSizeList || [];
+      demandCountList.value = data.demandCountList || [];
+      repairBugList.value = data.repairBugList || [];
+    }
+  } catch (error) {
+    console.error('获取产品年度工作量统计数据失败:', error);
+  }
+};
+
+// 产品发布统计图表
+const faBuDom = ref(null);
+const initFaBuChart = async () => {
+  if (!faBuDom.value) return;
+  try {
+    const response = await request.get('/dashboard/monthly-release', {
+      params: { year: selectedYear.value }
+    });
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      useEcharts(faBuDom.value, {
+        title: {
+          text: '月度发布次数趋势图(个)',
+          left: 'center',
+          textStyle: {
+            fontSize: 14,
+            fontWeight: 'normal'
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis:{
+          type: 'category',
+          boundaryGap: false,
+          data: data.months || ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+          axisLine: {
+            lineStyle: {
+              color: '#d9d9d9'
+            }
+          },
+          axisLabel: {
+            fontSize: 11
+          }
+        },
+        yAxis:{
+          type: 'value',
+          min: 0,
+          axisLine: {
+            show: false
+          },
+          axisTick: {
+            show: false
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#f0f0f0'
+            }
+          },
+          axisLabel: {
+            fontSize: 11
+          }
+        },
+        series:[{
+          type:'line',
+          data: data.releaseCounts || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          lineStyle: {
+            color: '#409EFF',
+            width: 2
+          },
+          itemStyle: {
+            color: '#409EFF',
+            borderWidth: 2,
+            borderColor: '#fff'
+          },
+          symbol: 'circle',
+          symbolSize: 8
+        }]
+      });
+    }
+  } catch (error) {
+    console.error('获取月度发布数据失败:', error);
+  }
+};
 
 // 需求统计图
-const {chartRef: needsDom} = useEcharts({
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
-    containLabel: true
-  },
-  xAxis:{
-    type: 'category',
-    boundaryGap: false,
-    data:['7月','8月','9月','10月','11月','12月'],
-    axisLine: {
-      lineStyle: {
-        color: '#d9d9d9'
-      }
-    },
-    axisLabel: {
-      fontSize: 11
-    }
-  },
-  yAxis:{
-    type: 'value',
-    min: 0,
-    max: 30,
-    interval: 5,
-    axisLine: {
-      show: false
-    },
-    axisTick: {
-      show: false
-    },
-    splitLine: {
-      lineStyle: {
-        color: '#f0f0f0'
-      }
-    },
-    axisLabel: {
-      fontSize: 11
-    }
-  },
-  series:[
-      {
-        name:'完成',
-        type:'line',
-        stack:'Total',
-        data:[15,24,54,23,14,56],
-        lineStyle: {
-          color: '#409EFF',
-          width: 2
+const needsDom = ref(null);
+const initNeedsChart = async () => {
+  if (!needsDom.value) return;
+  try {
+    const response = await request.get('/dashboard/needs-statistics', {
+      params: { year: selectedYear.value }
+    });
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      // 处理后端返回的数据结构
+      const chartData = data.needsChartData || {};
+      const xAxisData = chartData.xAxis ? chartData.xAxis.data : ['7月','8月','9月','10月','11月','12月'];
+      const seriesData = chartData.series || [];
+      const completedData = seriesData[0] ? seriesData[0].data : [0, 0, 0, 0, 0, 0];
+      const newData = seriesData[1] ? seriesData[1].data : [0, 0, 0, 0, 0, 0];
+      
+      useEcharts(needsDom.value, {
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
         },
-        itemStyle: {
-          color: '#409EFF'
-        }
-      },
-    {
-      name:'新增',
-      type:'line',
-      stack:'Total',
-      data:[35,67,34,28,89,99],
-      lineStyle: {
-        color: '#67C23A',
-        width: 2
-      },
-      itemStyle: {
-        color: '#67C23A'
-      }
+        xAxis:{
+          type: 'category',
+          boundaryGap: false,
+          data: xAxisData,
+          axisLine: {
+            lineStyle: {
+              color: '#d9d9d9'
+            }
+          },
+          axisLabel: {
+            fontSize: 11
+          }
+        },
+        yAxis:{
+          type: 'value',
+          min: 0,
+          axisLine: {
+            show: false
+          },
+          axisTick: {
+            show: false
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#f0f0f0'
+            }
+          },
+          axisLabel: {
+            fontSize: 11
+          }
+        },
+        series:[
+            {
+              name:'完成',
+              type:'line',
+              stack:'Total',
+              data: completedData,
+              lineStyle: {
+                color: '#409EFF',
+                width: 2
+              },
+              itemStyle: {
+                color: '#409EFF'
+              }
+            },
+          {
+            name:'新增',
+            type:'line',
+            stack:'Total',
+            data: newData,
+            lineStyle: {
+              color: '#67C23A',
+              width: 2
+            },
+            itemStyle: {
+              color: '#67C23A'
+            }
+          }
+        ]
+      });
     }
-  ]
+  } catch (error) {
+    console.error('获取需求统计数据失败:', error);
+  }
+};
+
+// 年度发布榜图表
+const rankingChart = ref(null);
+const initRankingChart = async () => {
+  if (!rankingChart.value) return;
+  try {
+    const response = await request.get('/dashboard/yearly-ranking', {
+      params: { year: selectedYear.value }
+    });
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      useEcharts(rankingChart.value, {
+        title: { text: '年度发布榜' },
+        xAxis: {
+          type: 'category',
+          data: data.products || [],
+          axisLabel: {
+            fontSize: 11,
+            rotate: 45
+          }
+        },
+        yAxis: { type: 'value' },
+        series: [{
+          type: 'bar',
+          data: data.releaseCounts || [],
+          label: { show: true, position: 'top', fontSize: 11 }
+        }]
+      });
+    }
+  } catch (error) {
+    console.error('获取年度发布榜数据失败:', error);
+  }
+};
+
+// 初始化图表
+const initCharts = async () => {
+  await initFaBuChart();
+  await initNeedsChart();
+};
+
+// 在数据加载后初始化图表
+onMounted(async () => {
+  await fetchProductOverview();
+  await fetchProductProgress();
+  await fetchRequirements();
+  await fetchUnclosedProducts();
+  await fetchProductReleases();
+  await fetchYearWorkStatistics();
+  await initCharts();
 });
+
+// 当选择年份变化时重新获取数据和初始化图表
+const handleYearChange = async () => {
+  await fetchProductProgress();
+  await fetchYearWorkStatistics();
+  await initCharts();
+};
 </script>
 
 <style scoped>
@@ -621,11 +629,21 @@ const {chartRef: needsDom} = useEcharts({
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 150px;
+  height: 100px;
   text-align: center;
 }
 .kuai span{
   flex: 1;
+}
+.kuai span div:first-child {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 5px;
+}
+.kuai span div {
+  font-size: 18px;
+  font-weight: bold;
+  color: #409EFF;
 }
 h3{
   padding: 10px;
@@ -1190,6 +1208,40 @@ h3{
 
 .assigned-rd-requirements .el-table__row {
   height: 36px !important;
+}
+
+/* 标签页样式 */
+.product-list-tabs {
+  margin-top: 10px;
+}
+
+.tab-header {
+  display: flex;
+  border-bottom: 1px solid #ebeef5;
+  margin-bottom: 15px;
+}
+
+.tab-item {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #606266;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+}
+
+.tab-item:hover {
+  color: #409EFF;
+}
+
+.tab-item.active {
+  color: #409EFF;
+  border-bottom-color: #409EFF;
+  font-weight: 500;
+}
+
+.tab-content {
+  min-height: 300px;
 }
 
 /* 优先级样式 */

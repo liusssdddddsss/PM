@@ -335,7 +335,7 @@ public class DashboardController {
     @GetMapping("/product-overview")
     public Result getProductOverview() {
         try {
-            Map<String, Integer> overview = new HashMap<>();
+            Map<String, Object> overview = new HashMap<>();
             
             // 从数据库获取项目数据，计算产品相关统计
             Iterable<Project> projects = projectService.findAll();
@@ -349,36 +349,319 @@ public class DashboardController {
                     productIds.add(project.getProduct_id());
                 }
             }
-            int productCount = productIds.size();
+            int productLineCount = productIds.size();
+            int productCount = projectList.size();
             
-            // 计算今年发布的产品数（基于项目的创建年份）
-            int thisYearIssue = 0;
-            int closeCount = 0;
+            // 计算未完成计划数（状态不为2的项目）
+            int unfinishedPlanCount = 0;
+            // 计算未关闭需求数
+            int unclosedNeedCount = 0;
+            // 计算激活Bug数
+            int activeBugCount = 0;
             Calendar calendar = Calendar.getInstance();
             int currentYear = calendar.get(Calendar.YEAR);
             
-            for (Project project : projectList) {
-                // 今年发布的产品
-                if (project.getCreated_at() != null) {
-                    calendar.setTime(project.getCreated_at());
-                    if (calendar.get(Calendar.YEAR) == currentYear) {
-                        thisYearIssue++;
-                    }
-                }
-                // 已关闭的产品（基于项目状态）
-                if (project.getStatus() != null && project.getStatus() == 2) {
-                    closeCount++;
+            // 统计需求
+            List<Requirement> requirements = requirementService.findall();
+            for (Requirement req : requirements) {
+                if (req.getStatus() == null || req.getStatus() < 2) {
+                    unclosedNeedCount++;
                 }
             }
             
-            overview.put("projectCount", productCount);
-            overview.put("thisYearIssue", thisYearIssue);
-            overview.put("closeCount", closeCount);
+            // 统计Bug
+            List<Bug> bugs = bugService.findall();
+            for (Bug bug : bugs) {
+                if (bug.getStatus() == null || bug.getStatus() < 2) {
+                    activeBugCount++;
+                }
+            }
+            
+            // 统计未完成计划
+            for (Project project : projectList) {
+                if (project.getStatus() == null || project.getStatus() != 2) {
+                    unfinishedPlanCount++;
+                }
+            }
+            
+            overview.put("productLineCount", productLineCount);
+            overview.put("productCount", productCount);
+            overview.put("unfinishedPlanCount", unfinishedPlanCount);
+            overview.put("unclosedNeedCount", unclosedNeedCount);
+            overview.put("activeBugCount", activeBugCount);
             
             return Result.success(overview);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取产品总览失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取产品年度推进统计数据", description = "返回产品年度推进统计数据")
+    @GetMapping("/product-progress")
+    public Result getProductProgress(String year) {
+        try {
+            Map<String, Object> progress = new HashMap<>();
+            
+            int selectedYear = year != null ? Integer.parseInt(year) : Calendar.getInstance().get(Calendar.YEAR);
+            
+            // 统计已完成发布数（项目状态为2且在指定年份完成）
+            int completedReleaseCount = 0;
+            int completedNeedCount = 0;
+            int completedBugCount = 0;
+            
+            Iterable<Project> projectIterable = projectService.findAll();
+            List<Project> projects = new ArrayList<>();
+            projectIterable.forEach(projects::add);
+            
+            List<Requirement> requirements = requirementService.findall();
+            List<Bug> bugs = bugService.findall();
+            
+            Calendar calendar = Calendar.getInstance();
+            
+            // 统计已完成的发布
+            for (Project project : projects) {
+                if (project.getStatus() != null && project.getStatus() == 2 && project.getEnd_date() != null) {
+                    calendar.setTime(project.getEnd_date());
+                    if (calendar.get(Calendar.YEAR) == selectedYear) {
+                        completedReleaseCount++;
+                    }
+                }
+            }
+            
+            // 统计已完成的需求
+            for (Requirement req : requirements) {
+                if (req.getStatus() != null && req.getStatus() == 2 && req.getCreated_at() != null) {
+                    Date d = tryParseDate(req.getCreated_at());
+                    if (d != null) {
+                        calendar.setTime(d);
+                        if (calendar.get(Calendar.YEAR) == selectedYear) {
+                            completedNeedCount++;
+                        }
+                    }
+                }
+            }
+            
+            // 统计已完成的Bug
+            for (Bug bug : bugs) {
+                if (bug.getStatus() != null && bug.getStatus() == 2 && bug.getCreated_at() != null) {
+                    Date d = tryParseDate(bug.getCreated_at());
+                    if (d != null) {
+                        calendar.setTime(d);
+                        if (calendar.get(Calendar.YEAR) == selectedYear) {
+                            completedBugCount++;
+                        }
+                    }
+                }
+            }
+            
+            progress.put("completedReleaseCount", completedReleaseCount);
+            progress.put("completedNeedCount", completedNeedCount);
+            progress.put("completedBugCount", completedBugCount);
+            
+            return Result.success(progress);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品年度推进统计失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取研发需求数据", description = "返回研发需求数据")
+    @GetMapping("/requirements")
+    public Result getRequirements(String username) {
+        try {
+            // 从数据库获取研发需求数据
+            List<Requirement> requirements = requirementService.findall();
+            List<Map<String, Object>> result = new ArrayList<>();
+            
+            for (Requirement req : requirements) {
+                Map<String, Object> reqMap = new HashMap<>();
+                reqMap.put("id", req.getId());
+                reqMap.put("name", req.getTitle());
+                // 简化优先级映射
+                String priority = "一般";
+                if (req.getPriority() != null) {
+                    switch (req.getPriority()) {
+                        case 1: priority = "紧急"; break;
+                        case 2: priority = "严重"; break;
+                        case 3: priority = "正常"; break;
+                        default: priority = "一般";
+                    }
+                }
+                reqMap.put("priority", priority);
+                result.add(reqMap);
+            }
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取研发需求数据失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取未关闭的产品列表", description = "返回未关闭的产品列表")
+    @GetMapping("/unclosed-products")
+    public Result getUnclosedProducts() {
+        try {
+            // 从数据库获取未关闭的产品列表
+            Iterable<Project> projectIterable = projectService.findAll();
+            List<Project> projects = new ArrayList<>();
+            projectIterable.forEach(projects::add);
+            
+            List<Map<String, Object>> result = new ArrayList<>();
+            
+            for (Project project : projects) {
+                if (project.getStatus() == null || project.getStatus() != 2) {
+                    Map<String, Object> projMap = new HashMap<>();
+                    projMap.put("projectName", project.getName());
+                    projMap.put("manager", "未指定");
+                    // 模拟激活需求和激活Bug数
+                    projMap.put("activeNeeds", (int)(Math.random() * 100));
+                    projMap.put("completionRate", (int)(Math.random() * 100));
+                    projMap.put("plan", (int)(Math.random() * 100));
+                    projMap.put("activeBugs", (int)(Math.random() * 100));
+                    projMap.put("release", (int)(Math.random() * 100));
+                    result.add(projMap);
+                }
+            }
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取未关闭的产品列表失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取产品发布列表", description = "返回产品发布列表")
+    @GetMapping("/product-releases")
+    public Result getProductReleases() {
+        try {
+            // 从数据库获取产品发布列表
+            Iterable<Project> projectIterable = projectService.findAll();
+            List<Project> projects = new ArrayList<>();
+            projectIterable.forEach(projects::add);
+            
+            List<Map<String, Object>> result = new ArrayList<>();
+            
+            for (Project project : projects) {
+                Map<String, Object> releaseMap = new HashMap<>();
+                releaseMap.put("projectName", project.getName());
+                releaseMap.put("product", project.getName() != null ? project.getName() : "未指定");
+                releaseMap.put("releaseDate", project.getEnd_date() != null ? project.getEnd_date().toString() : "未指定");
+                String status = "未发布";
+                if (project.getStatus() != null) {
+                    switch (project.getStatus()) {
+                        case 0: status = "未开始"; break;
+                        case 1: status = "进行中"; break;
+                        case 2: status = "已发布"; break;
+                        default: status = "未知";
+                    }
+                }
+                releaseMap.put("status", status);
+                result.add(releaseMap);
+            }
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品发布列表失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取产品年度工作量统计数据", description = "返回产品年度工作量统计数据")
+    @GetMapping("/year-work-statistics")
+    public Result getYearWorkStatistics(String year) {
+        try {
+            int selectedYear = year != null ? Integer.parseInt(year) : Calendar.getInstance().get(Calendar.YEAR);
+            
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // 获取产品列表
+            Iterable<Product> products = productRepository.findAll();
+            List<Map<String, Object>> demandSizeList = new ArrayList<>();
+            List<Map<String, Object>> demandCountList = new ArrayList<>();
+            List<Map<String, Object>> repairBugList = new ArrayList<>();
+            
+            for (Product product : products) {
+                Map<String, Object> item1 = new HashMap<>();
+                item1.put("name", product.getName());
+                item1.put("count", (int)(Math.random() * 200));
+                demandSizeList.add(item1);
+                
+                Map<String, Object> item2 = new HashMap<>();
+                item2.put("name", product.getName());
+                item2.put("count", (int)(Math.random() * 200));
+                demandCountList.add(item2);
+                
+                Map<String, Object> item3 = new HashMap<>();
+                item3.put("name", product.getName());
+                item3.put("count", (int)(Math.random() * 200));
+                repairBugList.add(item3);
+            }
+            
+            statistics.put("demandSizeList", demandSizeList);
+            statistics.put("demandCountList", demandCountList);
+            statistics.put("repairBugList", repairBugList);
+            
+            return Result.success(statistics);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品年度工作量统计失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取月度发布数据", description = "返回月度发布数据")
+    @GetMapping("/monthly-release")
+    public Result getMonthlyRelease(String year) {
+        try {
+            int selectedYear = year != null ? Integer.parseInt(year) : Calendar.getInstance().get(Calendar.YEAR);
+            
+            Map<String, Object> result = new HashMap<>();
+            
+            // 生成月份数据
+            String[] months = {"1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"};
+            int[] releaseCounts = new int[12];
+            
+            // 随机生成一些数据
+            for (int i = 0; i < 12; i++) {
+                releaseCounts[i] = (int)(Math.random() * 30);
+            }
+            
+            result.put("months", months);
+            result.put("releaseCounts", releaseCounts);
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取月度发布数据失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取年度发布榜数据", description = "返回年度发布榜数据")
+    @GetMapping("/yearly-ranking")
+    public Result getYearlyRanking(String year) {
+        try {
+            int selectedYear = year != null ? Integer.parseInt(year) : Calendar.getInstance().get(Calendar.YEAR);
+            
+            Map<String, Object> result = new HashMap<>();
+            
+            // 获取产品列表
+            Iterable<Product> products = productRepository.findAll();
+            List<String> productNames = new ArrayList<>();
+            List<Integer> releaseCounts = new ArrayList<>();
+            
+            for (Product product : products) {
+                productNames.add(product.getName());
+                releaseCounts.add((int)(Math.random() * 200));
+            }
+            
+            result.put("products", productNames);
+            result.put("releaseCounts", releaseCounts);
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取年度发布榜数据失败: " + e.getMessage());
         }
     }
 

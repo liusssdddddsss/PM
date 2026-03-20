@@ -1,6 +1,6 @@
 #设置端口号
 server:
-  port: 9090
+  port: 9091
   servlet:
     encoding:
       charset: UTF-8

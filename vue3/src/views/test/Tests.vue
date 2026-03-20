@@ -173,20 +173,20 @@ const assignedBugs = ref([]);
 const fetchTestStatistics = async () => {
   try {
     const response = await request.get('/dashboard/test-statistics');
-    if (response.code === 200) {
-      const data = response.data;
+    if (response.data.code === 200 && response.data.data) {
+      const data = response.data.data;
       
       // 更新Bug统计数据
       bugStats.value = {
-        youXiaoBug: data.validBugs,
-        bugRepair: data.fixedBugs,
-        noClose: data.unclosedBugs,
+        youXiaoBug: data.validBugs || 0,
+        bugRepair: data.fixedBugs || 0,
+        noClose: data.unclosedBugs || 0,
         detail: [
-          {name: '昨天新增', count: data.yesterdayNew, percentage: 100},
-          {name: '昨天解决', count: data.yesterdaySolved, percentage: data.yesterdayNew > 0 ? (data.yesterdaySolved * 100) / data.yesterdayNew : 0},
-          {name: '今日新增', count: data.todayNew, percentage: data.yesterdayNew > 0 ? (data.todayNew * 100) / data.yesterdayNew : 0},
+          {name: '昨天新增', count: data.yesterdayNew || 0, percentage: 100},
+          {name: '昨天解决', count: data.yesterdaySolved || 0, percentage: data.yesterdayNew > 0 ? (data.yesterdaySolved * 100) / data.yesterdayNew : 0},
+          {name: '今日新增', count: data.todayNew || 0, percentage: data.yesterdayNew > 0 ? (data.todayNew * 100) / data.yesterdayNew : 0},
           {name: '昨天关闭', count: 0, percentage: 0},
-          {name: '今日关闭', count: data.todaySolved, percentage: data.yesterdayNew > 0 ? (data.todaySolved * 100) / data.yesterdayNew : 0}
+          {name: '今日关闭', count: data.todaySolved || 0, percentage: data.yesterdayNew > 0 ? (data.todaySolved * 100) / data.yesterdayNew : 0}
         ]
       };
       
@@ -214,10 +214,10 @@ const fetchTestStatistics = async () => {
 const fetchBugs = async () => {
   try {
     const response = await request.get('/workbench/bugs');
-    if (response.code === 200) {
+    if (response.data.code === 200 && Array.isArray(response.data.data)) {
       // 转换Bug数据格式
-      assignedBugs.value = response.data.map(bug => ({
-        name: bug.title || bug.description,
+      assignedBugs.value = response.data.data.map(bug => ({
+        name: bug.title || bug.description || '无标题',
         priority: bug.priority === 1 ? '严重' : bug.priority === 2 ? '一般' : '正常',
         status: bug.status === 1 ? '解决中' : bug.status === 2 ? '已解决' : '待处理'
       }));

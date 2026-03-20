@@ -4,7 +4,9 @@ com\example\springboot\service\TaskService.class
 com\example\springboot\service\OptionLogService.class
 com\example\springboot\service\FeedbackService$FeedbackWithAssigneeName.class
 com\example\springboot\entity\Iteration.class
+com\example\springboot\repository\ProductRepository.class
 com\example\springboot\service\ProjectMemberService.class
+com\example\springboot\repository\TeamRepository.class
 com\example\springboot\controller\WebController.class
 com\example\springboot\service\ProjectService.class
 com\example\springboot\service\FeedbackService.class
@@ -17,12 +19,15 @@ com\example\springboot\controller\WorkbenchController.class
 com\example\springboot\entity\Project.class
 com\example\springboot\repository\ProjectRepository.class
 com\example\springboot\repository\OptionLogRepository.class
+com\example\springboot\controller\TeamController.class
+com\example\springboot\entity\Product.class
 com\example\springboot\service\IterationService.class
 com\example\springboot\controller\AdminController.class
 com\example\springboot\service\AdminService.class
 com\example\springboot\service\BugService.class
 com\example\springboot\repository\UserRepository.class
 com\example\springboot\repository\ProjectApprovalRepository.class
+com\example\springboot\service\TeamService.class
 com\example\springboot\entity\Task.class
 com\example\springboot\repository\FeedbackRepository.class
 com\example\springboot\entity\Admin.class
@@ -30,7 +35,9 @@ com\example\springboot\entity\ProjectApproval.class
 com\example\springboot\controller\IterationController.class
 com\example\springboot\common\SwaggerConfig.class
 com\example\springboot\repository\RequirementRepository.class
+com\example\springboot\service\TeamMemberService.class
 com\example\springboot\common\CorsConfig.class
+com\example\springboot\entity\Team.class
 com\example\springboot\controller\FeedbackController.class
 com\example\springboot\entity\Requirement.class
 com\example\springboot\entity\Bug.class
@@ -42,6 +49,8 @@ com\example\springboot\service\RequirementService.class
 com\example\springboot\repository\TestSuiteRepository.class
 com\example\springboot\entity\User.class
 com\example\springboot\repository\BugRepository.class
+com\example\springboot\entity\TeamMember.class
+com\example\springboot\repository\TeamMemberRepository.class
 com\example\springboot\repository\ProjectMemberRepository.class
 com\example\springboot\controller\DashboardController.class
 com\example\springboot\entity\OptionLog.class
