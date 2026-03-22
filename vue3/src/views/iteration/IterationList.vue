@@ -73,7 +73,7 @@
 
 import {ref, computed, onMounted} from "vue";
 import {useRouter} from "vue-router";
-import axios from 'axios';
+import request from '@/utils/request.js';
 
 const tabs = ref([
   {name:'全部',type:'all'},
@@ -97,7 +97,7 @@ const goToAddIteration = () => {
 // 获取迭代数据
 const fetchIterations = async () => {
   try {
-    const response = await axios.get('http://localhost:9090/iteration/list');
+    const response = await request.get('/iteration/list');
     if (response.data.code === 200) {
       // 更新迭代列表
       iterations.value = response.data.data;
@@ -172,7 +172,7 @@ const handleClose = async (iteration) => {
     console.log('迭代ID:', iterationId);
     
     // 发送请求关闭迭代，包含所有必要字段
-    const response = await axios.put(`http://localhost:9090/iteration/update`, {
+    const response = await request.put(`/iteration/update`, {
       id: iterationId,
       name: iteration.name,
       description: iteration.description,
@@ -199,7 +199,7 @@ const handleEdit = (id) => {
 
 const handleDelete = async (id) => {
   try {
-    const response = await axios.delete(`http://localhost:9090/iteration/delete/${id}`);
+    const response = await request.delete(`/iteration/delete/${id}`);
     if (response.data.code === 200) {
       console.log('删除迭代成功:', id);
       // 重新获取迭代列表

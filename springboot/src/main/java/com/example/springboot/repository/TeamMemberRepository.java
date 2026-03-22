@@ -15,4 +15,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Integer>
     
     // 根据团队ID和用户ID查询成员记录
     TeamMember findByTeamIdAndUserId(Integer teamId, Long userId);
+    
+    // 根据团队ID删除成员
+    void deleteByTeamId(Integer teamId);
 }

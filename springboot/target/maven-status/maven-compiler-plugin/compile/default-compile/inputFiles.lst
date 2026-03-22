@@ -2,6 +2,11 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\common\Result.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\common\SwaggerConfig.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminController.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminDashboardController.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminFeedbackController.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminLogController.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminTeamController.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminUserController.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\DashboardController.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\FeedbackController.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\IterationController.java
