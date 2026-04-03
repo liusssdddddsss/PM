@@ -1,10 +1,10 @@
 <template>
-  <div class="test-case-table-container">
+  <div class="task-table-container">
     <div class="table-container">
       <el-table
           :data="testCaseList"
           style="width: 100%"
-          class="TestCaseTable"
+          class="TaskTable"
           :row-style="{height: '45px'}"
           :cell-style="{padding: '4px'}"
       >
@@ -15,12 +15,12 @@
         </el-table-column>
         <el-table-column prop="projectName" label="项目名称" min-width="120">
           <template #default="scope">
-            <span class="test-case-name">{{ scope.row.projectName }}</span>
+            <span class="task-name">{{ scope.row.projectName }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="测试用例名称" min-width="180">
           <template #default="scope">
-            <span class="test-case-name">{{ scope.row.name }}</span>
+            <span class="task-name">{{ scope.row.name }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="priority" label="优先级" width="80">
@@ -39,6 +39,8 @@
             <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
           </template>
         </el-table-column>
+        <el-table-column prop="workTime" label="工时" width="80"></el-table-column>
+        <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
         <el-table-column label="操作" width="240">
             <template #default="scope">
               <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
@@ -112,17 +114,38 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+
+const props = defineProps({
+  activeTab: {
+    type: String,
+    default: 'all'
+  }
+});
 
 const router = useRouter();
 const goToTestEdit = () =>{
   router.push('/test/testSubmit');
 }
 
-// 测试用例数据
-const testCaseList = ref([]);
+// 原始测试用例数据
+const allTestCaseList = ref([]);
+
+// 根据activeTab筛选显示的数据
+const testCaseList = computed(() => {
+  if (props.activeTab === 'all') {
+    return allTestCaseList.value;
+  } else if (props.activeTab === 'stayingTest') {
+    return allTestCaseList.value.filter(tc => tc.status === '待测试');
+  } else if (props.activeTab === 'testing') {
+    return allTestCaseList.value.filter(tc => tc.status === '测试中');
+  } else if (props.activeTab === 'finish') {
+    return allTestCaseList.value.filter(tc => tc.status === '已完成');
+  }
+  return [];
+});
 
 // 从后端获取测试用例列表数据
 onMounted(() => {
@@ -131,20 +154,22 @@ onMounted(() => {
 
 const fetchTestCases = async () => {
   try {
-    const response = await request.get('/workbench/test-cases');
+    const response = await request.get('/dashboard/test-cases');
     console.log('获取测试用例列表响应:', response);
     if (response.data.code === 200) {
       // 转换数据格式以匹配前端组件
-        testCaseList.value = response.data.data.map(item => ({
+        allTestCaseList.value = response.data.data.map(item => ({
           id: item.id,
           projectName: item.project_name,
           name: item.name || item.title,
           priority: getPriorityText(item.priority),
           status: getStatusText(item.status),
           deadline: item.due_date,
-          progress: item.progress || 0
+          progress: item.progress || 0,
+          workTime: '-',
+          remainingTime: '-'
         }));
-      console.log('转换后的测试用例列表数据:', testCaseList.value);
+      console.log('转换后的测试用例列表数据:', allTestCaseList.value);
     }
   } catch (error) {
     console.error('获取测试用例列表失败:', error);
@@ -168,28 +193,18 @@ const getPriorityText = (priority) => {
 // 获取状态文本
 const getStatusText = (status) => {
   switch (status) {
-    case 1:
+    case 0:
       return '待测试';
-    case 2:
+    case 1:
       return '测试中';
-    case 3:
+    case 2:
       return '已完成';
-    case 4:
+    case 3:
       return '已关闭';
     default:
       return '待测试';
   }
 };
-
-// 测试成果提交对话框
-const testDialogVisible = ref(false);
-const currentTestCase = ref({ name: '' });
-const testForm = ref({
-  result: '',
-  reportUrl: '',
-  description: '',
-  files: []
-});
 
 // 获取优先级的类名
 const getPriorityClass = (priority) => {
@@ -216,6 +231,16 @@ const getStatusClass = (status) => {
       return '';
   }
 };
+
+// 测试成果提交对话框
+const testDialogVisible = ref(false);
+const currentTestCase = ref({ name: '' });
+const testForm = ref({
+  result: '',
+  reportUrl: '',
+  description: '',
+  files: []
+});
 
 // 处理操作
 const handleClose = (testCase) => {
@@ -282,7 +307,7 @@ const confirmSubmitTest = async () => {
 </script>
 
 <style scoped>
-.test-case-table-container {
+.task-table-container {
   padding: 0;
   background-color: #fff;
   border-radius: 0;
@@ -295,14 +320,44 @@ const confirmSubmitTest = async () => {
   min-width: 800px;
 }
 
-.TestCaseTable {
+.TaskTable {
   border-radius: 0;
   overflow: hidden;
   border: none !important;
 }
 
-.test-case-name {
+.task-name {
   color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-urgent {
+  color: #F56C6C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-normal {
+  color: #E6A23C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.priority-regular {
+  color: #67C23A;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-in-progress {
+  color: #409EFF;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-completed {
+  color: #67C23A;
   font-weight: 500;
   font-size: 13px;
 }
@@ -336,10 +391,7 @@ const confirmSubmitTest = async () => {
 }
 
 .el-table th {
-  //font-size: 12px;
-  //font-weight: 500;
   background-color: #f9f9f9;
-  //padding: 4px 12px;
   text-align: center;
   vertical-align: middle;
 }

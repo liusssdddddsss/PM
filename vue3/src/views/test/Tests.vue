@@ -224,20 +224,37 @@ const fetchTestStatistics = async () => {
   }
 };
 
-// 获取Bug列表
+// 获取用户Bug列表
 const fetchBugs = async () => {
   try {
-    const response = await request.get('/workbench/bugs');
-    if (response.data.code === 200 && Array.isArray(response.data.data)) {
-      // 转换Bug数据格式
-      assignedBugs.value = response.data.data.map(bug => ({
-        name: bug.title || bug.description || '无标题',
-        priority: bug.priority === 1 ? '严重' : bug.priority === 2 ? '一般' : '正常',
-        status: bug.status === 1 ? '解决中' : bug.status === 2 ? '已解决' : '待处理'
-      }));
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 注意：后端使用username查询，因为bugs表的assignee_id存储的是username
+      const response = await request.get(`/dashboard/user-bugs?username=${user.username}`);
+      if (response.data.code === 200 && Array.isArray(response.data.data)) {
+        assignedBugs.value = response.data.data;
+      }
     }
   } catch (error) {
     console.error('获取Bug列表失败:', error);
+  }
+};
+
+// 获取用户测试任务
+const fetchUserTestTasks = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 注意：后端使用username查询，因为test_suites表的assignee_id存储的是username
+      const response = await request.get(`/dashboard/user-test-tasks?username=${user.username}`);
+      if (response.data.code === 200 && Array.isArray(response.data.data)) {
+        assignedTestCases.value = response.data.data;
+      }
+    }
+  } catch (error) {
+    console.error('获取用户测试任务失败:', error);
   }
 };
 
@@ -245,45 +262,8 @@ const fetchBugs = async () => {
 onMounted(() => {
   fetchTestStatistics();
   fetchBugs();
-  // 生成指派给我的用例列表模拟数据
-  generateAssignedTestCases();
+  fetchUserTestTasks();
 });
-
-// 生成指派给我的用例列表模拟数据
-const generateAssignedTestCases = () => {
-  assignedTestCases.value = [
-    {
-      name: '登录功能测试',
-      priority: '一般',
-      status: '测试中',
-      project: '智慧教室_智慧云盘'
-    },
-    {
-      name: '文件上传功能测试',
-      priority: '严重',
-      status: '待测试',
-      project: '实践教学管理平台'
-    },
-    {
-      name: '权限管理功能测试',
-      priority: '一般',
-      status: '测试中',
-      project: '电子班牌管理系统'
-    },
-    {
-      name: '数据导出功能测试',
-      priority: '正常',
-      status: '待测试',
-      project: '智慧校园(中学版)'
-    },
-    {
-      name: '消息通知功能测试',
-      priority: '一般',
-      status: '已完成',
-      project: '宿舍管理系统'
-    }
-  ];
-};
 
 // 获取优先级对应的标签类型
 const getPriorityType = (priority) => {
