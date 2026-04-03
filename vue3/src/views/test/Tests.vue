@@ -122,9 +122,20 @@
             <h3>指派给我的用例列表</h3>
           </div>
           <div class="card-content">
-            <div class="no-data">
-              <p>暂无</p>
-            </div>
+            <el-table :data="assignedTestCases" stripe style="width: 100%">
+              <el-table-column prop="name" label="用例名称" min-width="180" />
+              <el-table-column prop="priority" label="优先级" width="100">
+                <template #default="scope">
+                  <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="status" label="状态" width="100">
+                <template #default="scope">
+                  <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="project" label="所属项目" min-width="150" />
+            </el-table>
           </div>
         </div>
         </el-card>
@@ -168,6 +179,9 @@ const goToTestList =()=>{
 
 // 指派给我的Bug列表
 const assignedBugs = ref([]);
+
+// 指派给我的用例列表
+const assignedTestCases = ref([]);
 
 // 获取测试统计数据
 const fetchTestStatistics = async () => {
@@ -231,7 +245,45 @@ const fetchBugs = async () => {
 onMounted(() => {
   fetchTestStatistics();
   fetchBugs();
+  // 生成指派给我的用例列表模拟数据
+  generateAssignedTestCases();
 });
+
+// 生成指派给我的用例列表模拟数据
+const generateAssignedTestCases = () => {
+  assignedTestCases.value = [
+    {
+      name: '登录功能测试',
+      priority: '一般',
+      status: '测试中',
+      project: '智慧教室_智慧云盘'
+    },
+    {
+      name: '文件上传功能测试',
+      priority: '严重',
+      status: '待测试',
+      project: '实践教学管理平台'
+    },
+    {
+      name: '权限管理功能测试',
+      priority: '一般',
+      status: '测试中',
+      project: '电子班牌管理系统'
+    },
+    {
+      name: '数据导出功能测试',
+      priority: '正常',
+      status: '待测试',
+      project: '智慧校园(中学版)'
+    },
+    {
+      name: '消息通知功能测试',
+      priority: '一般',
+      status: '已完成',
+      project: '宿舍管理系统'
+    }
+  ];
+};
 
 // 获取优先级对应的标签类型
 const getPriorityType = (priority) => {

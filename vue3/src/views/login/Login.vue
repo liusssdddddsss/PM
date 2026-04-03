@@ -86,15 +86,24 @@ onMounted(() => {
 // 登录处理
 const handleLogin = async () => {
   try {
+    console.log('登录请求数据:', {
+      username: form.username,
+      password: form.password
+    });
+    
     // 构建FormData对象
     const formData = new FormData();
     formData.append('username', form.username);
     formData.append('password', form.password);
     
     // 发送登录请求
+    console.log('发送登录请求到:', '/admin/login');
     const response = await request.post('/admin/login', formData);
+    console.log('登录响应:', response);
+    
     if (response.data.code === 200) {
       const user = response.data.data;
+      console.log('登录成功，用户信息:', user);
       // 存储用户信息到本地存储
       localStorage.setItem('user', JSON.stringify(user));
       
@@ -116,6 +125,7 @@ const handleLogin = async () => {
         await router.push('/workbench/dashboard');
       }
     } else {
+      console.log('登录失败，错误信息:', response.data.msg);
       alert(response.data.msg);
     }
   } catch (error) {

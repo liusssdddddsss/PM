@@ -1215,4 +1215,31 @@ public class DashboardController {
             return Result.error("获取最新动态失败: " + e.getMessage());
         }
     }
+    
+    @Operation(summary = "获取测试用例列表", description = "返回测试用例列表")
+    @GetMapping("/test-cases")
+    public Result getTestCases() {
+        try {
+            // 从数据库获取测试用例数据
+            List<TestSuite> testSuites = testSuiteService.findAll();
+            List<Map<String, Object>> result = new ArrayList<>();
+            
+            for (TestSuite testSuite : testSuites) {
+                Map<String, Object> testCaseMap = new HashMap<>();
+                testCaseMap.put("id", testSuite.getId());
+                testCaseMap.put("name", testSuite.getName());
+                testCaseMap.put("project_name", testSuite.getName()); // 假设项目名称就是测试套件名称
+                testCaseMap.put("priority", 2); // 默认为一般优先级
+                testCaseMap.put("status", 1); // 默认为待测试状态
+                testCaseMap.put("due_date", new Date().toString()); // 默认为当前日期
+                testCaseMap.put("progress", 0); // 默认为0%进度
+                result.add(testCaseMap);
+            }
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取测试用例列表失败: " + e.getMessage());
+        }
+    }
 }

@@ -5,10 +5,10 @@
           v-for="tab in tabs"
           :key="tab.type"
           :class="{active:activeTab===tab.type}"
-          @Click="activeTab=tab.type"
+          @click="activeTab=tab.type"
       >
         {{tab.name}}
-        {{tab.count}}
+        <span class="count">{{tab.count}}</span>
       </span>
       <div class="addProduct">
         <el-button class="button"
@@ -19,7 +19,7 @@
       </div>
     </div>
     <div class="list">
-      <TaskList v-if="activeTab==='all'"/>
+      <TestCaseList v-if="activeTab==='all'"/>
     </div>
   </div>
 </template>
@@ -27,7 +27,7 @@
 <script setup>
 
 import {ref} from "vue";
-import TaskList from "@/views/workbenchView/listView/TaskList.vue";
+import TestCaseList from "@/views/workbenchView/listView/TestCaseList.vue";
 import {useRouter} from "vue-router";
 
 const tabs = ref([

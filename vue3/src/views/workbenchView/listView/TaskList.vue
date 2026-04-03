@@ -41,10 +41,11 @@
         </el-table-column>
         <el-table-column prop="workTime" label="工时" width="80"></el-table-column>
         <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="240">
             <template #default="scope">
               <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
               <span class="action-text edit-action" @click="goToProductEdit">编辑</span>
+              <span class="action-text submit-action" @click="handleSubmitCode(scope.row)">提交代码</span>
               <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
             </template>
           </el-table-column>
@@ -99,6 +100,65 @@
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" @click="confirmClose">关闭项目</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 代码提交对话框 -->
+    <el-dialog
+      v-model="codeDialogVisible"
+      title="提交代码"
+      width="500px"
+    >
+      <div class="dialog-content">
+        <h4>{{ currentTask.name }}</h4>
+        <div class="form-item">
+          <label>代码仓库链接：</label>
+          <el-input
+            v-model="codeForm.repositoryUrl"
+            placeholder="请输入代码仓库链接"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>分支名称：</label>
+          <el-input
+            v-model="codeForm.branch"
+            placeholder="请输入分支名称"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>提交信息：</label>
+          <el-input
+            v-model="codeForm.commitMessage"
+            type="textarea"
+            placeholder="请输入提交信息"
+            :rows="3"
+          />
+        </div>
+        <div class="form-item">
+          <label>代码文件：</label>
+          <el-upload
+            class="upload-demo"
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :limit="5"
+            :file-list="codeForm.files"
+          >
+            <el-button type="primary">选择文件</el-button>
+            <template #tip>
+              <div class="el-upload__tip">
+                最多上传5个文件，支持zip、rar、tar.gz格式
+              </div>
+            </template>
+          </el-upload>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="codeDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmSubmitCode">提交代码</el-button>
         </span>
       </template>
     </el-dialog>
@@ -193,6 +253,15 @@ const historyList = ref([
   { date: '2023-08-08 12:12:12', action: '由王五完成' }
 ]);
 
+// 代码提交对话框
+const codeDialogVisible = ref(false);
+const codeForm = ref({
+  repositoryUrl: '',
+  branch: '',
+  commitMessage: '',
+  files: []
+});
+
 // 获取优先级的类名
 const getPriorityClass = (priority) => {
   switch (priority) {
@@ -249,6 +318,50 @@ const confirmClose = () => {
   dialogVisible.value = false;
   // 这里可以添加关闭任务的逻辑
 };
+
+// 处理代码提交
+const handleSubmitCode = (task) => {
+  currentTask.value = task;
+  // 重置代码提交表单
+  codeForm.value = {
+    repositoryUrl: '',
+    branch: '',
+    commitMessage: '',
+    files: []
+  };
+  codeDialogVisible.value = true;
+};
+
+// 处理文件选择
+const handleFileChange = (file, fileList) => {
+  codeForm.value.files = fileList;
+};
+
+// 确认提交代码
+const confirmSubmitCode = async () => {
+  try {
+    console.log('确认提交代码:', currentTask.value.id);
+    console.log('代码提交表单:', codeForm.value);
+    
+    // 这里可以添加代码提交的逻辑，例如调用后端API
+    // 模拟API调用
+    const response = await request.post('/task/submit-code', {
+      taskId: currentTask.value.id,
+      repositoryUrl: codeForm.value.repositoryUrl,
+      branch: codeForm.value.branch,
+      commitMessage: codeForm.value.commitMessage,
+      // 注意：文件上传需要特殊处理，这里只是示例
+    });
+    
+    if (response.data.code === 200) {
+      console.log('代码提交成功');
+      codeDialogVisible.value = false;
+      // 可以添加成功提示
+    }
+  } catch (error) {
+    console.error('代码提交失败:', error);
+  }
+};
 </script>
 
 <style scoped>
@@ -295,6 +408,10 @@ const confirmClose = () => {
 
 .delete-action {
   color: #F56C6C;
+}
+
+.submit-action {
+  color: #67C23A;
 }
 
 .action-text:hover {
