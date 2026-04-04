@@ -49,6 +49,7 @@ const router = createRouter({
             {path:'itemList',component:()=>import('@/views/itemSetView/ItemList.vue')},
             {path:'itemBorder',component:()=>import('@/views/itemSetView/ItemBorder.vue')},
             {path:'itemEdit',component:()=>import('@/views/itemSetView/ItemEdit.vue')},
+            {path:'addProject',component:()=>import('@/views/itemSetView/AddProject.vue')},
     ]},
 
       {path:'/productResearch',component:()=>import('@/views/home/Home.vue'),

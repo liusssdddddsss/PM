@@ -24,6 +24,12 @@ public class DashboardController {
     @Autowired
     private ProjectService projectService;
 
+    @Autowired
+    private TaskService taskService;
+
+    @Autowired
+    private RequirementService requirementService;
+
     @Operation(summary = "获取测试统计数据", description = "返回测试相关的统计数据")
     @GetMapping("/test-statistics")
     public Result getTestStatistics() {
@@ -366,6 +372,24 @@ public class DashboardController {
         }
     }
 
+    @Operation(summary = "获取项目总览数据", description = "返回项目总览数据")
+    @GetMapping("/project-overview")
+    public Result getProjectOverview() {
+        try {
+            // 模拟项目总览数据
+            Map<String, Object> overview = new HashMap<>();
+            overview.put("projectCount", 8);
+            overview.put("activeProjectCount", 5);
+            overview.put("completedProjectCount", 3);
+            overview.put("totalTaskCount", 200);
+            overview.put("completedTaskCount", 120);
+            return Result.success(overview);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目总览数据失败: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "获取产品年度推进统计数据", description = "返回产品年度推进统计数据")
     @GetMapping("/product-progress")
     public Result getProductProgress(@RequestParam String year) {
@@ -531,6 +555,266 @@ public class DashboardController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取年度发布榜数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取团队完成情况", description = "返回团队完成情况数据")
+    @GetMapping("/team-statistics")
+    public Result getTeamStatistics() {
+        try {
+            // 模拟团队完成情况数据
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("totalTaskCount", 150);
+            statistics.put("completedTaskCount", 120);
+            statistics.put("completionRate", 80);
+            statistics.put("teamMembers", Arrays.asList(
+                Map.of("name", "张三", "completed", 30, "total", 35),
+                Map.of("name", "李四", "completed", 25, "total", 30),
+                Map.of("name", "王五", "completed", 20, "total", 25),
+                Map.of("name", "胡一刀", "completed", 15, "total", 20)
+            ));
+            return Result.success(statistics);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取团队完成情况失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取项目统计详情", description = "返回项目统计详情数据")
+    @GetMapping("/project-detail")
+    public Result getProjectDetail(@RequestParam(required = false) String projectName) {
+        try {
+            // 模拟项目统计详情数据，与前端期望的数据结构一致
+            Map<String, Object> detail = new HashMap<>();
+            
+            // 首先根据项目名称查找项目
+            Project project = null;
+            if (projectName != null && !projectName.isEmpty()) {
+                // 从数据库中查找项目
+                Iterable<Project> projects = projectService.findAll();
+                for (Project p : projects) {
+                    if (projectName.equals(p.getName())) {
+                        project = p;
+                        break;
+                    }
+                }
+            }
+            
+            // 如果没有找到项目，使用默认项目
+            if (project == null) {
+                // 从数据库中获取第一个项目作为默认项目
+                Iterable<Project> projects = projectService.findAll();
+                for (Project p : projects) {
+                    project = p;
+                    break;
+                }
+            }
+            
+            if (project != null) {
+                // 项目基本信息
+                detail.put("projectName", project.getName());
+                detail.put("finishTime", project.getEnd_date() != null ? project.getEnd_date().toString() : "");
+                
+                // 获取项目ID
+                Long projectId = project.getId();
+                
+                // 1. 计算工时相关数据
+                double workTimeTotal = 0; // 已投入工时
+                double workTimeConsumed = 0; // 消耗工时
+                
+                // 从任务中获取工时数据
+                List<Task> tasks = taskService.findall();
+                for (Task task : tasks) {
+                    if (task.getProjectId() != null && task.getProjectId().equals(projectId.intValue())) {
+                        // 已投入工时（估计工时）
+                        if (task.getEstimatedHours() != null) {
+                            workTimeTotal += task.getEstimatedHours();
+                        }
+                        // 消耗工时（实际工时）
+                        if (task.getActualHours() != null) {
+                            workTimeConsumed += task.getActualHours();
+                        }
+                    }
+                }
+                
+                double workTimeRemaining = workTimeTotal - workTimeConsumed; // 预计剩余
+                
+                detail.put("workTimeTotal", (int) workTimeTotal);
+                detail.put("workTimeConsumed", (int) workTimeConsumed);
+                detail.put("workTimeRemaining", (int) workTimeRemaining);
+                
+                // 2. 计算需求相关数据
+                int needTotal = 0; // 总需求数
+                int needFinished = 0; // 已完成
+                int needUnclosed = 0; // 未关闭
+                
+                List<Requirement> requirements = requirementService.findall();
+                for (Requirement req : requirements) {
+                    if (req.getProject_id() != null && req.getProject_id().equals(projectId.intValue())) {
+                        needTotal++;
+                        if (req.getStatus() != null) {
+                            if (req.getStatus() == 2) { // 假设2表示已完成
+                                needFinished++;
+                            } else if (req.getStatus() != 2) { // 未关闭
+                                needUnclosed++;
+                            }
+                        } else {
+                            needUnclosed++;
+                        }
+                    }
+                }
+                
+                detail.put("needTotal", needTotal);
+                detail.put("needFinished", needFinished);
+                detail.put("needUnclosed", needUnclosed);
+                
+                // 3. 计算任务相关数据
+                int taskTotal = 0; // 总任务数
+                int taskNotStarted = 0; // 未开始
+                int taskInProgress = 0; // 进行中
+                
+                for (Task task : tasks) {
+                    if (task.getProjectId() != null && task.getProjectId().equals(projectId.intValue())) {
+                        taskTotal++;
+                        if (task.getStatus() != null) {
+                            if (task.getStatus() == 0) { // 假设0表示未开始
+                                taskNotStarted++;
+                            } else if (task.getStatus() == 1) { // 假设1表示进行中
+                                taskInProgress++;
+                            }
+                        } else {
+                            taskNotStarted++;
+                        }
+                    }
+                }
+                
+                detail.put("taskTotal", taskTotal);
+                detail.put("taskNotStarted", taskNotStarted);
+                detail.put("taskInProgress", taskInProgress);
+                
+                // 4. 计算Bug相关数据
+                int bugTotal = 0; // 总Bug数
+                int bugClosed = 0; // 已关闭
+                int bugUnclosed = 0; // 未关闭
+                
+                List<Bug> bugs = bugService.findall();
+                for (Bug bug : bugs) {
+                    if (bug.getProject_id() != null && bug.getProject_id().equals(projectId.intValue())) {
+                        bugTotal++;
+                        if (bug.getStatus() != null) {
+                            if (bug.getStatus() == 2) { // 假设2表示已关闭
+                                bugClosed++;
+                            } else {
+                                bugUnclosed++;
+                            }
+                        } else {
+                            bugUnclosed++;
+                        }
+                    }
+                }
+                
+                detail.put("bugTotal", bugTotal);
+                detail.put("bugClosed", bugClosed);
+                detail.put("bugUnclosed", bugUnclosed);
+            } else {
+                // 如果没有找到任何项目，返回默认数据
+                detail.put("projectName", "暂无项目");
+                detail.put("finishTime", "");
+                detail.put("workTimeTotal", 0);
+                detail.put("workTimeConsumed", 0);
+                detail.put("workTimeRemaining", 0);
+                detail.put("needTotal", 0);
+                detail.put("needFinished", 0);
+                detail.put("needUnclosed", 0);
+                detail.put("taskTotal", 0);
+                detail.put("taskNotStarted", 0);
+                detail.put("taskInProgress", 0);
+                detail.put("bugTotal", 0);
+                detail.put("bugClosed", 0);
+                detail.put("bugUnclosed", 0);
+            }
+            
+            return Result.success(detail);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目统计详情失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取任务完成总览", description = "返回任务完成总览数据")
+    @GetMapping("/task-overview")
+    public Result getTaskOverview() {
+        try {
+            // 模拟任务完成总览数据
+            Map<String, Object> overview = new HashMap<>();
+            overview.put("totalTaskCount", 200);
+            overview.put("pendingTaskCount", 30);
+            overview.put("inProgressTaskCount", 50);
+            overview.put("completedTaskCount", 120);
+            overview.put("taskTrend", Arrays.asList(
+                Map.of("month", "1月", "count", 15),
+                Map.of("month", "2月", "count", 20),
+                Map.of("month", "3月", "count", 18),
+                Map.of("month", "4月", "count", 25),
+                Map.of("month", "5月", "count", 22),
+                Map.of("month", "6月", "count", 30)
+            ));
+            return Result.success(overview);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取任务完成总览失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取需求统计数据", description = "返回需求统计数据")
+    @GetMapping("/needs-statistics")
+    public Result getNeedsStatistics() {
+        try {
+            // 模拟需求统计数据
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("totalNeedCount", 80);
+            statistics.put("pendingNeedCount", 20);
+            statistics.put("inProgressNeedCount", 30);
+            statistics.put("completedNeedCount", 30);
+            statistics.put("needTypeDistribution", Arrays.asList(
+                Map.of("type", "功能需求", "count", 40),
+                Map.of("type", "性能需求", "count", 15),
+                Map.of("type", "安全需求", "count", 10),
+                Map.of("type", "其他需求", "count", 15)
+            ));
+            return Result.success(statistics);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取需求统计数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取未关闭产品统计数据", description = "返回未关闭产品统计数据")
+    @GetMapping("/product-statistics")
+    public Result getProductStatistics() {
+        try {
+            // 模拟未关闭产品统计数据，与前端期望的数据结构一致
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("deliveryRate", 75);
+            statistics.put("validNeeds", 20);
+            statistics.put("deliveredNeeds", 15);
+            statistics.put("unclosedNeeds", 5);
+            statistics.put("monthFinish", 5);
+            statistics.put("monthAdd", 3);
+            
+            // 产品列表
+            List<Map<String, Object>> productList = new ArrayList<>();
+            productList.add(Map.of("id", 1, "name", "实践教学管理平台"));
+            productList.add(Map.of("id", 2, "name", "电子班牌管理系统"));
+            productList.add(Map.of("id", 3, "name", "智慧校园(中学版)"));
+            productList.add(Map.of("id", 4, "name", "在线考试批改"));
+            productList.add(Map.of("id", 5, "name", "教务考试系统"));
+            statistics.put("productList", productList);
+            
+            return Result.success(statistics);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取未关闭产品统计数据失败: " + e.getMessage());
         }
     }
 }

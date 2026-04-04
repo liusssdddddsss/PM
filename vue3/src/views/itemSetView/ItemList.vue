@@ -14,50 +14,65 @@
 <!--        <el-button @click="goToItemEdit">-->
 <!--          编辑项目-->
 <!--        </el-button>-->
-        <el-button class="button">
+        <el-button class="button" @click="goToAddProject">
           添加项目
         </el-button>
       </div>
     </div>
     <div class="list">
-      <el-table
-          :data="filteredData"
-          style="width: 100%"
-          class="ProjectTable"
-          :row-style="{height: '45px'}"
-          :cell-style="{padding: '4px'}"
-      >
-        <el-table-column label="序号" width="80">
-          <template #default="scope">
-            {{ scope.$index + 1 }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="title" label="项目名称" min-width="180">
-          <template #default="scope">
-            <span class="project-name">{{ scope.row.title }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="person" label="负责人" width="90"></el-table-column>
-        <el-table-column prop="startTime" label="开始时间" width="130"></el-table-column>
-        <el-table-column prop="finishTime" label="预计完成时间" width="130"></el-table-column>
-        <el-table-column prop="jinDu" label="进度" width="100">
-          <template #default="scope">
-            <el-progress type="circle" :percentage="scope.row.jinDu" :width="20" :stroke-width="3" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="states" label="状态" width="90">
-          <template #default="scope">
-            <span :class="getStateClass(scope.row.states)">{{ scope.row.states }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200">
-          <template #default="scope">
-            <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-            <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
-            <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="project-table-container">
+        <div class="table-container">
+          <el-table
+              :data="filteredData"
+              style="width: 100%"
+              class="ProjectTable"
+              :row-style="{height: '45px'}"
+              :cell-style="{padding: '4px'}"
+          >
+            <el-table-column label="序号" width="60">
+              <template #default="scope">
+                {{ scope.$index + 1 }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="title" label="项目名称" min-width="120">
+              <template #default="scope">
+                <span class="project-name">{{ scope.row.title }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="person" label="负责人" width="90"></el-table-column>
+            <el-table-column prop="startTime" label="开始时间" width="130"></el-table-column>
+            <el-table-column prop="finishTime" label="预计完成时间" width="130"></el-table-column>
+            <el-table-column prop="jinDu" label="进度" width="80">
+              <template #default="scope">
+                <el-progress type="circle" :percentage="scope.row.jinDu" :width="20" :stroke-width="3" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="states" label="状态" width="80">
+              <template #default="scope">
+                <span :class="getStatusClass(scope.row.states)">{{ scope.row.states }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="工时" width="80">
+              <template #default="scope">
+                <span>{{ scope.row.totalHours }}h</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="剩余工时" width="80">
+              <template #default="scope">
+                <span>{{ scope.row.remainingHours }}h</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200">
+              <template #default="scope">
+                <span v-if="scope.row.states !== '已关闭'" class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+                <span v-else class="action-text open-action" @click="handleOpen(scope.row)">打开</span>
+                <span v-if="scope.row.states !== '已关闭'" class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
+                <span class="action-text delete-action" @click="handleDelete(scope.row)">删除</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -67,6 +82,7 @@
 import {ref, computed} from "vue";
 import {useRouter} from "vue-router";
 import request from "@/utils/request.js";
+import { ElMessageBox, ElMessage } from "element-plus";
 
 const tabs = ref([
   {name:'全部',type:'all'},
@@ -81,14 +97,79 @@ const goToItemEdit = () =>{
   router.push('/itemSet/itemEdit');
 }
 
+// 跳转到添加项目页面
+const goToAddProject = () => {
+  router.push('/itemSet/addProject');
+};
+
 // 项目数据
-const projectData = ref([
-  {id: 1, title: '智慧教室_智慧云盘', person: '张三', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 2, title: '实践教学管理平台', person: '李四', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 3, title: '电子班牌管理系统', person: '张三', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '进行中'},
-  {id: 4, title: '智慧校园(中学版)', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '已关闭'},
-  {id: 5, title: '宿舍管理系统', person: '王五', startTime: '2023-08-08', finishTime: '2023-08-08', jinDu: 25, states: '已关闭'},
-]);
+const projectData = ref([]);
+
+// 从后端获取项目数据
+const fetchProjects = async () => {
+  try {
+    const response = await request.get('/workbench/all-projects');
+    if (response.data.code === 200 && Array.isArray(response.data.data)) {
+      // 处理时间格式，只保留日期部分
+      projectData.value = response.data.data.map(project => ({
+        ...project,
+        startTime: project.startTime ? project.startTime.split('T')[0] : '',
+        finishTime: project.finishTime ? project.finishTime.split('T')[0] : '',
+        // 初始化工时数据
+        totalHours: 0,
+        remainingHours: 0
+      }));
+      
+      // 获取任务列表以计算工时
+      await fetchTasksForHours();
+    }
+  } catch (error) {
+    console.error('获取项目列表失败:', error);
+  }
+};
+
+// 获取任务列表以计算工时
+const fetchTasksForHours = async () => {
+  try {
+    const response = await request.get('/workbench/tasks');
+    if (response.data.code === 200 && Array.isArray(response.data.data)) {
+      const tasks = response.data.data;
+      
+      // 为每个项目计算工时
+      projectData.value.forEach(project => {
+        let totalHours = 0;
+        let remainingHours = 0;
+        
+        tasks.forEach(task => {
+          if (task.project_id === project.id) {
+            // 累计总工时
+            if (task.estimated_hours) {
+              totalHours += task.estimated_hours;
+            }
+            
+            // 计算剩余工时
+            if (task.estimated_hours && task.actual_hours) {
+              remainingHours += Math.max(0, task.estimated_hours - task.actual_hours);
+            } else if (task.estimated_hours) {
+              remainingHours += task.estimated_hours;
+            }
+          }
+        });
+        
+        project.totalHours = totalHours;
+        project.remainingHours = remainingHours;
+      });
+    }
+  } catch (error) {
+    console.error('获取任务列表失败:', error);
+  }
+};
+
+// 组件挂载时获取数据
+import { onMounted } from 'vue';
+onMounted(() => {
+  fetchProjects();
+});
 
 // 根据当前标签过滤数据
 const filteredData = computed(() => {
@@ -105,54 +186,137 @@ const filteredData = computed(() => {
 });
 
 // 获取状态标签的类名
-const getStateClass = (state) => {
-  if (state === '进行中') {
-    return 'status-in-progress';
-  } else if (state === '未开始') {
-    return 'status-scheduled';
-  } else if (state === '已关闭') {
-    return 'status-closed';
+const getStatusClass = (status) => {
+  switch (status) {
+    case '进行中':
+      return 'status-in-progress';
+    case '已完成':
+      return 'status-completed';
+    case '已关闭':
+      return 'status-closed';
+    default:
+      return '';
   }
-  return '';
 };
 
 // 处理操作
 const handleClose = (project) => {
-  console.log('关闭项目:', project);
+  ElMessageBox.confirm(
+    '确定要关闭这个项目吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+  .then(async () => {
+    try {
+      // 尝试从数据库关闭项目
+      const response = await request.put(`/workbench/projects/${project.id}/status?status=2`);
+      if (response.data.code === 200) {
+        console.log('关闭项目成功:', project.id);
+        // 更新本地数据
+        project.states = '已关闭';
+        ElMessage.success('项目已关闭');
+      }
+    } catch (error) {
+      console.error('关闭项目失败:', error);
+      ElMessage.error('关闭项目失败');
+    }
+  })
+  .catch(() => {
+    // 取消关闭
+  });
+};
+
+// 打开项目
+const handleOpen = (project) => {
+  ElMessageBox.confirm(
+    '确定要打开这个项目吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info'
+    }
+  )
+  .then(async () => {
+    try {
+      // 尝试从数据库打开项目
+      const response = await request.put(`/workbench/projects/${project.id}/status?status=1`);
+      if (response.data.code === 200) {
+        console.log('打开项目成功:', project.id);
+        // 更新本地数据
+        project.states = '进行中';
+        ElMessage.success('项目已打开');
+      }
+    } catch (error) {
+      console.error('打开项目失败:', error);
+      ElMessage.error('打开项目失败');
+    }
+  })
+  .catch(() => {
+    // 取消打开
+  });
 };
 
 const handleEdit = (id) => {
   router.push('/itemSet/itemEdit');
 };
 
-const handleDelete = async (id) => {
-  try {
-    // 尝试从数据库删除项目
-    const response = await request.delete(`/itemSet/delete/${id}`);
-    if (response.code === 200) {
-      console.log('删除项目成功:', id);
-      // 从本地数据中移除删除的项目
-      projectData.value = projectData.value.filter(project => project.id !== id);
+const handleSubmitCode = (project) => {
+  console.log('提交代码:', project);
+};
+
+const handleDelete = (project) => {
+  ElMessageBox.confirm(
+    '确定要删除这个项目吗？此操作不可恢复。',
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'danger'
     }
-  } catch (error) {
-    console.error('删除项目失败:', error);
-  }
+  )
+  .then(async () => {
+    try {
+      // 尝试从数据库删除项目
+      console.log('删除项目ID:', project.id);
+      // 调用后端API删除项目
+      const response = await request.delete(`/workbench/projects/${project.id}`);
+      if (response.data.code === 200) {
+        console.log('删除项目成功:', project.id);
+        // 从本地数据中移除删除的项目
+        projectData.value = projectData.value.filter(p => p.id !== project.id);
+        ElMessage.success('项目已删除');
+      }
+    } catch (error) {
+      console.error('删除项目失败:', error);
+      ElMessage.error('删除项目失败');
+    }
+  })
+  .catch(() => {
+    // 取消删除
+  });
 };
 </script>
 
 <style scoped>
 .projects-comment{
   background-color: white;
-  height: 100vh;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+.option{
+  height: 40px;
+  border-bottom: 1px solid #ebeef5;
 }
 .option span{
   display: inline-block;
   padding: 0 10px;
   text-align: center;
-  //margin-right: 10px;
   cursor: pointer;
   transition: all 0.3s;
 }
@@ -172,6 +336,19 @@ const handleDelete = async (id) => {
   margin-left: 10px;
 }
 
+.project-table-container {
+  padding: 0;
+  background-color: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  overflow-x: auto;
+}
+
+.table-container {
+  width: 100%;
+  min-width: 800px;
+}
+
 .ProjectTable {
   border-radius: 0;
   overflow: hidden;
@@ -180,28 +357,6 @@ const handleDelete = async (id) => {
 
 .project-name {
   color: #409EFF;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.project-name:hover {
-  text-decoration: underline;
-}
-
-.status-in-progress {
-  color: #409EFF;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.status-scheduled {
-  color: #909399;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.status-closed {
-  color: #F56C6C;
   font-weight: 500;
   font-size: 13px;
 }
@@ -226,30 +381,22 @@ const handleDelete = async (id) => {
   color: #F56C6C;
 }
 
+.submit-action {
+  color: #67C23A;
+}
+
+.open-action {
+  color: #409EFF;
+}
+
 .action-text:hover {
   text-decoration: underline;
 }
 
-.el-table .cell {
-  font-size: 12px;
-  text-align: center;
-  vertical-align: middle;
-  line-height: 1.2;
-}
-
 .el-table th {
-  font-size: 12px;
-  font-weight: 500;
   background-color: #f9f9f9;
-  padding: 4px 12px;
   text-align: center;
   vertical-align: middle;
-  height: 28px !important;
-}
-
-.el-table__row {
-  height: 28px !important;
-  line-height: 28px !important;
 }
 
 .el-table--border th {
@@ -259,17 +406,5 @@ const handleDelete = async (id) => {
 .el-table--border td {
   border: none !important;
   vertical-align: middle;
-}
-
-.el-progress {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 auto;
-}
-
-.el-progress__text {
-  font-size: 10px !important;
-  margin: 0;
 }
 </style>

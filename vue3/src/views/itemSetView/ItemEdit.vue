@@ -129,7 +129,7 @@ const saveProject = () => {
 
 // 返回上一页
 const goBack = () => {
-  router.push('/itemSet/itemBorder');
+  router.push('/itemSet/itemList');
 };
 </script>
 

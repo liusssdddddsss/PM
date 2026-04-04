@@ -14,25 +14,43 @@
 </template>
 
 <script setup>
-import {ref, defineEmits} from "vue";
+import {ref, defineEmits, onMounted} from "vue";
+import request from "@/utils/request.js";
 
 const emit = defineEmits(['project-click']);
 const activeIndex = ref(0);
 
 const projectList = ref([
-  {name:'智慧教室_智慧云盘'},
-  {name:'实践教学管理平台'},
-  {name:'电子班牌管理系统'},
-  {name:'智慧校园(中学版)'},
-  {name:'宿舍管理系统'},
-  {name:'教务考试系统'},
+
 ]);
+
+// 从后端获取项目列表数据
+const fetchProjects = async () => {
+  try {
+    // 从后端获取所有项目列表
+    const response = await request.get('/workbench/all-projects');
+    console.log('获取项目列表响应:', response);
+    if (response.data.code === 200) {
+      projectList.value = response.data.data.map(project => ({
+        name: project.title
+      }));
+      console.log('转换后的项目列表数据:', projectList.value);
+    }
+  } catch (error) {
+    console.error('获取项目列表失败:', error);
+  }
+};
 
 const handleProjectClick = (index, projectName) => {
   activeIndex.value = index;
   // 向父组件发送事件
   emit('project-click', projectName);
 };
+
+// 页面加载时获取项目列表
+onMounted(async () => {
+  await fetchProjects();
+});
 </script>
 
 <style scoped>

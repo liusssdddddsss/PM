@@ -17,9 +17,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
+import java.util.Optional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -350,6 +356,113 @@ public class WorkbenchController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取未完成项目列表失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取所有项目列表", description = "返回所有项目列表数据")
+    @GetMapping("/all-projects")
+    public Result getAllProjects() {
+        try {
+            // 获取所有项目
+            Iterable<Project> allProjects = projectService.findAll();
+            List<Map<String, Object>> projectList = new ArrayList<>();
+            
+            for (Project project : allProjects) {
+                Map<String, Object> projectMap = new HashMap<>();
+                projectMap.put("id", project.getId());
+                projectMap.put("title", project.getName());
+                
+                // 获取负责人姓名
+                String managerName = "未知"; 
+                if (project.getManager_id() != null) {
+                    try {
+                        var user = userService.findById(project.getManager_id().toString());
+                        if (user.isPresent()) {
+                            managerName = user.get().getName();
+                        }
+                    } catch (Exception e) {
+                        System.out.println("获取负责人姓名失败: " + e.getMessage());
+                    }
+                }
+                projectMap.put("person", managerName);
+                
+                // 设置开始时间和预计完成时间
+                projectMap.put("startTime", project.getStart_date());
+                projectMap.put("finishTime", project.getEnd_date());
+                
+                // 设置进度
+                projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
+                
+                // 根据状态设置显示文本
+                String statusText = "已排期"; // 默认状态
+                if (project.getStatus() != null) {
+                    switch (project.getStatus()) {
+                        case 0:
+                            statusText = "未开始";
+                            break;
+                        case 1:
+                            statusText = "进行中";
+                            break;
+                        case 2:
+                            statusText = "已关闭";
+                            break;
+                        case 3:
+                            statusText = "已归档";
+                            break;
+                    }
+                }
+                projectMap.put("states", statusText);
+                
+                projectList.add(projectMap);
+            }
+            
+            return Result.success(projectList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目列表失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "删除项目", description = "根据ID删除项目")
+    @DeleteMapping("/projects/{id}")
+    public Result deleteProject(@PathVariable Long id) {
+        try {
+            projectService.deleteById(id);
+            return Result.success("删除项目成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除项目失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "新增项目", description = "新增项目")
+    @PostMapping("/projects")
+    public Result addProject(@RequestBody Project project) {
+        try {
+            projectService.save(project);
+            return Result.success("新增项目成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("新增项目失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "更新项目状态", description = "更新项目状态")
+    @PutMapping("/projects/{id}/status")
+    public Result updateProjectStatus(@PathVariable Long id, @RequestParam Integer status) {
+        try {
+            Optional<Project> projectOpt = projectService.findById(id);
+            if (projectOpt.isPresent()) {
+                Project project = projectOpt.get();
+                project.setStatus(status);
+                projectService.save(project);
+                return Result.success("更新项目状态成功");
+            } else {
+                return Result.error("项目不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新项目状态失败: " + e.getMessage());
         }
     }
 }
