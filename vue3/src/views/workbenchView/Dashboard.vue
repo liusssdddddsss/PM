@@ -845,7 +845,17 @@ const fetchProductStatistics = async (productName = '') => {
     }
     const response = await request.get(url);
     if (response.data.code === 200 && response.data.data) {
-      productStatistics.value = response.data.data;
+      // 保留原有的产品列表，只更新统计数据
+      const newData = response.data.data;
+      if (newData.productList) {
+        productStatistics.value = newData;
+      } else {
+        // 只更新统计数据，保留产品列表
+        productStatistics.value = {
+          ...productStatistics.value,
+          ...newData
+        };
+      }
     }
   } catch (error) {
     console.error('获取未关闭产品统计数据失败:', error);

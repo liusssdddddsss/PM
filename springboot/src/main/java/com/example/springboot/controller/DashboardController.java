@@ -785,7 +785,7 @@ public class DashboardController {
                 int needFinished = 0; // 已完成
                 int needUnclosed = 0; // 未关闭
                 
-                List<Requirement> requirements = requirementService.findall();
+                List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
                 for (Requirement req : requirements) {
                     if (req.getProject_id() != null && req.getProject_id().equals(projectId.intValue())) {
                         needTotal++;
@@ -1100,25 +1100,159 @@ public class DashboardController {
 
     @Operation(summary = "获取未关闭产品统计数据", description = "返回未关闭产品统计数据")
     @GetMapping("/product-statistics")
-    public Result getProductStatistics() {
+    public Result getProductStatistics(@RequestParam(required = false) String productName) {
         try {
-            // 模拟未关闭产品统计数据，与前端期望的数据结构一致
+            // 从数据库获取未关闭产品统计数据
             Map<String, Object> statistics = new HashMap<>();
-            statistics.put("deliveryRate", 75);
-            statistics.put("validNeeds", 20);
-            statistics.put("deliveredNeeds", 15);
-            statistics.put("unclosedNeeds", 5);
-            statistics.put("monthFinish", 5);
-            statistics.put("monthAdd", 3);
             
-            // 产品列表
-            List<Map<String, Object>> productList = new ArrayList<>();
-            productList.add(Map.of("id", 1, "name", "实践教学管理平台"));
-            productList.add(Map.of("id", 2, "name", "电子班牌管理系统"));
-            productList.add(Map.of("id", 3, "name", "智慧校园(中学版)"));
-            productList.add(Map.of("id", 4, "name", "在线考试批改"));
-            productList.add(Map.of("id", 5, "name", "教务考试系统"));
-            statistics.put("productList", productList);
+            // 只有当没有指定产品名称时，才返回产品列表
+            if (productName == null || productName.isEmpty()) {
+                // 产品列表
+                List<Map<String, Object>> productList = new ArrayList<>();
+                Iterable<Product> products = productService.findAll();
+                for (Product product : products) {
+                    Map<String, Object> productMap = new HashMap<>();
+                    productMap.put("id", product.getId());
+                    productMap.put("name", product.getName());
+                    productList.add(productMap);
+                }
+                statistics.put("productList", productList);
+            }
+            
+            // 初始化统计数据
+            int validNeeds = 0; // 有效需求数
+            int deliveredNeeds = 0; // 已交付需求数
+            int unclosedNeeds = 0; // 未关闭需求数
+            int monthFinish = 0; // 本月完成需求数
+            int monthAdd = 0; // 本月新增需求数
+            double deliveryRate = 0; // 需求交付率
+            
+            // 获取当前月份
+            Calendar cal = Calendar.getInstance();
+            int currentYear = cal.get(Calendar.YEAR);
+            int currentMonth = cal.get(Calendar.MONTH) + 1; // 月份从0开始，所以加1
+            
+            // 如果指定了产品名称，返回该产品的统计数据
+            if (productName != null && !productName.isEmpty()) {
+                // 查找对应的产品
+                Product targetProduct = null;
+                Iterable<Product> products = productService.findAll();
+                for (Product product : products) {
+                    if (product.getName().equals(productName)) {
+                        targetProduct = product;
+                        break;
+                    }
+                }
+                
+                if (targetProduct != null) {
+                    // 查找该产品下的所有项目
+                    Iterable<Project> projects = projectService.findAll();
+                    List<Project> productProjects = new ArrayList<>();
+                    for (Project project : projects) {
+                        if (project.getProduct_id() != null && project.getProduct_id().equals(targetProduct.getId())) {
+                            productProjects.add(project);
+                        }
+                    }
+                    
+                    // 查找这些项目下的所有需求
+                    if (!productProjects.isEmpty()) {
+                        // 从数据库中获取需求数据
+                        Iterable<Requirement> requirements = requirementService.findAll();
+                        for (Requirement requirement : requirements) {
+                            // 检查需求是否属于该产品的项目
+                            for (Project project : productProjects) {
+                                if (requirement.getProject_id() != null && requirement.getProject_id().equals(project.getId().intValue())) {
+                                    validNeeds++;
+                                    
+                                    // 检查需求状态
+                                    if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已交付
+                                        deliveredNeeds++;
+                                    } else {
+                                        unclosedNeeds++;
+                                    }
+                                    
+                                    // 检查是否是本月的需求
+                                    if (requirement.getCreated_at() != null) {
+                                        // 解析创建时间
+                                        try {
+                                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                                            java.util.Date createdDate = sdf.parse(requirement.getCreated_at());
+                                            Calendar createdCal = Calendar.getInstance();
+                                            createdCal.setTime(createdDate);
+                                            int createdYear = createdCal.get(Calendar.YEAR);
+                                            int createdMonth = createdCal.get(Calendar.MONTH) + 1;
+                                            
+                                            // 检查是否是本月新增
+                                            if (createdYear == currentYear && createdMonth == currentMonth) {
+                                                monthAdd++;
+                                            }
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                    
+                                    // 检查是否是本月完成
+                                    // 这里假设需求的完成时间存储在某个字段中
+                                    // 由于Requirement实体类中没有完成时间字段，暂时跳过
+                                    
+                                    break; // 找到对应的项目后，跳出内层循环
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 如果没有指定产品名称，返回所有产品的统计数据
+                // 从数据库中获取所有需求数据
+                Iterable<Requirement> requirements = requirementService.findAll();
+                for (Requirement requirement : requirements) {
+                    validNeeds++;
+                    
+                    // 检查需求状态
+                    if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已交付
+                        deliveredNeeds++;
+                    } else {
+                        unclosedNeeds++;
+                    }
+                    
+                    // 检查是否是本月的需求
+                    if (requirement.getCreated_at() != null) {
+                        // 解析创建时间
+                        try {
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            java.util.Date createdDate = sdf.parse(requirement.getCreated_at());
+                            Calendar createdCal = Calendar.getInstance();
+                            createdCal.setTime(createdDate);
+                            int createdYear = createdCal.get(Calendar.YEAR);
+                            int createdMonth = createdCal.get(Calendar.MONTH) + 1;
+                            
+                            // 检查是否是本月新增
+                            if (createdYear == currentYear && createdMonth == currentMonth) {
+                                monthAdd++;
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    
+                    // 检查是否是本月完成
+                    // 这里假设需求的完成时间存储在某个字段中
+                    // 由于Requirement实体类中没有完成时间字段，暂时跳过
+                }
+            }
+            
+            // 计算需求交付率
+            if (validNeeds > 0) {
+                deliveryRate = (double) deliveredNeeds / validNeeds * 100;
+            }
+            
+            // 设置统计数据
+            statistics.put("deliveryRate", Math.round(deliveryRate));
+            statistics.put("validNeeds", validNeeds);
+            statistics.put("deliveredNeeds", deliveredNeeds);
+            statistics.put("unclosedNeeds", unclosedNeeds);
+            statistics.put("monthFinish", monthFinish);
+            statistics.put("monthAdd", monthAdd);
             
             return Result.success(statistics);
         } catch (Exception e) {

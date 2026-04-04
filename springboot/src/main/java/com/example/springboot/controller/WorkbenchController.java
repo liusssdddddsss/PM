@@ -54,12 +54,25 @@ public class WorkbenchController {
 
     @Operation(summary = "获取审批列表", description = "返回审批列表数据")
     @GetMapping("/approvals")
-    public Result getApprovals() {
+    public Result getApprovals(@RequestParam(required = false) String username) {
         try {
             List<ProjectApproval> approvals = projectApprovalService.findall();
             List<Map<String, Object>> approvalList = new ArrayList<>();
             
             for (ProjectApproval approval : approvals) {
+                // 如果指定了用户名，只返回当前用户的审批
+                if (username != null && !username.isEmpty()) {
+                    try {
+                        Integer userId = Integer.parseInt(username);
+                        if (approval.getApprover_id() == null || !approval.getApprover_id().equals(userId)) {
+                            continue; // 跳过不是当前用户的审批
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，跳过
+                        continue;
+                    }
+                }
+                
                 Map<String, Object> approvalMap = new HashMap<>();
                 approvalMap.put("id", approval.getId());
                 approvalMap.put("project_id", approval.getProject_id());
@@ -109,12 +122,25 @@ public class WorkbenchController {
 
     @Operation(summary = "获取任务列表", description = "返回任务列表数据")
     @GetMapping("/tasks")
-    public Result getTasks() {
+    public Result getTasks(@RequestParam(required = false) String username) {
         try {
             List<Task> tasks = taskService.findall();
             List<Map<String, Object>> taskList = new ArrayList<>();
             
             for (Task task : tasks) {
+                // 如果指定了用户名，只返回当前用户的任务
+                if (username != null && !username.isEmpty()) {
+                    try {
+                        Integer userId = Integer.parseInt(username);
+                        if (task.getAssigneeId() == null || !task.getAssigneeId().equals(userId)) {
+                            continue; // 跳过不是当前用户的任务
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，跳过
+                        continue;
+                    }
+                }
+                
                 Map<String, Object> taskMap = new HashMap<>();
                 taskMap.put("id", task.getId());
                 taskMap.put("title", task.getTitle());
@@ -162,12 +188,25 @@ public class WorkbenchController {
 
     @Operation(summary = "获取研发需求列表", description = "返回研发需求列表数据")
     @GetMapping("/research-needs")
-    public Result getResearchNeeds() {
+    public Result getResearchNeeds(@RequestParam(required = false) String username) {
         try {
-            List<Requirement> requirements = requirementService.findall();
+            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
             // 过滤出type=1的研发需求
             List<Requirement> researchNeeds = requirements.stream()
                     .filter(req -> req.getType() != null && req.getType() == 1)
+                    .filter(req -> {
+                        // 如果指定了用户名，只返回当前用户的需求
+                        if (username != null && !username.isEmpty()) {
+                            try {
+                                Integer userId = Integer.parseInt(username);
+                                return req.getCreator_id() != null && req.getCreator_id().equals(userId);
+                            } catch (NumberFormatException e) {
+                                // 用户名不是数字格式，跳过
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
                     .toList();
             return Result.success(researchNeeds);
         } catch (Exception e) {
@@ -178,12 +217,25 @@ public class WorkbenchController {
 
     @Operation(summary = "获取用户需求列表", description = "返回用户需求列表数据")
     @GetMapping("/user-needs")
-    public Result getUserNeeds() {
+    public Result getUserNeeds(@RequestParam(required = false) String username) {
         try {
-            List<Requirement> requirements = requirementService.findall();
+            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
             // 过滤出type=2的用户需求
             List<Requirement> userNeeds = requirements.stream()
                     .filter(req -> req.getType() != null && req.getType() == 2)
+                    .filter(req -> {
+                        // 如果指定了用户名，只返回当前用户的需求
+                        if (username != null && !username.isEmpty()) {
+                            try {
+                                Integer userId = Integer.parseInt(username);
+                                return req.getCreator_id() != null && req.getCreator_id().equals(userId);
+                            } catch (NumberFormatException e) {
+                                // 用户名不是数字格式，跳过
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
                     .toList();
             return Result.success(userNeeds);
         } catch (Exception e) {
@@ -194,9 +246,21 @@ public class WorkbenchController {
 
     @Operation(summary = "获取Bug列表", description = "返回Bug列表数据")
     @GetMapping("/bugs")
-    public Result getBugs() {
+    public Result getBugs(@RequestParam(required = false) String username) {
         try {
             List<Bug> bugs = bugService.findall();
+            // 如果指定了用户名，只返回当前用户的Bug
+            if (username != null && !username.isEmpty()) {
+                try {
+                    Integer userId = Integer.parseInt(username);
+                    bugs = bugs.stream()
+                            .filter(bug -> bug.getCreator_id() != null && bug.getCreator_id().equals(userId))
+                            .toList();
+                } catch (NumberFormatException e) {
+                    // 用户名不是数字格式，返回空列表
+                    bugs = new ArrayList<>();
+                }
+            }
             return Result.success(bugs);
         } catch (Exception e) {
             e.printStackTrace();
@@ -308,7 +372,7 @@ public class WorkbenchController {
                     
                     // 计算剩余需求数量（从requirements表中获取）
                     int remainingNeeds = 0;
-                    List<Requirement> requirements = requirementService.findall();
+                    List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
                     for (Requirement req : requirements) {
                         if (req.getProject_id() != null && req.getProject_id().equals(projectId)) {
                             // 假设需求状态为0表示未完成
@@ -549,7 +613,7 @@ public class WorkbenchController {
             
             // 5. 获取研发需求数
             int needsState = 0;
-            List<Requirement> requirements = requirementService.findall();
+            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
             for (Requirement requirement : requirements) {
                 // 如果是产品经理，显示所有研发需求
                 if (isProductManager) {

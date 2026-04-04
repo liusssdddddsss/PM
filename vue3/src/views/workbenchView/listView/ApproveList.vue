@@ -52,20 +52,25 @@ onMounted(() => {
 
 const fetchApprovals = async () => {
   try {
-    const response = await request.get('/workbench/approvals');
-    console.log('获取审批列表响应:', response);
-    if (response.data.code === 200) {
-      // 转换数据格式以匹配前端组件
-      tableData.value = response.data.data.map(item => ({
-        id: item.id,
-        title: item.project_name,
-        comment: item.comment || '',
-        type: item.type || '',
-        approver: item.approver_name,
-        submitTime: item.created_at,
-        status: item.action === '通过' ? '已通过' : item.action === '退回' ? '已退回' : item.action || ''
-      }));
-      console.log('转换后的审批列表数据:', tableData.value);
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get(`/workbench/approvals?username=${user.username}`);
+      console.log('获取审批列表响应:', response);
+      if (response.data.code === 200) {
+        // 转换数据格式以匹配前端组件
+        tableData.value = response.data.data.map(item => ({
+          id: item.id,
+          title: item.project_name,
+          comment: item.comment || '',
+          type: item.type || '',
+          approver: item.approver_name,
+          submitTime: item.created_at,
+          status: item.action === '通过' ? '已通过' : item.action === '退回' ? '已退回' : item.action || ''
+        }));
+        console.log('转换后的审批列表数据:', tableData.value);
+      }
     }
   } catch (error) {
     console.error('获取审批列表失败:', error);

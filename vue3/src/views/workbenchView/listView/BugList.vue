@@ -49,19 +49,24 @@ onMounted(() => {
 
 const fetchBugs = async () => {
   try {
-    const response = await request.get('/workbench/bugs');
-    console.log('获取Bug列表响应:', response);
-    if (response.data.code === 200) {
-      // 转换数据格式以匹配前端组件
-      tableData.value = response.data.data.map(item => ({
-        id: item.id,
-        title: item.title,
-        priority: getPriorityText(item.priority),
-        state: getStatusText(item.status),
-        sure: item.confirmed ? '已确认' : '未确认',
-        finishTime: item.due_date
-      }));
-      console.log('转换后的Bug列表数据:', tableData.value);
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get(`/workbench/bugs?username=${user.username}`);
+      console.log('获取Bug列表响应:', response);
+      if (response.data.code === 200) {
+        // 转换数据格式以匹配前端组件
+        tableData.value = response.data.data.map(item => ({
+          id: item.id,
+          title: item.title,
+          priority: getPriorityText(item.priority),
+          state: getStatusText(item.status),
+          sure: item.confirmed ? '已确认' : '未确认',
+          finishTime: item.due_date
+        }));
+        console.log('转换后的Bug列表数据:', tableData.value);
+      }
     }
   } catch (error) {
     console.error('获取Bug列表失败:', error);

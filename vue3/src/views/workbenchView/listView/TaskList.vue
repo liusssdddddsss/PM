@@ -185,22 +185,27 @@ onMounted(() => {
 
 const fetchTasks = async () => {
   try {
-    const response = await request.get('/workbench/tasks');
-    console.log('获取任务列表响应:', response);
-    if (response.data.code === 200) {
-      // 转换数据格式以匹配前端组件
-        taskList.value = response.data.data.map(item => ({
-          id: item.id,
-          projectName: item.project_name,
-          name: item.description || item.title,
-          priority: getPriorityText(item.priority),
-          status: getStatusText(item.status),
-          deadline: item.due_date,
-          progress: item.progress || 0,
-          workTime: item.actual_hours ? `${item.actual_hours}h` : '0h',
-          remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h'
-        }));
-      console.log('转换后的任务列表数据:', taskList.value);
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get(`/workbench/tasks?username=${user.username}`);
+      console.log('获取任务列表响应:', response);
+      if (response.data.code === 200) {
+        // 转换数据格式以匹配前端组件
+          taskList.value = response.data.data.map(item => ({
+            id: item.id,
+            projectName: item.project_name,
+            name: item.description || item.title,
+            priority: getPriorityText(item.priority),
+            status: getStatusText(item.status),
+            deadline: item.due_date,
+            progress: item.progress || 0,
+            workTime: item.actual_hours ? `${item.actual_hours}h` : '0h',
+            remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h'
+          }));
+        console.log('转换后的任务列表数据:', taskList.value);
+      }
     }
   } catch (error) {
     console.error('获取任务列表失败:', error);
