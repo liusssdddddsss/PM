@@ -95,7 +95,10 @@
         <div class="assigned-bugs">
           <div class="section-header">
             <h3>指派给我的Bug列表</h3>
-            <el-button type="text" icon="el-icon-setting">更多</el-button>
+            <div style="display: flex; gap: 10px;">
+              <el-button type="primary" size="small" @click="goToCreateBug">创建Bug</el-button>
+              <el-button type="text" icon="el-icon-setting" @click="goToBugList">更多</el-button>
+            </div>
           </div>
           <div class="card-content">
             <el-table :data="assignedBugs" stripe style="width: 100%">
@@ -175,6 +178,14 @@ const pendingTestCases = ref([]);
 const router = useRouter();
 const goToTestList =()=>{
   router.push('/test/testList');
+};
+
+const goToBugList =()=>{
+  router.push('/test/bugList');
+};
+
+const goToCreateBug =()=>{
+  router.push('/test/createBug');
 };
 
 // 指派给我的Bug列表

@@ -1,6 +1,6 @@
 <template>
   <div class="test-submit">
-    <h3>提交测试</h3>
+    <h3>创建测试</h3>
     <div class="form-container">
       <el-form :model="testForm" label-width="120px">
         <el-row :gutter="20">
@@ -185,7 +185,7 @@ const saveTest = () => {
 
 // 返回上一页
 const goBack = () => {
-  router.push('/workbench/testStatistics');
+  router.push('/test/testList');
 };
 </script>
 

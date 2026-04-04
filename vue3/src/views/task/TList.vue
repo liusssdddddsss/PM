@@ -71,8 +71,6 @@ const handleTabClick = (type) => {
 }
 .option{
   height: 40px;
-  //padding: 10px 0;
-  //margin-bottom: 20px;
   border-bottom: 1px solid #ebeef5;
 }
 .option span{

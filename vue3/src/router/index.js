@@ -86,6 +86,8 @@ const router = createRouter({
               {path:'tests',component:()=>import('@/views/test/Tests.vue')},
               {path:'testSubmit',component:()=>import('@/views/test/TestSubmit.vue')},
               {path:'testList',component:()=>import('@/views/test/TestList.vue')},
+              {path:'bugList',component:()=>import('@/views/test/BugList.vue')},
+              {path:'createBug',component:()=>import('@/views/test/CreateBug.vue')},
           ]},
       {path:'/task',component:()=>import('@/views/home/Home.vue'),
           meta:{

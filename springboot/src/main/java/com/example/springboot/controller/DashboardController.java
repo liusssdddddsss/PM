@@ -66,14 +66,23 @@ public class DashboardController {
             // 构建返回数据
             Map<String, Object> statistics = new HashMap<>();
             statistics.put("yesterdayNew", yesterdayNew);
-            statistics.put("yesterdayResolved", yesterdayResolved);
+            statistics.put("yesterdaySolved", yesterdayResolved);
             statistics.put("todayNew", todayNew);
-            statistics.put("todayResolved", todayResolved);
+            statistics.put("todaySolved", todayResolved);
             statistics.put("yesterdayClosed", yesterdayClosed);
             statistics.put("todayClosed", todayClosed);
-            statistics.put("valid", validBugs);
-            statistics.put("resolved", resolvedBugs);
-            statistics.put("unresolved", unresolvedBugs);
+            statistics.put("validBugs", validBugs);
+            statistics.put("fixedBugs", resolvedBugs);
+            statistics.put("unclosedBugs", unresolvedBugs);
+            
+            // 提取测试列表
+            List<String> testLists = new ArrayList<>();
+            for (TestSuite testSuite : testSuites) {
+                if (testSuite.getName() != null) {
+                    testLists.add(testSuite.getName());
+                }
+            }
+            statistics.put("testLists", testLists);
 
             return Result.success(statistics);
         } catch (Exception e) {
@@ -144,25 +153,30 @@ public class DashboardController {
         }
     }
 
+    @Autowired
+    private UserService userService;
+
     @Operation(summary = "获取用户Bug列表", description = "返回当前用户的Bug列表")
     @GetMapping("/user-bugs")
     public Result getUserBugs(@RequestParam String username) {
         try {
             // 从数据库获取用户的Bug列表
-            // 注意：bugs表中的assignee_id存储的是username，不是userId
             List<Bug> bugs = bugService.findall();
             List<Map<String, Object>> userBugs = new ArrayList<>();
             
             for (Bug bug : bugs) {
+                // 只返回指派给当前用户的Bug
+                // 注意：assignee_id 存储的是用户名（字符串），不是用户id
                 if (bug.getAssignee_id() != null && bug.getAssignee_id().toString().equals(username)) {
                     Map<String, Object> bugMap = new HashMap<>();
+                    bugMap.put("id", bug.getId());
                     bugMap.put("name", bug.getTitle() != null ? bug.getTitle() : "无标题");
                     
                     // 转换优先级（使用severity字段）
                     String priority = "一般";
                     if (bug.getSeverity() != null) {
                         switch (bug.getSeverity()) {
-                            case 1: priority = "严重"; break;
+                            case 1: priority = "紧急"; break;
                             case 2: priority = "一般"; break;
                             case 3: priority = "正常"; break;
                         }
@@ -174,11 +188,29 @@ public class DashboardController {
                     if (bug.getStatus() != null) {
                         switch (bug.getStatus()) {
                             case 0: status = "待处理"; break;
-                            case 1: status = "解决中"; break;
+                            case 1: status = "处理中"; break;
                             case 2: status = "已解决"; break;
                         }
                     }
                     bugMap.put("status", status);
+                    
+                    // 添加项目名称
+                    String projectName = "未知项目";
+                    if (bug.getProject_id() != null) {
+                        try {
+                            Optional<Project> projectOpt = projectService.findById(bug.getProject_id().longValue());
+                            if (projectOpt.isPresent()) {
+                                projectName = projectOpt.get().getName();
+                            }
+                        } catch (Exception e) {
+                            // 如果获取项目名称失败，使用默认值
+                        }
+                    }
+                    bugMap.put("project", projectName);
+                    
+                    // 添加其他必要字段
+                    bugMap.put("deadline", "");
+                    bugMap.put("progress", 0);
                     
                     userBugs.add(bugMap);
                 }
@@ -261,6 +293,244 @@ public class DashboardController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取测试用例列表失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "删除测试用例", description = "根据ID删除测试用例")
+    @DeleteMapping("/test-cases/{id}")
+    public Result deleteTestCase(@PathVariable Long id) {
+        try {
+            testSuiteService.deleteById(id);
+            return Result.success("删除测试用例成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除测试用例失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "关闭测试用例", description = "根据ID关闭测试用例")
+    @PostMapping("/test-cases/close")
+    public Result closeTestCase(@RequestBody Map<String, Object> request) {
+        try {
+            Long testCaseId = Long.valueOf(request.get("testCaseId").toString());
+            Optional<TestSuite> testSuiteOpt = testSuiteService.findById(testCaseId);
+            if (testSuiteOpt.isPresent()) {
+                TestSuite testSuite = testSuiteOpt.get();
+                testSuite.setStatus(4); // 4表示已关闭
+                testSuiteService.save(testSuite);
+                return Result.success("关闭测试用例成功");
+            } else {
+                return Result.error("测试用例不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("关闭测试用例失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "打开测试用例", description = "根据ID打开测试用例")
+    @PostMapping("/test-cases/open")
+    public Result openTestCase(@RequestBody Map<String, Object> request) {
+        try {
+            Long testCaseId = Long.valueOf(request.get("testCaseId").toString());
+            Optional<TestSuite> testSuiteOpt = testSuiteService.findById(testCaseId);
+            if (testSuiteOpt.isPresent()) {
+                TestSuite testSuite = testSuiteOpt.get();
+                testSuite.setStatus(1); // 1表示待测试
+                testSuiteService.save(testSuite);
+                return Result.success("打开测试用例成功");
+            } else {
+                return Result.error("测试用例不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("打开测试用例失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取产品总览数据", description = "返回产品总览数据")
+    @GetMapping("/product-overview")
+    public Result getProductOverview() {
+        try {
+            // 模拟产品总览数据
+            Map<String, Object> overview = new HashMap<>();
+            overview.put("productLineCount", 5);
+            overview.put("productCount", 12);
+            overview.put("unfinishedPlanCount", 3);
+            overview.put("unclosedNeedCount", 8);
+            overview.put("activeBugCount", 15);
+            return Result.success(overview);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品总览数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取产品年度推进统计数据", description = "返回产品年度推进统计数据")
+    @GetMapping("/product-progress")
+    public Result getProductProgress(@RequestParam String year) {
+        try {
+            // 模拟产品年度推进统计数据
+            Map<String, Object> progress = new HashMap<>();
+            progress.put("completedReleaseCount", 25);
+            progress.put("completedNeedCount", 120);
+            progress.put("completedBugCount", 85);
+            return Result.success(progress);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品年度推进统计数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取研发需求数据", description = "返回研发需求数据")
+    @GetMapping("/requirements")
+    public Result getRequirements(@RequestParam String username) {
+        try {
+            // 模拟研发需求数据
+            List<Map<String, Object>> requirements = new ArrayList<>();
+            requirements.add(Map.of("id", 1, "name", "开发新功能模块", "priority", "紧急"));
+            requirements.add(Map.of("id", 2, "name", "优化用户界面", "priority", "一般"));
+            requirements.add(Map.of("id", 3, "name", "修复系统bug", "priority", "严重"));
+            return Result.success(requirements);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取研发需求数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取未关闭的产品列表数据", description = "返回未关闭的产品列表数据")
+    @GetMapping("/unclosed-products")
+    public Result getUnclosedProducts() {
+        try {
+            // 模拟未关闭的产品列表数据
+            List<Map<String, Object>> products = new ArrayList<>();
+            products.add(Map.of(
+                "projectName", "实践教学管理平台",
+                "manager", "张三",
+                "activeNeeds", 5,
+                "completionRate", 75,
+                "plan", "进行中",
+                "activeBugs", 3,
+                "release", "计划中"
+            ));
+            products.add(Map.of(
+                "projectName", "电子班牌管理系统",
+                "manager", "李四",
+                "activeNeeds", 3,
+                "completionRate", 60,
+                "plan", "进行中",
+                "activeBugs", 2,
+                "release", "计划中"
+            ));
+            products.add(Map.of(
+                "projectName", "智慧校园(中学版)",
+                "manager", "王五",
+                "activeNeeds", 4,
+                "completionRate", 80,
+                "plan", "进行中",
+                "activeBugs", 1,
+                "release", "计划中"
+            ));
+            return Result.success(products);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取未关闭的产品列表数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取产品发布列表数据", description = "返回产品发布列表数据")
+    @GetMapping("/product-releases")
+    public Result getProductReleases() {
+        try {
+            // 模拟产品发布列表数据
+            List<Map<String, Object>> releases = new ArrayList<>();
+            releases.add(Map.of(
+                "projectName", "实践教学管理平台 v2.0",
+                "product", "实践教学管理平台",
+                "releaseDate", "2023-12-15",
+                "status", "已发布"
+            ));
+            releases.add(Map.of(
+                "projectName", "电子班牌管理系统 v1.5",
+                "product", "电子班牌管理系统",
+                "releaseDate", "2023-11-20",
+                "status", "已发布"
+            ));
+            releases.add(Map.of(
+                "projectName", "智慧校园(中学版) v1.0",
+                "product", "智慧校园(中学版)",
+                "releaseDate", "2024-01-10",
+                "status", "计划中"
+            ));
+            return Result.success(releases);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品发布列表数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取产品年度工作量统计数据", description = "返回产品年度工作量统计数据")
+    @GetMapping("/year-work-statistics")
+    public Result getYearWorkStatistics(@RequestParam String year) {
+        try {
+            // 模拟产品年度工作量统计数据
+            Map<String, Object> statistics = new HashMap<>();
+            
+            List<Map<String, Object>> demandSizeList = new ArrayList<>();
+            demandSizeList.add(Map.of("name", "小型需求", "count", 85));
+            demandSizeList.add(Map.of("name", "中型需求", "count", 45));
+            demandSizeList.add(Map.of("name", "大型需求", "count", 20));
+            
+            List<Map<String, Object>> demandCountList = new ArrayList<>();
+            demandCountList.add(Map.of("name", "第一季度", "count", 30));
+            demandCountList.add(Map.of("name", "第二季度", "count", 45));
+            demandCountList.add(Map.of("name", "第三季度", "count", 35));
+            demandCountList.add(Map.of("name", "第四季度", "count", 30));
+            
+            List<Map<String, Object>> repairBugList = new ArrayList<>();
+            repairBugList.add(Map.of("name", "第一季度", "count", 25));
+            repairBugList.add(Map.of("name", "第二季度", "count", 30));
+            repairBugList.add(Map.of("name", "第三季度", "count", 20));
+            repairBugList.add(Map.of("name", "第四季度", "count", 10));
+            
+            statistics.put("demandSizeList", demandSizeList);
+            statistics.put("demandCountList", demandCountList);
+            statistics.put("repairBugList", repairBugList);
+            
+            return Result.success(statistics);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品年度工作量统计数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取月度发布数据", description = "返回月度发布数据")
+    @GetMapping("/monthly-release")
+    public Result getMonthlyRelease(@RequestParam String year) {
+        try {
+            // 模拟月度发布数据
+            Map<String, Object> data = new HashMap<>();
+            data.put("months", Arrays.asList("1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"));
+            data.put("releaseCounts", Arrays.asList(2, 3, 1, 4, 2, 3, 5, 4, 3, 2, 4, 5));
+            return Result.success(data);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取月度发布数据失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取年度发布榜数据", description = "返回年度发布榜数据")
+    @GetMapping("/yearly-ranking")
+    public Result getYearlyRanking(@RequestParam String year) {
+        try {
+            // 模拟年度发布榜数据
+            Map<String, Object> data = new HashMap<>();
+            data.put("products", Arrays.asList("实践教学管理平台", "电子班牌管理系统", "智慧校园(中学版)", "宿舍管理系统", "教务考试系统"));
+            data.put("releaseCounts", Arrays.asList(123, 101, 86, 71, 66));
+            return Result.success(data);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取年度发布榜数据失败: " + e.getMessage());
         }
     }
 }

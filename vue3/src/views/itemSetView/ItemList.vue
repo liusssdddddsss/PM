@@ -9,12 +9,11 @@
           @click="activeTab=tab.type"
       >
         {{tab.name}}
-        <span class="count">{{tab.count}}</span>
       </span>
       <div class="addProject">
-        <el-button @click="goToItemEdit">
-          编辑项目
-        </el-button>
+<!--        <el-button @click="goToItemEdit">-->
+<!--          编辑项目-->
+<!--        </el-button>-->
         <el-button class="button">
           添加项目
         </el-button>
@@ -149,12 +148,6 @@ const handleDelete = async (id) => {
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
-.option{
-  height: 40px;
-  //padding: 10px 0;
-  //margin-bottom: 20px;
-  border-bottom: 1px solid #ebeef5;
-}
 .option span{
   display: inline-block;
   padding: 0 10px;
@@ -168,11 +161,7 @@ const handleDelete = async (id) => {
   border-bottom: 2px solid #238EFF;
   font-weight: 500;
 }
-.count {
-  margin-left: 5px;
-  font-size: 12px;
-  color: #909399;
-}
+
 .addProject{
   display: inline-block;
   float: right;

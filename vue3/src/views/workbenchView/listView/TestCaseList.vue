@@ -7,6 +7,7 @@
           class="TaskTable"
           :row-style="{height: '45px'}"
           :cell-style="{padding: '4px'}"
+          @row-click="handleRowClick"
       >
         <el-table-column label="序号" width="60">
           <template #default="scope">
@@ -43,10 +44,20 @@
         <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
         <el-table-column label="操作" width="240">
             <template #default="scope">
-              <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-              <span class="action-text edit-action" @click="goToTestEdit">编辑</span>
-              <span class="action-text submit-action" @click="handleSubmitTest(scope.row)">提交测试</span>
-              <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+              <!-- 已关闭状态 -->
+              <template v-if="scope.row.status === '已关闭'">
+                <span class="action-text close-action" @click.stop="handleOpen(scope.row)">打开</span>
+                <span class="action-text edit-action disabled">编辑</span>
+                <span class="action-text submit-action disabled">提交测试</span>
+                <span class="action-text delete-action" @click.stop="handleDelete(scope.row.id)">删除</span>
+              </template>
+              <!-- 未关闭状态 -->
+              <template v-else>
+                <span class="action-text close-action" @click.stop="handleClose(scope.row)">关闭</span>
+                <span class="action-text edit-action" @click.stop="handleEdit(scope.row)">编辑</span>
+                <span class="action-text submit-action" @click.stop="handleSubmitTest(scope.row)">提交测试</span>
+                <span class="action-text delete-action" @click.stop="handleDelete(scope.row.id)">删除</span>
+              </template>
             </template>
           </el-table-column>
       </el-table>
@@ -57,6 +68,7 @@
       v-model="testDialogVisible"
       title="提交测试成果"
       width="500px"
+      :center="true"
     >
       <div class="dialog-content">
         <h4>{{ currentTestCase.name }}</h4>
@@ -110,6 +122,202 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 关闭测试用例对话框 -->
+    <el-dialog
+      v-model="closeDialogVisible"
+      title="关闭测试用例"
+      width="400px"
+      :center="true"
+    >
+      <div class="dialog-content">
+        <h4>{{ currentTestCase.name }}</h4>
+        <div class="form-item">
+          <label>关闭原因：</label>
+          <el-input
+            v-model="closeForm.reason"
+            type="textarea"
+            placeholder="请输入关闭原因"
+            :rows="3"
+          />
+        </div>
+        <div class="form-item">
+          <label>预计完成时间：</label>
+          <el-date-picker
+            v-model="closeForm.expectedCompleteTime"
+            type="datetime"
+            placeholder="选择日期时间"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>实际完成时间：</label>
+          <el-date-picker
+            v-model="closeForm.actualCompleteTime"
+            type="datetime"
+            placeholder="选择日期时间"
+            style="width: 100%"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="closeDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmClose">确认关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑测试用例对话框 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑测试用例"
+      width="500px"
+      :center="true"
+    >
+      <div class="dialog-content">
+        <h4>编辑测试用例</h4>
+        <div class="form-item">
+          <label>测试用例名称：</label>
+          <el-input
+            v-model="editForm.name"
+            placeholder="请输入测试用例名称"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>项目名称：</label>
+          <el-input
+            v-model="editForm.projectName"
+            placeholder="请输入项目名称"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>优先级：</label>
+          <el-select
+            v-model="editForm.priority"
+            placeholder="选择优先级"
+            style="width: 100%"
+          >
+            <el-option label="紧急" value="紧急"></el-option>
+            <el-option label="一般" value="一般"></el-option>
+            <el-option label="正常" value="正常"></el-option>
+          </el-select>
+        </div>
+        <div class="form-item">
+          <label>状态：</label>
+          <el-select
+            v-model="editForm.status"
+            placeholder="选择状态"
+            style="width: 100%"
+          >
+            <el-option label="待测试" value="待测试"></el-option>
+            <el-option label="测试中" value="测试中"></el-option>
+            <el-option label="已完成" value="已完成"></el-option>
+            <el-option label="已关闭" value="已关闭"></el-option>
+          </el-select>
+        </div>
+        <div class="form-item">
+          <label>截止时间：</label>
+          <el-date-picker
+            v-model="editForm.deadline"
+            type="date"
+            placeholder="选择日期"
+            style="width: 100%"
+          />
+        </div>
+        <div class="form-item">
+          <label>测试描述：</label>
+          <el-input
+            v-model="editForm.description"
+            type="textarea"
+            placeholder="请输入测试描述"
+            :rows="3"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmEdit">保存修改</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 测试用例详情对话框 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="测试用例详情"
+      width="600px"
+      :center="true"
+    >
+      <div class="dialog-content">
+        <div class="detail-item">
+          <label>测试用例名称：</label>
+          <span>{{ detailTestCase.name }}</span>
+        </div>
+        <div class="detail-item">
+          <label>项目名称：</label>
+          <span>{{ detailTestCase.projectName }}</span>
+        </div>
+        <div class="detail-item">
+          <label>优先级：</label>
+          <span :class="getPriorityClass(detailTestCase.priority)">{{ detailTestCase.priority }}</span>
+        </div>
+        <div class="detail-item">
+          <label>状态：</label>
+          <span :class="getStatusClass(detailTestCase.status)">{{ detailTestCase.status }}</span>
+        </div>
+        <div class="detail-item">
+          <label>截止时间：</label>
+          <span>{{ detailTestCase.deadline || '无' }}</span>
+        </div>
+        <div class="detail-item">
+          <label>进度：</label>
+          <div class="progress-container">
+            <el-progress :percentage="detailTestCase.progress" :stroke-width="15" />
+            <span class="progress-text">{{ detailTestCase.progress }}%</span>
+          </div>
+        </div>
+        <div class="detail-item">
+          <label>工时：</label>
+          <span>{{ detailTestCase.workTime }}</span>
+        </div>
+        <div class="detail-item">
+          <label>剩余工时：</label>
+          <span>{{ detailTestCase.remainingTime }}</span>
+        </div>
+        <div class="detail-item">
+          <label>测试描述：</label>
+          <p class="description">{{ detailTestCase.description || '无' }}</p>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="detailDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 删除确认对话框 -->
+    <el-dialog
+      v-model="deleteDialogVisible"
+      title="确认删除"
+      width="400px"
+      :center="true"
+    >
+      <div class="dialog-content">
+        <p>您确定要删除测试用例 <strong>{{ currentTestCase.name }}</strong> 吗？</p>
+        <p class="warning-text">删除后将无法恢复，请谨慎操作。</p>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="deleteDialogVisible = false">取消</el-button>
+          <el-button type="danger" @click="confirmDelete">确认删除</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -126,9 +334,6 @@ const props = defineProps({
 });
 
 const router = useRouter();
-const goToTestEdit = () =>{
-  router.push('/test/testSubmit');
-}
 
 // 原始测试用例数据
 const allTestCaseList = ref([]);
@@ -167,7 +372,8 @@ const fetchTestCases = async () => {
           deadline: item.due_date,
           progress: item.progress || 0,
           workTime: '-',
-          remainingTime: '-'
+          remainingTime: '-',
+          description: ''
         }));
       console.log('转换后的测试用例列表数据:', allTestCaseList.value);
     }
@@ -196,10 +402,12 @@ const getStatusText = (status) => {
     case 0:
       return '待测试';
     case 1:
-      return '测试中';
+      return '待测试';
     case 2:
-      return '已完成';
+      return '测试中';
     case 3:
+      return '已完成';
+    case 4:
       return '已关闭';
     default:
       return '待测试';
@@ -227,6 +435,8 @@ const getStatusClass = (status) => {
       return 'status-in-progress';
     case '已完成':
       return 'status-completed';
+    case '已关闭':
+      return 'status-closed';
     default:
       return '';
   }
@@ -242,27 +452,90 @@ const testForm = ref({
   files: []
 });
 
+// 关闭测试用例对话框
+const closeDialogVisible = ref(false);
+const closeForm = ref({
+  reason: '',
+  expectedCompleteTime: '',
+  actualCompleteTime: ''
+});
+
+// 编辑测试用例对话框
+const editDialogVisible = ref(false);
+const editForm = ref({
+  name: '',
+  projectName: '',
+  priority: '',
+  status: '',
+  deadline: '',
+  description: ''
+});
+
+// 测试用例详情对话框
+const detailDialogVisible = ref(false);
+const detailTestCase = ref({ 
+  name: '',
+  projectName: '',
+  priority: '',
+  status: '',
+  deadline: '',
+  progress: 0,
+  workTime: '-',
+  remainingTime: '-',
+  description: ''
+});
+
+// 删除确认对话框
+const deleteDialogVisible = ref(false);
+const currentDeleteId = ref(null);
+
 // 处理操作
 const handleClose = (testCase) => {
-  // 这里可以添加关闭测试用例的逻辑
-  console.log('关闭测试用例:', testCase);
+  console.log('点击关闭按钮:', testCase);
+  currentTestCase.value = testCase;
+  // 重置关闭表单
+  closeForm.value = {
+    reason: '',
+    expectedCompleteTime: '',
+    actualCompleteTime: ''
+  };
+  closeDialogVisible.value = true;
 };
 
-const handleDelete = async (id) => {
-  try {
-    const response = await request.delete(`/workbench/test-cases/${id}`);
-    if (response.data.code === 200) {
-      console.log('删除测试用例成功:', id);
-      // 重新获取测试用例列表
-      await fetchTestCases();
-    }
-  } catch (error) {
-    console.error('删除测试用例失败:', error);
+const handleOpen = (testCase) => {
+  console.log('点击打开按钮:', testCase);
+  openTestCase(testCase.id);
+};
+
+const handleEdit = (testCase) => {
+  console.log('点击编辑按钮:', testCase);
+  currentTestCase.value = testCase;
+  // 填充编辑表单
+  editForm.value = {
+    name: testCase.name,
+    projectName: testCase.projectName,
+    priority: testCase.priority,
+    status: testCase.status,
+    deadline: testCase.deadline,
+    description: testCase.description
+  };
+  editDialogVisible.value = true;
+};
+
+const handleDelete = (id) => {
+  console.log('点击删除按钮:', id);
+  // 查找对应的测试用例
+  const testCase = allTestCaseList.value.find(tc => tc.id === id);
+  if (testCase) {
+    currentTestCase.value = testCase;
+    currentDeleteId.value = id;
+    deleteDialogVisible.value = true;
   }
 };
 
 // 处理测试成果提交
 const handleSubmitTest = (testCase) => {
+  console.log('点击提交测试按钮:', testCase);
   currentTestCase.value = testCase;
   // 重置测试提交表单
   testForm.value = {
@@ -272,6 +545,13 @@ const handleSubmitTest = (testCase) => {
     files: []
   };
   testDialogVisible.value = true;
+};
+
+// 处理行点击，显示详情
+const handleRowClick = (row) => {
+  console.log('点击测试用例行:', row);
+  detailTestCase.value = { ...row };
+  detailDialogVisible.value = true;
 };
 
 // 处理文件选择
@@ -298,10 +578,103 @@ const confirmSubmitTest = async () => {
     if (response.data.code === 200) {
       console.log('测试成果提交成功');
       testDialogVisible.value = false;
-      // 可以添加成功提示
+      // 重新获取测试用例列表
+      await fetchTestCases();
     }
   } catch (error) {
     console.error('测试成果提交失败:', error);
+  }
+};
+
+// 确认关闭测试用例
+const confirmClose = async () => {
+  try {
+    console.log('确认关闭测试用例:', currentTestCase.value.id);
+    console.log('关闭表单:', closeForm.value);
+    
+    // 调用关闭测试用例的API
+    const response = await request.post('/dashboard/test-cases/close', {
+      testCaseId: currentTestCase.value.id,
+      reason: closeForm.value.reason,
+      expectedCompleteTime: closeForm.value.expectedCompleteTime,
+      actualCompleteTime: closeForm.value.actualCompleteTime
+    });
+    
+    if (response.data.code === 200) {
+      console.log('测试用例关闭成功');
+      closeDialogVisible.value = false;
+      // 重新获取测试用例列表
+      await fetchTestCases();
+    }
+  } catch (error) {
+    console.error('关闭测试用例失败:', error);
+  }
+};
+
+// 打开测试用例
+const openTestCase = async (testCaseId) => {
+  try {
+    console.log('打开测试用例:', testCaseId);
+    
+    // 调用打开测试用例的API
+    const response = await request.post('/dashboard/test-cases/open', {
+      testCaseId: testCaseId
+    });
+    
+    if (response.data.code === 200) {
+      console.log('测试用例打开成功');
+      // 重新获取测试用例列表
+      await fetchTestCases();
+    }
+  } catch (error) {
+    console.error('打开测试用例失败:', error);
+  }
+};
+
+// 确认编辑测试用例
+const confirmEdit = async () => {
+  try {
+    console.log('确认编辑测试用例:', currentTestCase.value.id);
+    console.log('编辑表单:', editForm.value);
+    
+    // 这里可以添加编辑测试用例的逻辑，例如调用后端API
+    // 模拟API调用
+    const response = await request.put('/test/update', {
+      testCaseId: currentTestCase.value.id,
+      name: editForm.value.name,
+      projectName: editForm.value.projectName,
+      priority: editForm.value.priority,
+      status: editForm.value.status,
+      deadline: editForm.value.deadline,
+      description: editForm.value.description
+    });
+    
+    if (response.data.code === 200) {
+      console.log('测试用例编辑成功');
+      editDialogVisible.value = false;
+      // 重新获取测试用例列表
+      await fetchTestCases();
+    }
+  } catch (error) {
+    console.error('编辑测试用例失败:', error);
+  }
+};
+
+// 确认删除测试用例
+const confirmDelete = async () => {
+  try {
+    if (currentDeleteId.value) {
+      console.log('确认删除测试用例:', currentDeleteId.value);
+      const response = await request.delete(`/dashboard/test-cases/${currentDeleteId.value}`);
+      if (response.data.code === 200) {
+        console.log('删除测试用例成功:', currentDeleteId.value);
+        deleteDialogVisible.value = false;
+        // 重新获取测试用例列表
+        await fetchTestCases();
+      }
+    }
+  } catch (error) {
+    console.error('删除测试用例失败:', error);
   }
 };
 </script>
@@ -362,12 +735,24 @@ const confirmSubmitTest = async () => {
   font-size: 13px;
 }
 
+.status-closed {
+  color: #909399;
+  font-weight: 500;
+  font-size: 13px;
+}
+
 .action-text {
   display: inline-block;
   margin: 0 8px;
   cursor: pointer;
   font-size: 13px;
   transition: color 0.3s;
+}
+
+.action-text.disabled {
+  color: #909399;
+  cursor: not-allowed;
+  text-decoration: none !important;
 }
 
 .close-action {
@@ -386,7 +771,7 @@ const confirmSubmitTest = async () => {
   color: #67C23A;
 }
 
-.action-text:hover {
+.action-text:hover:not(.disabled) {
   text-decoration: underline;
 }
 
@@ -426,6 +811,59 @@ const confirmSubmitTest = async () => {
   margin-bottom: 8px;
   font-size: 14px;
   color: #606266;
+}
+
+/* 详情项样式 */
+.detail-item {
+  display: flex;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.detail-item label {
+  width: 100px;
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+  margin-right: 20px;
+}
+
+.detail-item span {
+  flex: 1;
+  font-size: 14px;
+  color: #303133;
+  word-break: break-word;
+}
+
+/* 进度条容器 */
+.progress-container {
+  flex: 1;
+  position: relative;
+}
+
+.progress-text {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 描述文本 */
+.description {
+  flex: 1;
+  font-size: 14px;
+  color: #303133;
+  line-height: 1.5;
+  margin: 0;
+  word-break: break-word;
+}
+
+.warning-text {
+  color: #F56C6C;
+  font-size: 13px;
+  margin-top: 10px;
 }
 
 .dialog-footer {
