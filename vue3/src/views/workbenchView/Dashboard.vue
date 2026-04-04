@@ -562,18 +562,23 @@ const fetchUserInfo = async (username) => {
 // 从后端获取统计数据
 const fetchStatistics = async () => {
   try {
-    // 从后端获取工作台统计数据
-    const response = await request.get('/dashboard/statistics');
-    if (response.data.code === 200) {
-      // 更新统计数据
-      const data = response.data.data;
-      bug.value = data.bug || 0;
-      approveState.value = data.approveState || 0;
-      taskState.value = data.taskState || 0;
-      bugState.value = data.bugState || 0;
-      needsState.value = data.needsState || 0;
-      userState.value = data.userState || 0;
-      passageState.value = data.passageState || 0;
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 从后端获取工作台统计数据
+      const response = await request.get(`/workbench/statistics?username=${user.username}`);
+      if (response.data.code === 200) {
+        // 更新统计数据
+        const data = response.data.data;
+        bug.value = data.bug || 0;
+        approveState.value = data.approveState || 0;
+        taskState.value = data.taskState || 0;
+        bugState.value = data.bugState || 0;
+        needsState.value = data.needsState || 0;
+        userState.value = data.userState || 0;
+        passageState.value = data.passageState || 0;
+      }
     }
   } catch (error) {
     console.error('获取统计数据失败:', error);

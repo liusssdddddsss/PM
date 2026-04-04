@@ -5,14 +5,16 @@
            v-for="(item,index) in dynamicData"
            :key="index"
       >
-        <div class="dynamic-time">
-          {{item.time}}
-        </div>
-        <div class="dynamic-message">
-          {{item.operator}}{{item.action}}
-          <span class="dynamic-link" v-if="item.link">
-                  {{item.link}}
-        </span>
+        <div class="dynamic-content">
+          <div class="dynamic-message">
+            {{item.operator}}{{item.action}}
+            <span class="dynamic-link" v-if="item.link">
+                    {{item.link}}
+          </span>
+          </div>
+          <div class="dynamic-time">
+            {{item.time}}
+          </div>
         </div>
       </li>
       <li v-if="dynamicData.length === 0" class="no-data">
@@ -34,8 +36,8 @@ const dynamicData = ref([]);
 const fetchDynamicData = async () => {
   try {
     const response = await request.get('/dashboard/dynamic');
-    if (response.code === 200) {
-      dynamicData.value = response.data || [];
+    if (response.data.code === 200) {
+      dynamicData.value = response.data.data || [];
     }
   } catch (error) {
     console.error('获取最新动态失败:', error);
@@ -64,9 +66,14 @@ onMounted(() => {
 .dynamic-item:last-child {
   border-bottom: none;
 }
+.dynamic-content {
+  display: flex;
+  flex-direction: column;
+}
 .dynamic-time {
   color: #909399;
   white-space: nowrap;
+  margin-top: 4px;
 }
 .dynamic-link {
   color: #409eff;

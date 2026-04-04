@@ -465,4 +465,138 @@ public class WorkbenchController {
             return Result.error("更新项目状态失败: " + e.getMessage());
         }
     }
+    
+    @Operation(summary = "获取工作台统计数据", description = "返回工作台统计数据")
+    @GetMapping("/statistics")
+    public Result getStatistics(@RequestParam String username) {
+        try {
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // 1. 获取用户信息，判断用户角色
+            boolean isProductManager = false;
+            var userOptional = userService.findById(username);
+            
+            if (userOptional.isPresent()) {
+                var user = userOptional.get();
+                // 假设role_id为1表示产品经理
+                if (user.getRole_id() != null && user.getRole_id() == 1) {
+                    isProductManager = true;
+                }
+            } else {
+                return Result.error("用户不存在");
+            }
+            
+            // 2. 获取待审批数
+            int approveState = 0;
+            List<ProjectApproval> approvals = projectApprovalService.findall();
+            for (ProjectApproval approval : approvals) {
+                // 由于ProjectApproval实体类没有status字段，这里简化处理，直接统计所有审批
+                // 如果是产品经理，显示所有审批
+                if (isProductManager) {
+                    approveState++;
+                } else {
+                    // 否则只显示当前用户的审批
+                    try {
+                        Integer userId = Integer.parseInt(username);
+                        if (approval.getApprover_id() != null && approval.getApprover_id().equals(userId)) {
+                            approveState++;
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，跳过
+                    }
+                }
+            }
+            
+            // 3. 获取任务数
+            int taskState = 0;
+            List<Task> tasks = taskService.findall();
+            for (Task task : tasks) {
+                // 如果是产品经理，显示所有任务
+                if (isProductManager) {
+                    taskState++;
+                } else {
+                    // 否则只显示当前用户的任务
+                    try {
+                        Integer userId = Integer.parseInt(username);
+                        if (task.getAssigneeId() != null && task.getAssigneeId().equals(userId)) {
+                            taskState++;
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，跳过
+                    }
+                }
+            }
+            
+            // 4. 获取Bug数
+            int bugState = 0;
+            List<Bug> bugs = bugService.findall();
+            for (Bug bug : bugs) {
+                // 如果是产品经理，显示所有Bug
+                if (isProductManager) {
+                    bugState++;
+                } else {
+                    // 否则只显示当前用户的Bug
+                    try {
+                        Integer userId = Integer.parseInt(username);
+                        if (bug.getAssignee_id() != null && bug.getAssignee_id().equals(userId)) {
+                            bugState++;
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，跳过
+                    }
+                }
+            }
+            
+            // 5. 获取研发需求数
+            int needsState = 0;
+            List<Requirement> requirements = requirementService.findall();
+            for (Requirement requirement : requirements) {
+                // 如果是产品经理，显示所有研发需求
+                if (isProductManager) {
+                    if (requirement.getType() != null && requirement.getType() == 1) {
+                        needsState++;
+                    }
+                } else {
+                    // 否则只显示当前用户所在团队的研发需求
+                    // 这里需要根据实际的团队关系来判断，暂时简化处理
+                    needsState++;
+                }
+            }
+            
+            // 6. 获取用户需求数
+            int userState = 0;
+            for (Requirement requirement : requirements) {
+                // 如果是产品经理，显示所有用户需求
+                if (isProductManager) {
+                    if (requirement.getType() != null && requirement.getType() == 2) {
+                        userState++;
+                    }
+                } else {
+                    // 否则只显示当前用户所在团队的用户需求
+                    // 这里需要根据实际的团队关系来判断，暂时简化处理
+                    userState++;
+                }
+            }
+            
+            // 7. 获取文档数（暂时模拟）
+            int passageState = 0;
+            
+            // 8. 昨天处理任务和Bug的次数（暂时模拟）
+            int bug = 0;
+            
+            // 构建返回数据
+            statistics.put("bug", bug);
+            statistics.put("approveState", approveState);
+            statistics.put("taskState", taskState);
+            statistics.put("bugState", bugState);
+            statistics.put("needsState", needsState);
+            statistics.put("userState", userState);
+            statistics.put("passageState", passageState);
+            
+            return Result.success(statistics);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取工作台统计数据失败: " + e.getMessage());
+        }
+    }
 }
