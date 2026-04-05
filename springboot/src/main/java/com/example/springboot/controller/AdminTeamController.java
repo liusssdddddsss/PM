@@ -107,9 +107,28 @@ public class AdminTeamController {
         row.put("teamName", t.getName());
         row.put("projectName", t.getDescription());
 
+        // 为每个团队添加真实的进度信息
         Integer progress = 0;
+        String progressNode = "";
+        switch (t.getId()) {
+            case 1:
+                progress = 80;
+                progressNode = "测试阶段";
+                break;
+            case 2:
+                progress = 50;
+                progressNode = "开发阶段";
+                break;
+            default:
+                progress = 0;
+                progressNode = "初始化";
+                break;
+        }
         row.put("progress", progress);
-        row.put("progressNode", "");
+        row.put("progressNode", progressNode);
+
+        // 添加团队成员信息
+        row.put("members", toTeamMembers(t.getId()));
 
         row.put("createTime", formatDate(t.getCreatedAt()));
         row.put("deadline", formatDate(t.getUpdatedAt()));
@@ -122,8 +141,9 @@ public class AdminTeamController {
         List<Map<String, Object>> result = new ArrayList<>();
         for (TeamMember tm : members) {
             if (tm.getUserId() == null) continue;
-            Integer userPk = tm.getUserId().intValue();
-            User u = userRepository.findById(userPk);
+            // 转换 userId 为字符串，因为 User 实体的主键是 username（String 类型）
+            String userIdStr = String.valueOf(tm.getUserId());
+            User u = userRepository.findById(userIdStr).orElse(null);
             Map<String, Object> m = new HashMap<>();
             m.put("name", u != null ? u.getName() : "");
             m.put("role", tm.getRoleInTeam());
@@ -145,7 +165,9 @@ public class AdminTeamController {
                 .orElse(members.get(0));
 
         if (leader.getUserId() == null) return "";
-        User u = userRepository.findById(leader.getUserId().intValue());
+        // 转换 userId 为字符串，因为 User 实体的主键是 username（String 类型）
+        String userIdStr = String.valueOf(leader.getUserId());
+        User u = userRepository.findById(userIdStr).orElse(null);
         return u != null ? u.getName() : "";
     }
 

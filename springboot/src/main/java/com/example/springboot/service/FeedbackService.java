@@ -1,8 +1,10 @@
 package com.example.springboot.service;
 
 import com.example.springboot.entity.Feedback;
+import com.example.springboot.entity.Team;
 import com.example.springboot.entity.User;
 import com.example.springboot.repository.FeedbackRepository;
+import com.example.springboot.repository.TeamRepository;
 import com.example.springboot.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ public class FeedbackService {
     private FeedbackRepository feedbackRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private TeamRepository teamRepository;
 
     public List<FeedbackWithAssigneeName> findAll() {
         List<Feedback> feedbacks = feedbackRepository.findAll();
@@ -32,6 +36,12 @@ public class FeedbackService {
                 userRepository.findById(feedback.getCreatorId().toString()).ifPresent(user -> {
                     item.setCreatorName(user.getName());
                 });
+                // 查询用户所属团队
+                List<Team> teams = teamRepository.findTeamsByUserId(feedback.getCreatorId());
+                if (teams != null && !teams.isEmpty()) {
+                    item.setTeamId(teams.get(0).getId());
+                    item.setTeamName(teams.get(0).getName());
+                }
             }
             result.add(item);
         }
@@ -54,6 +64,12 @@ public class FeedbackService {
             userRepository.findById(feedback.getCreatorId().toString()).ifPresent(user -> {
                 result.setCreatorName(user.getName());
             });
+            // 查询用户所属团队
+            List<Team> teams = teamRepository.findTeamsByUserId(feedback.getCreatorId());
+            if (teams != null && !teams.isEmpty()) {
+                result.setTeamId(teams.get(0).getId());
+                result.setTeamName(teams.get(0).getName());
+            }
         }
         return result;
     }
@@ -79,6 +95,8 @@ public class FeedbackService {
         private String solution;
         private Long creatorId;
         private String creatorName;
+        private Integer teamId;
+        private String teamName;
         private java.util.Date createdAt;
         private java.util.Date updatedAt;
         private Integer relatedObjects;
@@ -98,6 +116,8 @@ public class FeedbackService {
             this.relatedObjects = feedback.getRelatedObjects();
             this.assigneeName = "未指派";
             this.creatorName = "未知";
+            this.teamId = null;
+            this.teamName = "";
         }
 
         // Getters and setters
@@ -123,6 +143,10 @@ public class FeedbackService {
         public void setCreatorId(Long creatorId) { this.creatorId = creatorId; }
         public String getCreatorName() { return creatorName; }
         public void setCreatorName(String creatorName) { this.creatorName = creatorName; }
+        public Integer getTeamId() { return teamId; }
+        public void setTeamId(Integer teamId) { this.teamId = teamId; }
+        public String getTeamName() { return teamName; }
+        public void setTeamName(String teamName) { this.teamName = teamName; }
         public java.util.Date getCreatedAt() { return createdAt; }
         public void setCreatedAt(java.util.Date createdAt) { this.createdAt = createdAt; }
         public java.util.Date getUpdatedAt() { return updatedAt; }

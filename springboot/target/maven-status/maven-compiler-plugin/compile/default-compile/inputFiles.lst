@@ -18,6 +18,8 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Bug.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Feedback.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Iteration.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\LoginLog.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\OperationLog.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\OptionLog.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Product.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Project.java
@@ -33,6 +35,8 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\BugRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\FeedbackRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\IterationRepository.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\LoginLogRepository.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\OperationLogRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\OptionLogRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\ProductRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\ProjectApprovalRepository.java
@@ -48,7 +52,9 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\BugService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\FeedbackService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\IterationService.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\OperationLogService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\OptionLogService.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProductService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectApprovalService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectMemberService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectService.java

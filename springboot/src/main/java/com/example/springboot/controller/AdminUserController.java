@@ -3,6 +3,7 @@ package com.example.springboot.controller;
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.User;
 import com.example.springboot.repository.UserRepository;
+import com.example.springboot.service.OptionLogService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,9 @@ public class AdminUserController {
 
     @Resource
     private UserRepository userRepository;
+    
+    @Resource
+    private OptionLogService optionLogService;
 
     @GetMapping
     public Result listUsers() {
@@ -22,6 +26,10 @@ public class AdminUserController {
             var users = userRepository.findAll();
             var result = new java.util.ArrayList<java.util.Map<String, Object>>();
             for (User u : users) {
+                // 跳过管理员用户
+                if (u.getIs_admin() != null && u.getIs_admin() == 1) {
+                    continue;
+                }
                 var row = new java.util.HashMap<String, Object>();
                 row.put("userId", u.getUsername());
                 row.put("name", u.getName());
@@ -31,6 +39,7 @@ public class AdminUserController {
             }
             return Result.success(result);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.error("查询用户失败: " + e.getMessage());
         }
     }
@@ -57,6 +66,7 @@ public class AdminUserController {
             u.setLast_login(null);
 
             User saved = userRepository.save(u);
+            optionLogService.log("admin", "创建用户: " + saved.getName(), "/admin/users");
             return Result.success(saved);
         } catch (Exception e) {
             return Result.error("创建用户失败: " + e.getMessage());
@@ -87,6 +97,7 @@ public class AdminUserController {
             }
 
             User saved = userRepository.save(u);
+            optionLogService.log("admin", "更新用户: " + saved.getName(), "/admin/users/" + userId + "");
             return Result.success(saved);
         } catch (Exception e) {
             return Result.error("更新用户失败: " + e.getMessage());
@@ -103,6 +114,7 @@ public class AdminUserController {
             User u = opt.get();
             u.setStatus(mapStatusValue(request.status));
             User saved = userRepository.save(u);
+            optionLogService.log("admin", "更新用户状态: " + saved.getName() + " 状态: " + mapStatus(saved.getStatus()), "/admin/users/" + userId + "/status");
             return Result.success(saved);
         } catch (Exception e) {
             return Result.error("更新状态失败: " + e.getMessage());
@@ -122,6 +134,7 @@ public class AdminUserController {
             }
             u.setPassword(request.password);
             User saved = userRepository.save(u);
+            optionLogService.log("admin", "修改用户密码: " + saved.getName(), "/admin/users/" + userId + "/password");
             return Result.success(saved);
         } catch (Exception e) {
             return Result.error("修改密码失败: " + e.getMessage());
@@ -134,7 +147,11 @@ public class AdminUserController {
             if (userRepository.findById(userId).isEmpty()) {
                 return Result.error("用户不存在");
             }
+            // 获取用户信息以便记录日志
+            Optional<User> userOpt = userRepository.findById(userId);
+            String userName = userOpt.map(User::getName).orElse(userId);
             userRepository.deleteById(userId);
+            optionLogService.log("admin", "删除用户: " + userName, "/admin/users/" + userId + "");
             return Result.success();
         } catch (Exception e) {
             return Result.error("删除用户失败: " + e.getMessage());
@@ -155,12 +172,12 @@ public class AdminUserController {
 
     private static String mapPosition(Integer isAdmin, Long roleId) {
         if (isAdmin != null && isAdmin == 1) return "管理员";
-        if (roleId == null) return "用户";
+        if (roleId == null) return "普通用户";
         return switch (roleId.intValue()) {
-            case 1 -> "产品经理";
-            case 2 -> "开发者";
-            case 3 -> "测试者";
-            default -> "用户";
+            case 1, 2 -> "产品经理";
+            case 3 -> "开发者";
+            case 4 -> "测试者";
+            default -> "普通用户";
         };
     }
 

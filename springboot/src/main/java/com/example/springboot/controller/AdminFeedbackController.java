@@ -59,8 +59,8 @@ public class AdminFeedbackController {
         row.put("id", item.getId());
         row.put("userId", item.getCreatorId() != null ? String.valueOf(item.getCreatorId()) : "");
         row.put("userName", item.getCreatorName() != null ? item.getCreatorName() : "");
-        row.put("teamId", "");
-        row.put("teamName", "");
+        row.put("teamId", item.getTeamId() != null ? String.valueOf(item.getTeamId()) : "");
+        row.put("teamName", item.getTeamName() != null ? item.getTeamName() : "");
 
         row.put("title", item.getTitle());
         row.put("type", item.getType());
@@ -75,13 +75,16 @@ public class AdminFeedbackController {
     private static String mapStatusToFrontend(String backendStatus) {
         if ("处理中".equals(backendStatus)) return "处理中";
         if ("待处理".equals(backendStatus)) return "未处理";
-        return "已处理";
+        if ("已处理".equals(backendStatus)) return "已处理";
+        if ("待关闭".equals(backendStatus)) return "已处理";
+        return "未处理";
     }
 
     private static String mapStatusToBackend(String frontendStatus) {
         if (frontendStatus == null) return "待处理";
         if ("处理中".equals(frontendStatus)) return "处理中";
-        if ("已处理".equals(frontendStatus)) return "待关闭";
+        if ("已处理".equals(frontendStatus)) return "已处理";
+        if ("未处理".equals(frontendStatus)) return "待处理";
         return "待处理";
     }
 

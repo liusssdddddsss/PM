@@ -254,7 +254,7 @@ public class WorkbenchController {
                 try {
                     Integer userId = Integer.parseInt(username);
                     bugs = bugs.stream()
-                            .filter(bug -> bug.getCreator_id() != null && bug.getCreator_id().equals(userId))
+                            .filter(bug -> bug.getReporter_id() != null && bug.getReporter_id().equals(userId))
                             .toList();
                 } catch (NumberFormatException e) {
                     // 用户名不是数字格式，返回空列表

@@ -263,78 +263,59 @@
 </template>
 
 <script setup>
-import {ref, computed} from "vue";
+import {ref, computed, onMounted} from "vue";
+import request from "@/utils/request.js";
 
 // 统计数据
-const userCount = 128;
-const teamCount = 16;
-const logCount = 356;
-const feedbackCount = 42;
+const userCount = ref(0);
+const teamCount = ref(0);
+const logCount = ref(0);
+const feedbackCount = ref(0);
 
 // 最近操作
-const recentActivities = ref([
-  {
-    time: '2024-01-15 14:30',
-    action: '修改用户权限',
-    user: 'admin',
-    status: '成功'
-  },
-  {
-    time: '2024-01-15 13:45',
-    action: '创建新团队',
-    user: 'admin',
-    status: '成功'
-  },
-  {
-    time: '2024-01-15 11:20',
-    action: '封锁用户账号',
-    user: 'admin',
-    status: '成功'
-  },
-  {
-    time: '2024-01-15 10:05',
-    action: '查看操作日志',
-    user: 'admin',
-    status: '成功'
+const recentActivities = ref([]);
+
+// 从后端获取管理员面板数据
+const fetchDashboardData = async () => {
+  try {
+    const response = await request.get('/admin/dashboard/summary');
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      userCount.value = data.userCount || 0;
+      teamCount.value = data.teamCount || 0;
+      logCount.value = data.logCount || 0;
+      feedbackCount.value = data.feedbackCount || 0;
+      recentActivities.value = data.recentActivities || [];
+    }
+  } catch (error) {
+    console.error('获取管理员面板数据失败:', error);
   }
-]);
+};
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchDashboardData();
+  fetchUserList();
+});
 
 // 搜索关键词
 const searchQuery = ref('');
 
 // 原始用户列表
-const originalUserList = ref([
-  {
-    userId: '001',
-    name: '张三',
-    status: '启用',
-    position: '管理员'
-  },
-  {
-    userId: '002',
-    name: '李四',
-    status: '启用',
-    position: '产品经理'
-  },
-  {
-    userId: '003',
-    name: '王五',
-    status: '启用',
-    position: '开发者'
-  },
-  {
-    userId: '004',
-    name: '赵六',
-    status: '禁用',
-    position: '测试者'
-  },
-  {
-    userId: '005',
-    name: '孙七',
-    status: '启用',
-    position: '开发者'
+const originalUserList = ref([]);
+
+// 从后端获取用户列表
+const fetchUserList = async () => {
+  try {
+    const response = await request.get('/admin/users');
+    if (response.data.code === 200) {
+      const users = response.data.data || [];
+      originalUserList.value = users;
+    }
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
   }
-]);
+};
 
 // 过滤后的用户列表
 const userList = computed(() => {
@@ -414,18 +395,32 @@ const editUser = (user) => {
   userDialogVisible.value = true;
 };
 
-const saveUser = () => {
-  if (isEditUser.value) {
-    // 编辑用户
-    const index = userList.value.findIndex(u => u.userId === formUser.value.userId);
-    if (index !== -1) {
-      userList.value[index] = {...formUser.value};
+const saveUser = async () => {
+  try {
+    if (isEditUser.value) {
+      // 编辑用户
+      const response = await request.put(`/admin/users/${formUser.value.userId}`, formUser.value);
+      if (response.data.code === 200) {
+        // 重新获取用户列表
+        await fetchUserList();
+        // 刷新统计数据
+        await fetchDashboardData();
+        userDialogVisible.value = false;
+      }
+    } else {
+      // 添加用户
+      const response = await request.post('/admin/users', formUser.value);
+      if (response.data.code === 200) {
+        // 重新获取用户列表
+        await fetchUserList();
+        // 刷新统计数据
+        await fetchDashboardData();
+        userDialogVisible.value = false;
+      }
     }
-  } else {
-    // 添加用户
-    userList.value.push({...formUser.value});
+  } catch (error) {
+    console.error('保存用户失败:', error);
   }
-  userDialogVisible.value = false;
 };
 
 const showUserDetail = (user) => {
@@ -472,14 +467,35 @@ const changePassword = (user) => {
   passwordDialogVisible.value = true;
 };
 
-const savePassword = () => {
-  passwordDialogVisible.value = false;
+const savePassword = async () => {
+  try {
+    // 找到对应的用户
+    const user = userList.value.find(u => u.name === formPassword.value.userName);
+    if (user) {
+      const response = await request.put(`/admin/users/${user.userId}/password`, { password: formPassword.value.newPassword });
+      if (response.data.code === 200) {
+        // 刷新统计数据
+        await fetchDashboardData();
+        passwordDialogVisible.value = false;
+      }
+    }
+  } catch (error) {
+    console.error('修改密码失败:', error);
+  }
 };
 
-const deleteUser = (user) => {
-  const index = userList.value.findIndex(u => u.userId === user.userId);
-  if (index !== -1) {
-    userList.value[index].status = user.status === '启用' ? '禁用' : '启用';
+const deleteUser = async (user) => {
+  try {
+    const newStatus = user.status === '启用' ? '禁用' : '启用';
+    const response = await request.put(`/admin/users/${user.userId}/status`, { status: newStatus });
+    if (response.data.code === 200) {
+      // 重新获取用户列表
+      await fetchUserList();
+      // 刷新统计数据
+      await fetchDashboardData();
+    }
+  } catch (error) {
+    console.error('更新用户状态失败:', error);
   }
 };
 </script>

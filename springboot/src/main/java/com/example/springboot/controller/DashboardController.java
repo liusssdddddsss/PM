@@ -36,7 +36,7 @@ public class DashboardController {
 
     @Operation(summary = "获取测试统计数据", description = "返回测试相关的统计数据")
     @GetMapping("/test-statistics")
-    public Result getTestStatistics() {
+    public Result getTestStatistics(@RequestParam(required = false) String projectName) {
         try {
             // 从数据库获取测试套件数据
             List<TestSuite> testSuites = testSuiteService.findAll();
@@ -61,7 +61,27 @@ public class DashboardController {
             int resolvedBugs = 0;
             int unresolvedBugs = 0;
 
+            // 如果指定了项目名称，过滤出该项目的Bug
+            Long targetProjectId = null;
+            if (projectName != null && !projectName.isEmpty()) {
+                // 查找项目ID
+                Iterable<Project> projects = projectService.findAll();
+                for (Project project : projects) {
+                    if (projectName.equals(project.getName())) {
+                        targetProjectId = project.getId();
+                        break;
+                    }
+                }
+            }
+
             for (Bug bug : bugs) {
+                // 如果指定了项目，只统计该项目的Bug
+                if (targetProjectId != null) {
+                    if (bug.getProject_id() == null || !bug.getProject_id().equals(targetProjectId.intValue())) {
+                        continue;
+                    }
+                }
+                
                 if (bug.getStatus() != null) {
                     if (bug.getStatus() == 0 || bug.getStatus() == 1) {
                         validBugs++;
@@ -71,6 +91,12 @@ public class DashboardController {
                         resolvedBugs++;
                     }
                 }
+            }
+
+            // 计算修复率
+            double bugRepairRate = 0;
+            if (validBugs > 0) {
+                bugRepairRate = (double) resolvedBugs / validBugs * 100;
             }
 
             // 构建返回数据
@@ -84,6 +110,7 @@ public class DashboardController {
             statistics.put("validBugs", validBugs);
             statistics.put("fixedBugs", resolvedBugs);
             statistics.put("unclosedBugs", unresolvedBugs);
+            statistics.put("bugRepairRate", Math.round(bugRepairRate));
             
             // 提取测试列表
             List<String> testLists = new ArrayList<>();
@@ -1047,7 +1074,7 @@ public class DashboardController {
             
             // 5. 获取研发需求数
             int needsState = 0;
-            List<Requirement> requirements = requirementService.findall();
+            Iterable<Requirement> requirements = requirementService.findAll();
             for (Requirement requirement : requirements) {
                 // 如果是产品经理，显示所有研发需求
                 if (isProductManager) {

@@ -402,7 +402,7 @@
             <!-- 左侧：项目列表 -->
             <div style="width: 150px; flex-shrink: 0;">
               <div class="system-list">
-                <ProjectList/>
+                <ProjectList @project-click="handleTestProjectClick"/>
               </div>
             </div>
             <!-- 右侧：Bug统计-->
@@ -791,6 +791,13 @@ const handleProjectClick = async (projectName) => {
   await fetchProjectDetail(projectName);
 };
 
+// 处理测试统计项目点击事件
+const handleTestProjectClick = async (projectName) => {
+  console.log('点击了测试统计项目:', projectName);
+  // 调用后端API获取项目的测试统计数据
+  await fetchTestStatistics(projectName);
+};
+
 // 从后端获取团队完成情况数据
 const fetchTeamStatistics = async () => {
   try {
@@ -918,9 +925,13 @@ const fetchNeedsStatistics = async () => {
 };
 
 // 从后端获取测试统计数据
-const fetchTestStatistics = async () => {
+const fetchTestStatistics = async (projectName = '') => {
   try {
-    const response = await request.get('/dashboard/test-statistics');
+    let url = '/dashboard/test-statistics';
+    if (projectName) {
+      url += `?projectName=${encodeURIComponent(projectName)}`;
+    }
+    const response = await request.get(url);
     if (response.data.code === 200) {
       const data = response.data.data;
       testStatistics.value = {

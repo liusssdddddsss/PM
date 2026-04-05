@@ -21,6 +21,7 @@ com\example\springboot\controller\WorkbenchController.class
 com\example\springboot\entity\Project.class
 com\example\springboot\repository\ProjectRepository.class
 com\example\springboot\repository\OptionLogRepository.class
+com\example\springboot\repository\LoginLogRepository.class
 com\example\springboot\controller\TeamController.class
 com\example\springboot\entity\Product.class
 com\example\springboot\service\IterationService.class
@@ -28,6 +29,8 @@ com\example\springboot\controller\AdminController.class
 com\example\springboot\service\AdminService.class
 com\example\springboot\service\BugService.class
 com\example\springboot\repository\UserRepository.class
+com\example\springboot\entity\LoginLog.class
+com\example\springboot\entity\OperationLog.class
 com\example\springboot\controller\AdminLogController.class
 com\example\springboot\repository\ProjectApprovalRepository.class
 com\example\springboot\service\TeamService.class
@@ -38,6 +41,7 @@ com\example\springboot\entity\Admin.class
 com\example\springboot\entity\ProjectApproval.class
 com\example\springboot\controller\IterationController.class
 com\example\springboot\common\SwaggerConfig.class
+com\example\springboot\service\OperationLogService.class
 com\example\springboot\controller\AdminTeamController.class
 com\example\springboot\repository\RequirementRepository.class
 com\example\springboot\service\TeamMemberService.class
@@ -60,7 +64,9 @@ com\example\springboot\repository\BugRepository.class
 com\example\springboot\entity\TeamMember.class
 com\example\springboot\repository\TeamMemberRepository.class
 com\example\springboot\repository\ProjectMemberRepository.class
+com\example\springboot\service\ProductService.class
 com\example\springboot\controller\DashboardController.class
+com\example\springboot\repository\OperationLogRepository.class
 com\example\springboot\controller\AdminUserController$AdminPasswordRequest.class
 com\example\springboot\controller\AdminDashboardController.class
 com\example\springboot\entity\OptionLog.class

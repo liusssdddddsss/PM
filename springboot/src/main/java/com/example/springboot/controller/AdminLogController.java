@@ -1,8 +1,12 @@
 package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
-import com.example.springboot.entity.OptionLog;
-import com.example.springboot.repository.OptionLogRepository;
+import com.example.springboot.entity.LoginLog;
+import com.example.springboot.entity.OperationLog;
+import com.example.springboot.entity.User;
+import com.example.springboot.repository.LoginLogRepository;
+import com.example.springboot.repository.OperationLogRepository;
+import com.example.springboot.repository.UserRepository;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,31 +24,45 @@ import java.util.stream.Collectors;
 public class AdminLogController {
 
     @Resource
-    private OptionLogRepository optionLogRepository;
+    private LoginLogRepository loginLogRepository;
+
+    @Resource
+    private OperationLogRepository operationLogRepository;
+
+    @Resource
+    private UserRepository userRepository;
 
     @GetMapping
     public Result listLogs(@RequestParam(required = false) Integer limit) {
         try {
-            List<OptionLog> logs = optionLogRepository.findAll();
-            logs.sort((a, b) -> {
-                Date da = a.getCreatedAt();
-                Date db = b.getCreatedAt();
+            List<Map<String, Object>> allLogs = new ArrayList<>();
+
+            List<LoginLog> loginLogs = loginLogRepository.findAll();
+            for (LoginLog log : loginLogs) {
+                allLogs.add(toLogRowFromLoginLog(log));
+            }
+
+            List<OperationLog> operationLogs = operationLogRepository.findAll();
+            for (OperationLog log : operationLogs) {
+                allLogs.add(toLogRowFromOperationLog(log));
+            }
+
+            allLogs.sort((a, b) -> {
+                Date da = (Date) a.get("time");
+                Date db = (Date) b.get("time");
                 if (da == null && db == null) return 0;
                 if (da == null) return 1;
                 if (db == null) return -1;
                 return db.compareTo(da);
             });
 
-            if (limit != null && limit > 0 && logs.size() > limit) {
-                logs = logs.subList(0, limit);
+            if (limit != null && limit > 0 && allLogs.size() > limit) {
+                allLogs = allLogs.subList(0, limit);
             }
 
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (OptionLog l : logs) {
-                result.add(toLogRow(l));
-            }
-            return Result.success(result);
+            return Result.success(allLogs);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.error("查询日志失败: " + e.getMessage());
         }
     }
@@ -52,32 +70,55 @@ public class AdminLogController {
     @GetMapping("/summary")
     public Result logSummary() {
         try {
-            List<OptionLog> logs = optionLogRepository.findAll();
-            int totalLogs = logs.size();
+            List<LoginLog> loginLogs = loginLogRepository.findAll();
+            List<OperationLog> operationLogs = operationLogRepository.findAll();
+
+            int totalLogs = loginLogs.size() + operationLogs.size();
 
             LocalDate today = LocalDate.now();
             ZoneId zone = ZoneId.systemDefault();
 
-            List<OptionLog> todayLogsList = logs.stream().filter(l -> {
-                Date d = l.getCreatedAt();
+            List<LoginLog> todayLoginLogs = loginLogs.stream().filter(l -> {
+                Date d = l.getLoginTime();
                 if (d == null) return false;
                 LocalDate ld = d.toInstant().atZone(zone).toLocalDate();
                 return ld.equals(today);
             }).collect(Collectors.toList());
 
-            int todayLogs = todayLogsList.size();
+            List<OperationLog> todayOperationLogs = operationLogs.stream().filter(l -> {
+                Date d = l.getCreated_at();
+                if (d == null) return false;
+                LocalDate ld = d.toInstant().atZone(zone).toLocalDate();
+                return ld.equals(today);
+            }).collect(Collectors.toList());
 
-            Set<String> activeUsers = todayLogsList.stream()
-                    .map(OptionLog::getOperator)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+            int todayLogs = todayLoginLogs.size() + todayOperationLogs.size();
 
-            long errorLogs = todayLogsList.stream()
-                    .filter(l -> {
-                        String action = l.getAction();
-                        return action != null && (action.contains("失败") || action.contains("错误"));
-                    })
-                    .count();
+            Map<Long, Integer> userOperationCount = new HashMap<>();
+            for (OperationLog log : todayOperationLogs) {
+                if (log.getUser_id() != null) {
+                    userOperationCount.put(log.getUser_id(), userOperationCount.getOrDefault(log.getUser_id(), 0) + 1);
+                }
+            }
+
+            Set<Long> activeUsers = new HashSet<>();
+            for (LoginLog log : todayLoginLogs) {
+                if (log.getUser_id() != null && userOperationCount.getOrDefault(log.getUser_id(), 0) > 0) {
+                    activeUsers.add(log.getUser_id());
+                }
+            }
+
+            long errorLogs = 0;
+            for (LoginLog log : todayLoginLogs) {
+                if (log.getStatus() != null && log.getStatus() != 1) {
+                    errorLogs++;
+                }
+            }
+            for (OperationLog log : todayOperationLogs) {
+                if (log.getAction() != null && (log.getAction().contains("失败") || log.getAction().contains("错误"))) {
+                    errorLogs++;
+                }
+            }
 
             Map<String, Object> summary = new HashMap<>();
             summary.put("totalLogs", totalLogs);
@@ -91,26 +132,73 @@ public class AdminLogController {
         }
     }
 
-    private Map<String, Object> toLogRow(OptionLog l) {
+    private Map<String, Object> toLogRowFromLoginLog(LoginLog log) {
         Map<String, Object> row = new HashMap<>();
-        row.put("id", l.getId());
-        row.put("teamId", "");
-        row.put("teamName", "");
-        // 前端筛选“用户”时用的是 userId/userName，这里用 operator 作为兜底
-        row.put("userId", l.getOperator());
-        row.put("userName", l.getOperator());
-        row.put("action", l.getAction());
-        row.put("actionType", classifyActionType(l.getAction()));
+        row.put("id", "login_" + log.getId());
+        row.put("logType", "登录日志");
+        row.put("time", log.getLoginTime());
 
-        String created = formatDateTime(l.getCreatedAt());
+        String userId = log.getUser_id() != null ? String.valueOf(log.getUser_id()) : "";
+        String userName = "";
+        if (log.getUser_id() != null) {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isPresent()) {
+                userName = userOpt.get().getName() != null ? userOpt.get().getName() : userId;
+            } else {
+                userName = userId;
+            }
+        }
+
+        row.put("userId", userId);
+        row.put("userName", userName);
+        row.put("action", "登录系统");
+        row.put("actionType", "login");
+        row.put("ipAddress", log.getIp_address() != null ? log.getIp_address() : "");
+        row.put("status", log.getStatus() != null && log.getStatus() == 1 ? "成功" : "失败");
+
+        String created = formatDateTime(log.getLoginTime());
         row.put("loginTime", created);
         row.put("logoutTime", "");
         row.put("actionTime", created);
-
         row.put("submitCount", 0);
-        row.put("ipAddress", "");
+        row.put("teamId", "");
+        row.put("teamName", "");
 
+        return row;
+    }
+
+    private Map<String, Object> toLogRowFromOperationLog(OperationLog log) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", "operation_" + log.getId());
+        row.put("logType", "操作日志");
+        row.put("time", log.getCreated_at());
+
+        String userId = log.getUser_id() != null ? String.valueOf(log.getUser_id()) : "";
+        String userName = "";
+        if (log.getUser_id() != null) {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isPresent()) {
+                userName = userOpt.get().getName() != null ? userOpt.get().getName() : userId;
+            } else {
+                userName = userId;
+            }
+        }
+
+        row.put("userId", userId);
+        row.put("userName", userName);
+        row.put("action", log.getAction() != null ? log.getAction() : "");
+        row.put("actionType", classifyActionType(log.getAction()));
+        row.put("ipAddress", log.getIp_address() != null ? log.getIp_address() : "");
         row.put("status", "成功");
+
+        String created = formatDateTime(log.getCreated_at());
+        row.put("loginTime", "");
+        row.put("logoutTime", "");
+        row.put("actionTime", created);
+        row.put("submitCount", 0);
+        row.put("teamId", "");
+        row.put("teamName", "");
+
         return row;
     }
 
@@ -130,4 +218,3 @@ public class AdminLogController {
         return "other";
     }
 }
-

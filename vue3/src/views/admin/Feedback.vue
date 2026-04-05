@@ -48,18 +48,21 @@
           v-model="searchQuery"
           placeholder="搜索反馈内容或用户"
           style="width: 300px; margin-right: 10px"
-          prefix-icon="el-icon-search"
-        />
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
         <el-select
           v-model="typeFilter"
           placeholder="选择反馈类型"
           style="width: 150px; margin-right: 10px"
         >
           <el-option label="全部类型" value="" />
-          <el-option label="功能建议" value="suggestion" />
-          <el-option label="bug报告" value="bug" />
-          <el-option label="使用问题" value="question" />
-          <el-option label="其他" value="other" />
+          <el-option label="功能建议" value="功能建议" />
+          <el-option label="bug报告" value="bug报告" />
+          <el-option label="使用问题" value="使用问题" />
+          <el-option label="其他" value="其他" />
         </el-select>
         <el-select
           v-model="statusFilter"
@@ -67,9 +70,9 @@
           style="width: 150px; margin-right: 10px"
         >
           <el-option label="全部状态" value="" />
-          <el-option label="未处理" value="pending" />
-          <el-option label="处理中" value="processing" />
-          <el-option label="已处理" value="processed" />
+          <el-option label="未处理" value="未处理" />
+          <el-option label="处理中" value="处理中" />
+          <el-option label="已处理" value="已处理" />
         </el-select>
         <el-date-picker
           v-model="dateRange"
@@ -186,13 +189,15 @@
 </template>
 
 <script setup>
-import {ref, computed} from "vue";
+import {ref, computed, onMounted} from "vue";
+import axios from 'axios';
+import { Search } from '@element-plus/icons-vue';
 
 // 统计数据
-const totalFeedbacks = 156;
-const pendingFeedbacks = 23;
-const processedFeedbacks = 133;
-const todayFeedbacks = 5;
+const totalFeedbacks = ref(0);
+const pendingFeedbacks = ref(0);
+const processedFeedbacks = ref(0);
+const todayFeedbacks = ref(0);
 
 // 搜索和筛选
 const searchQuery = ref('');
@@ -202,92 +207,51 @@ const dateRange = ref([]);
 const currentPage = ref(1);
 
 // 反馈数据
-const feedbacks = ref([
-  {
-    id: '1',
-    userId: '001',
-    userName: '张三',
-    teamId: '1',
-    teamName: '产品团队',
-    title: '建议添加批量操作功能',
-    type: '功能建议',
-    content: '在用户管理页面，希望能够添加批量操作功能，比如批量禁用/启用用户，这样可以提高工作效率。',
-    submitTime: '2024-01-15 09:30:00',
-    status: '未处理',
-    reply: '',
-    attachments: []
-  },
-  {
-    id: '2',
-    userId: '002',
-    userName: '李四',
-    teamId: '2',
-    teamName: '开发团队',
-    title: '登录页面偶尔会出现500错误',
-    type: 'bug报告',
-    content: '在使用Chrome浏览器登录时，偶尔会出现500内部服务器错误，刷新后又能正常登录。',
-    submitTime: '2024-01-15 10:15:00',
-    status: '处理中',
-    reply: '已收到反馈，正在排查问题。',
-    attachments: []
-  },
-  {
-    id: '3',
-    userId: '003',
-    userName: '王五',
-    teamId: '3',
-    teamName: '测试团队',
-    title: '如何导出测试报告？',
-    type: '使用问题',
-    content: '在测试管理页面，找不到导出测试报告的功能，请问如何导出测试报告？',
-    submitTime: '2024-01-15 11:00:00',
-    status: '已处理',
-    reply: '在测试报告页面，点击右上角的"导出"按钮即可导出测试报告。',
-    attachments: []
-  },
-  {
-    id: '4',
-    userId: '004',
-    userName: '赵六',
-    teamId: '4',
-    teamName: '设计团队',
-    title: '建议优化界面布局',
-    type: '功能建议',
-    content: '管理后台的界面布局可以更加紧凑一些，目前有些页面的空白区域太多，影响使用体验。',
-    submitTime: '2024-01-15 14:30:00',
-    status: '未处理',
-    reply: '',
-    attachments: []
-  },
-  {
-    id: '5',
-    userId: '005',
-    userName: '孙七',
-    teamId: '2',
-    teamName: '开发团队',
-    title: '代码提交后无法查看历史记录',
-    type: 'bug报告',
-    content: '在代码管理页面，提交代码后无法查看历史记录，点击历史记录按钮没有反应。',
-    submitTime: '2024-01-15 15:45:00',
-    status: '处理中',
-    reply: '已确认问题，正在修复中。',
-    attachments: []
-  },
-  {
-    id: '6',
-    userId: '001',
-    userName: '张三',
-    teamId: '1',
-    teamName: '产品团队',
-    title: '希望增加项目甘特图功能',
-    type: '功能建议',
-    content: '在项目管理页面，希望能够增加甘特图功能，以便更直观地查看项目进度和任务安排。',
-    submitTime: '2024-01-15 16:20:00',
-    status: '未处理',
-    reply: '',
-    attachments: []
+const feedbacks = ref([]);
+
+// 获取反馈列表和统计数据
+const fetchFeedbacks = async () => {
+  try {
+    const response = await axios.get('http://localhost:9091/admin/feedback');
+    if (response.data.code === 200) {
+      feedbacks.value = response.data.data || [];
+      calculateStatistics();
+    }
+  } catch (error) {
+    console.error('获取反馈列表失败:', error);
   }
-]);
+};
+
+// 计算统计数据
+const calculateStatistics = () => {
+  const data = feedbacks.value;
+  totalFeedbacks.value = data.length;
+  
+  let pending = 0;
+  let processed = 0;
+  let today = 0;
+  const todayDate = new Date().toDateString();
+  
+  data.forEach(fb => {
+    if (fb.status === '未处理' || fb.status === '待处理') {
+      pending++;
+    } else if (fb.status === '已处理' || fb.status === '处理中') {
+      processed++;
+    }
+    
+    // 检查是否是今日反馈
+    if (fb.submitTime) {
+      const submitDate = new Date(fb.submitTime).toDateString();
+      if (submitDate === todayDate) {
+        today++;
+      }
+    }
+  });
+  
+  pendingFeedbacks.value = pending;
+  processedFeedbacks.value = processed;
+  todayFeedbacks.value = today;
+};
 
 // 过滤后的反馈
 const filteredFeedbacks = computed(() => {
@@ -297,9 +261,9 @@ const filteredFeedbacks = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(feedback => 
-      feedback.userName.toLowerCase().includes(query) ||
-      feedback.title.toLowerCase().includes(query) ||
-      feedback.content.toLowerCase().includes(query)
+      (feedback.userName && feedback.userName.toLowerCase().includes(query)) ||
+      (feedback.title && feedback.title.toLowerCase().includes(query)) ||
+      (feedback.content && feedback.content.toLowerCase().includes(query))
     );
   }
   
@@ -341,17 +305,31 @@ const viewFeedback = (feedback) => {
 // 处理反馈
 const processFeedback = (feedback) => {
   currentFeedback.value = {...feedback};
-  currentFeedback.value.status = '处理中';
+  if (currentFeedback.value.status === '未处理') {
+    currentFeedback.value.status = '处理中';
+  }
   feedbackDialogVisible.value = true;
 };
 
 // 保存反馈
-const saveFeedback = () => {
-  const index = feedbacks.value.findIndex(f => f.id === currentFeedback.value.id);
-  if (index !== -1) {
-    feedbacks.value[index] = {...currentFeedback.value};
+const saveFeedback = async () => {
+  try {
+    await axios.put(`http://localhost:9091/admin/feedback/${currentFeedback.value.id}/process`, {
+      reply: currentFeedback.value.reply,
+      status: currentFeedback.value.status
+    });
+    
+    // 更新本地数据
+    const index = feedbacks.value.findIndex(f => f.id === currentFeedback.value.id);
+    if (index !== -1) {
+      feedbacks.value[index] = {...currentFeedback.value};
+      calculateStatistics();
+    }
+    
+    feedbackDialogVisible.value = false;
+  } catch (error) {
+    console.error('保存反馈失败:', error);
   }
-  feedbackDialogVisible.value = false;
 };
 
 // 获取标签类型
@@ -372,6 +350,7 @@ const getTagType = (type) => {
 const getStatusType = (status) => {
   switch (status) {
     case '未处理':
+    case '待处理':
       return 'danger';
     case '处理中':
       return 'warning';
@@ -386,6 +365,11 @@ const getStatusType = (status) => {
 const handleCurrentChange = (page) => {
   currentPage.value = page;
 };
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchFeedbacks();
+});
 </script>
 
 <style scoped>
