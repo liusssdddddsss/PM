@@ -31,7 +31,6 @@ com\example\springboot\service\BugService.class
 com\example\springboot\repository\UserRepository.class
 com\example\springboot\entity\LoginLog.class
 com\example\springboot\entity\OperationLog.class
-com\example\springboot\controller\AdminLogController.class
 com\example\springboot\repository\ProjectApprovalRepository.class
 com\example\springboot\service\TeamService.class
 com\example\springboot\entity\Task.class

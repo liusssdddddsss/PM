@@ -33,6 +33,9 @@ public class AdminUserController {
                 var row = new java.util.HashMap<String, Object>();
                 row.put("userId", u.getUsername());
                 row.put("name", u.getName());
+                row.put("email", u.getEmail());
+                row.put("department", u.getDepartment());
+                row.put("sex", u.getSex());
                 row.put("status", mapStatus(u.getStatus()));
                 row.put("position", mapPosition(u.getIs_admin(), u.getRole_id()));
                 result.add(row);
@@ -58,6 +61,9 @@ public class AdminUserController {
             User u = new User();
             u.setUsername(request.userId);
             u.setName(request.name);
+            u.setEmail(request.email);
+            u.setDepartment(request.department);
+            u.setSex(request.sex != null && !request.sex.isEmpty() ? request.sex.charAt(0) : null);
             u.setPassword(request.password);
             u.setStatus(mapStatusValue(request.status));
             mapPositionToUser(u, request.position);
@@ -84,6 +90,15 @@ public class AdminUserController {
 
             if (request.name != null) {
                 u.setName(request.name);
+            }
+            if (request.email != null) {
+                u.setEmail(request.email);
+            }
+            if (request.department != null) {
+                u.setDepartment(request.department);
+            }
+            if (request.sex != null) {
+                u.setSex(request.sex.isEmpty() ? null : request.sex.charAt(0));
             }
             if (request.password != null && !request.password.isEmpty()) {
                 u.setPassword(request.password);
@@ -211,6 +226,9 @@ public class AdminUserController {
     public static class AdminUserSaveRequest {
         public String userId;
         public String name;
+        public String email;
+        public String department;
+        public String sex;
         public String password;
         public String position;
         public String status;

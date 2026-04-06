@@ -20,7 +20,7 @@
           <span>欢迎，
             {{name}}
           </span>
-          <a href="/" style="margin-left: 10px;text-decoration: none;color: white">退出</a>
+          <a href="javascript:void(0)" style="margin-left: 10px;text-decoration: none;color: white" @click="logout">退出</a>
         </div>
       </el-header>
 
@@ -54,6 +54,7 @@
 <script setup>
 import {ref, watch, onMounted, computed} from "vue";
 import {useRoute, useRouter} from "vue-router";
+import axios from "axios";
 
 const route = useRoute();
 const router = useRouter();
@@ -131,6 +132,28 @@ const activeMenu = computed(() => {
   // 默认返回工作台
   return '/workbench/dashboard';
 });
+
+// 退出登录
+const logout = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    let username = '';
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      username = user.username;
+    }
+    await axios.post('http://localhost:9091/admin/logout', { username });
+    // 清除本地存储中的用户信息
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  } catch (error) {
+    console.error('退出登录失败:', error);
+    // 清除本地存储中的用户信息
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  }
+};
 </script>
 
 <style scoped>

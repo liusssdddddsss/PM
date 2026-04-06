@@ -10,7 +10,7 @@
       </div>
       <div class="leave">
         <span>欢迎，{{adminName}}</span>
-        <a href="/">退出</a>
+        <a href="javascript:void(0)" @click="logout">退出</a>
       </div>
     </header>
 
@@ -42,6 +42,7 @@
 <script setup>
 import {ref, computed} from "vue";
 import {useRoute} from "vue-router";
+import axios from "axios";
 
 const route = useRoute();
 
@@ -58,6 +59,28 @@ const menuList = ref([
   {path: '/admin/logManagement', name: '日志管理'},
   {path: '/admin/feedback', name: '反馈'}
 ]);
+
+// 退出登录
+const logout = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    let username = '1'; // 默认值
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      username = user.username;
+    }
+    await axios.post('http://localhost:9091/admin/logout', { username });
+    // 清除本地存储中的用户信息
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  } catch (error) {
+    console.error('退出登录失败:', error);
+    // 清除本地存储中的用户信息
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  }
+};
 </script>
 
 <style scoped>

@@ -12,7 +12,7 @@ public class LoginLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long user_id;
+    private String user_id;
 
     private Integer status;
 
@@ -24,6 +24,10 @@ public class LoginLog {
     @Column(name = "login_time")
     private Date loginTime;
 
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "out_time")
+    private Date outTime;
+
     public Long getId() {
         return id;
     }
@@ -32,11 +36,11 @@ public class LoginLog {
         this.id = id;
     }
 
-    public Long getUser_id() {
+    public String getUser_id() {
         return user_id;
     }
 
-    public void setUser_id(Long user_id) {
+    public void setUser_id(String user_id) {
         this.user_id = user_id;
     }
 
@@ -70,5 +74,13 @@ public class LoginLog {
 
     public void setLoginTime(Date loginTime) {
         this.loginTime = loginTime;
+    }
+
+    public Date getOutTime() {
+        return outTime;
+    }
+
+    public void setOutTime(Date outTime) {
+        this.outTime = outTime;
     }
 }

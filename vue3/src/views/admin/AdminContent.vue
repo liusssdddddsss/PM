@@ -122,8 +122,20 @@
         <el-form-item label="姓名">
           <el-input v-model="formUser.name" />
         </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="formUser.email" placeholder="请输入邮箱" />
+        </el-form-item>
+        <el-form-item label="所属部门">
+          <el-input v-model="formUser.department" placeholder="请输入所属部门" />
+        </el-form-item>
+        <el-form-item label="性别">
+          <el-select v-model="formUser.sex" placeholder="请选择性别">
+            <el-option label="男" value="男" />
+            <el-option label="女" value="女" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="formUser.password" type="password" />
+          <el-input v-model="formUser.password" type="password" placeholder="留空表示不修改密码" />
         </el-form-item>
         <el-form-item label="职称">
           <el-select v-model="formUser.position" placeholder="请选择职称">
@@ -341,6 +353,9 @@ const isEditUser = ref(false);
 const formUser = ref({
   userId: '',
   name: '',
+  email: '',
+  department: '',
+  sex: '',
   password: '',
   position: '',
   status: '启用'
@@ -382,6 +397,9 @@ const showAddUserDialog = () => {
   formUser.value = {
     userId: '',
     name: '',
+    email: '',
+    department: '',
+    sex: '',
     password: '',
     position: '',
     status: '启用'
@@ -391,7 +409,16 @@ const showAddUserDialog = () => {
 
 const editUser = (user) => {
   isEditUser.value = true;
-  formUser.value = {...user};
+  formUser.value = {
+    userId: user.userId,
+    name: user.name,
+    email: user.email || '',
+    department: user.department || '',
+    sex: user.sex || '',
+    password: '',
+    position: user.position,
+    status: user.status
+  };
   userDialogVisible.value = true;
 };
 

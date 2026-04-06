@@ -128,9 +128,9 @@
       </div>
     </el-card>
 
-    <!-- 反馈详情对话框 -->
+    <!-- 查看反馈对话框 -->
     <el-dialog
-      v-model="feedbackDialogVisible"
+      v-model="viewDialogVisible"
       :title="currentFeedback.title || '反馈详情'"
       width="800px"
     >
@@ -154,11 +154,54 @@
           <el-input v-model="currentFeedback.submitTime" disabled />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="currentFeedback.status" placeholder="请选择状态">
-            <el-option label="未处理" value="未处理" />
-            <el-option label="处理中" value="处理中" />
-            <el-option label="已处理" value="已处理" />
-          </el-select>
+          <el-tag :type="getStatusType(currentFeedback.status)">{{currentFeedback.status}}</el-tag>
+        </el-form-item>
+        <el-form-item label="反馈内容">
+          <el-input v-model="currentFeedback.content" type="textarea" :rows="5" disabled />
+        </el-form-item>
+        <el-form-item label="附件">
+          <el-upload
+            class="upload-demo"
+            :action="''"
+            :auto-upload="false"
+            :file-list="currentFeedback.attachments || []"
+            list-type="picture"
+          >
+            <el-button type="primary" disabled>点击上传</el-button>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="viewDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 处理反馈对话框 -->
+    <el-dialog
+      v-model="processDialogVisible"
+      :title="currentFeedback.title || '处理反馈'"
+      width="800px"
+    >
+      <el-form :model="currentFeedback" label-width="100px">
+        <el-form-item label="反馈ID">
+          <el-input v-model="currentFeedback.id" disabled />
+        </el-form-item>
+        <el-form-item label="用户">
+          <el-input v-model="currentFeedback.userName" disabled />
+        </el-form-item>
+        <el-form-item label="工号">
+          <el-input v-model="currentFeedback.userId" disabled />
+        </el-form-item>
+        <el-form-item label="团队">
+          <el-input v-model="currentFeedback.teamName" disabled />
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-tag :type="getTagType(currentFeedback.type)">{{currentFeedback.type}}</el-tag>
+        </el-form-item>
+        <el-form-item label="提交时间">
+          <el-input v-model="currentFeedback.submitTime" disabled />
         </el-form-item>
         <el-form-item label="反馈内容">
           <el-input v-model="currentFeedback.content" type="textarea" :rows="5" disabled />
@@ -174,14 +217,14 @@
             <el-button type="primary">点击上传</el-button>
           </el-upload>
         </el-form-item>
-        <el-form-item label="处理回复">
-          <el-input v-model="currentFeedback.reply" type="textarea" :rows="3" />
+        <el-form-item label="处理回复" required>
+          <el-input v-model="currentFeedback.reply" type="textarea" :rows="3" placeholder="请输入处理回复" />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="feedbackDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveFeedback">保存</el-button>
+          <el-button @click="processDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveFeedback">确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -294,26 +337,27 @@ const filteredFeedbacks = computed(() => {
 
 // 当前反馈
 const currentFeedback = ref({});
-const feedbackDialogVisible = ref(false);
+const viewDialogVisible = ref(false);
+const processDialogVisible = ref(false);
 
 // 查看反馈
 const viewFeedback = (feedback) => {
   currentFeedback.value = {...feedback};
-  feedbackDialogVisible.value = true;
+  viewDialogVisible.value = true;
 };
 
 // 处理反馈
 const processFeedback = (feedback) => {
   currentFeedback.value = {...feedback};
-  if (currentFeedback.value.status === '未处理') {
-    currentFeedback.value.status = '处理中';
-  }
-  feedbackDialogVisible.value = true;
+  processDialogVisible.value = true;
 };
 
 // 保存反馈
 const saveFeedback = async () => {
   try {
+    // 确保状态设置为处理中
+    currentFeedback.value.status = '处理中';
+    
     await axios.put(`http://localhost:9091/admin/feedback/${currentFeedback.value.id}/process`, {
       reply: currentFeedback.value.reply,
       status: currentFeedback.value.status
@@ -326,7 +370,7 @@ const saveFeedback = async () => {
       calculateStatistics();
     }
     
-    feedbackDialogVisible.value = false;
+    processDialogVisible.value = false;
   } catch (error) {
     console.error('保存反馈失败:', error);
   }

@@ -140,7 +140,7 @@
 
 <script setup>
 import {ref, computed, onMounted} from "vue";
-import axios from 'axios';
+import request from '../../utils/request';
 import { Search, User, OfficeBuilding } from '@element-plus/icons-vue';
 
 // 统计数据
@@ -166,7 +166,7 @@ const logs = ref([]);
 // 获取统计数据
 const fetchLogSummary = async () => {
   try {
-    const response = await axios.get('http://localhost:9091/admin/logs/summary');
+    const response = await request.get('/admin/logs/summary');
     if (response.data.code === 200) {
       const summary = response.data.data;
       totalLogs.value = summary.totalLogs || 0;
@@ -182,7 +182,7 @@ const fetchLogSummary = async () => {
 // 获取日志列表
 const fetchLogs = async () => {
   try {
-    const response = await axios.get('http://localhost:9091/admin/logs');
+    const response = await request.get('/admin/logs');
     if (response.data.code === 200) {
       logs.value = response.data.data || [];
     }
@@ -194,11 +194,11 @@ const fetchLogs = async () => {
 // 获取用户列表
 const fetchUsers = async () => {
   try {
-    const response = await axios.get('http://localhost:9091/admin/users');
+    const response = await request.get('/admin/users');
     if (response.data.code === 200) {
       users.value = (response.data.data || []).map(user => ({
-        userId: user.username,
-        name: user.name || user.username
+        userId: user.userId,
+        name: user.name || user.userId
       }));
     }
   } catch (error) {

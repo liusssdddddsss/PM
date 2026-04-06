@@ -94,14 +94,15 @@ public class AdminLogController {
 
             int todayLogs = todayLoginLogs.size() + todayOperationLogs.size();
 
-            Map<Long, Integer> userOperationCount = new HashMap<>();
+            Map<String, Integer> userOperationCount = new HashMap<>();
             for (OperationLog log : todayOperationLogs) {
                 if (log.getUser_id() != null) {
-                    userOperationCount.put(log.getUser_id(), userOperationCount.getOrDefault(log.getUser_id(), 0) + 1);
+                    String userId = String.valueOf(log.getUser_id());
+                    userOperationCount.put(userId, userOperationCount.getOrDefault(userId, 0) + 1);
                 }
             }
 
-            Set<Long> activeUsers = new HashSet<>();
+            Set<String> activeUsers = new HashSet<>();
             for (LoginLog log : todayLoginLogs) {
                 if (log.getUser_id() != null && userOperationCount.getOrDefault(log.getUser_id(), 0) > 0) {
                     activeUsers.add(log.getUser_id());
@@ -141,9 +142,9 @@ public class AdminLogController {
         String userId = log.getUser_id() != null ? String.valueOf(log.getUser_id()) : "";
         String userName = "";
         if (log.getUser_id() != null) {
-            Optional<User> userOpt = userRepository.findById(userId);
-            if (userOpt.isPresent()) {
-                userName = userOpt.get().getName() != null ? userOpt.get().getName() : userId;
+            User user = userRepository.findByUsername(userId);
+            if (user != null) {
+                userName = user.getName() != null ? user.getName() : userId;
             } else {
                 userName = userId;
             }
@@ -157,8 +158,9 @@ public class AdminLogController {
         row.put("status", log.getStatus() != null && log.getStatus() == 1 ? "成功" : "失败");
 
         String created = formatDateTime(log.getLoginTime());
+        String outTime = formatDateTime(log.getOutTime());
         row.put("loginTime", created);
-        row.put("logoutTime", "");
+        row.put("logoutTime", outTime);
         row.put("actionTime", created);
         row.put("submitCount", 0);
         row.put("teamId", "");
@@ -176,9 +178,9 @@ public class AdminLogController {
         String userId = log.getUser_id() != null ? String.valueOf(log.getUser_id()) : "";
         String userName = "";
         if (log.getUser_id() != null) {
-            Optional<User> userOpt = userRepository.findById(userId);
-            if (userOpt.isPresent()) {
-                userName = userOpt.get().getName() != null ? userOpt.get().getName() : userId;
+            User user = userRepository.findByUsername(userId);
+            if (user != null) {
+                userName = user.getName() != null ? user.getName() : userId;
             } else {
                 userName = userId;
             }
