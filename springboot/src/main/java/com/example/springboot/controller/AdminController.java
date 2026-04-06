@@ -41,10 +41,25 @@ public class AdminController {
     @Operation(summary = "用户登录",description = "根据用户名和密码进行登录验证")
     @PostMapping("/login")
     public Result login(@RequestParam(required = false) String username, @RequestParam(required = false) String password, HttpServletRequest request) {
+        System.out.println("接收到登录请求，用户名: " + username + "，密码: " + (password != null ? "****" : "null"));
+        
         if (username == null || password == null) {
+            System.out.println("用户名或密码为空");
             return Result.error("用户名和密码不能为空");
         }
-        Admin admin = adminService.login(username, password);
+        
+        Admin admin = null;
+        String errorMessage = "用户名或密码错误";
+        
+        try {
+            System.out.println("调用AdminService.login方法");
+            admin = adminService.login(username, password);
+            System.out.println("AdminService.login返回结果: " + (admin != null ? "成功" : "失败"));
+        } catch (Exception e) {
+            errorMessage = e.getMessage();
+            admin = null; // 确保在捕获到异常时，将admin设置为null
+            System.out.println("登录失败: " + errorMessage);
+        }
         
         try {
             // 记录登录日志
@@ -52,9 +67,11 @@ public class AdminController {
             if (admin != null) {
                 loginLog.setUser_id(admin.getUsername());
                 loginLog.setStatus(1); // 1表示成功
+                System.out.println("登录成功，记录日志，用户: " + admin.getUsername());
             } else {
-                loginLog.setUser_id("1"); // 使用管理员账号作为未知用户的标识
+                loginLog.setUser_id(username != null ? username : "1"); // 使用管理员账号作为未知用户的标识
                 loginLog.setStatus(0); // 0表示失败
+                System.out.println("登录失败，记录日志，用户: " + username + "，错误信息: " + errorMessage);
             }
             loginLog.setIp_address(getClientIp(request));
             loginLog.setUser_agent(request.getHeader("User-Agent"));
@@ -67,9 +84,11 @@ public class AdminController {
         }
         
         if (admin != null) {
+            System.out.println("登录成功，返回用户信息");
             return Result.success(admin);
         } else {
-            return Result.error("用户名或密码错误");
+            System.out.println("登录失败，返回错误信息: " + errorMessage);
+            return Result.error(errorMessage);
         }
     }
     

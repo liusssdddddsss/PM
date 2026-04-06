@@ -35,7 +35,18 @@ public class AdminUserController {
                 row.put("name", u.getName());
                 row.put("email", u.getEmail());
                 row.put("department", u.getDepartment());
-                row.put("sex", u.getSex());
+                // 处理性别字段，将存储的字符转换为前端显示的文本
+                String sexText = "";
+                if (u.getSex() != null) {
+                    if (u.getSex() == 'M') {
+                        sexText = "男";
+                    } else if (u.getSex() == 'F') {
+                        sexText = "女";
+                    } else {
+                        sexText = String.valueOf(u.getSex());
+                    }
+                }
+                row.put("sex", sexText);
                 row.put("status", mapStatus(u.getStatus()));
                 row.put("position", mapPosition(u.getIs_admin(), u.getRole_id()));
                 result.add(row);

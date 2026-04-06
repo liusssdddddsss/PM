@@ -94,9 +94,9 @@
               <el-table-column prop="position" label="用户职称" width="100" />
               <el-table-column label="操作" min-width="320">
                 <template #default="scope">
-                  <el-button size="small" type="primary" @click="editUser(scope.row)">编辑</el-button>
+                  <el-button size="small" type="primary" @click="showUserDetail(scope.row)">查看</el-button>
                   <el-button size="small" type="success" @click="editPermission(scope.row)">权限</el-button>
-                  <el-button size="small" type="warning" @click="changePassword(scope.row)">修改密码</el-button>
+                  <el-button size="small" type="warning" @click="editUser(scope.row)">编辑</el-button>
                   <el-button size="small" type="danger" @click="deleteUser(scope.row)">
                     {{scope.row.status === '启用' ? '禁用' : '启用'}}
                   </el-button>
@@ -123,13 +123,13 @@
           <el-input v-model="formUser.name" />
         </el-form-item>
         <el-form-item label="邮箱">
-          <el-input v-model="formUser.email" placeholder="请输入邮箱" />
+          <el-input v-model="formUser.email" />
         </el-form-item>
         <el-form-item label="所属部门">
-          <el-input v-model="formUser.department" placeholder="请输入所属部门" />
+          <el-input v-model="formUser.department" />
         </el-form-item>
         <el-form-item label="性别">
-          <el-select v-model="formUser.sex" placeholder="请选择性别">
+          <el-select v-model="formUser.sex">
             <el-option label="男" value="男" />
             <el-option label="女" value="女" />
           </el-select>
@@ -171,35 +171,22 @@
           <el-input v-model="selectedUser.name" disabled />
         </el-form-item>
         <el-form-item label="性别">
-          <el-input v-model="selectedUser.gender" disabled />
+          <el-input v-model="selectedUser.sex" disabled />
         </el-form-item>
         <el-form-item label="工号">
           <el-input v-model="selectedUser.userId" disabled />
         </el-form-item>
-        <el-form-item label="年龄">
-          <el-input v-model="selectedUser.age" disabled />
+        <el-form-item label="邮箱">
+          <el-input v-model="selectedUser.email" disabled />
         </el-form-item>
         <el-form-item label="所属部门">
           <el-input v-model="selectedUser.department" disabled />
         </el-form-item>
-        <el-form-item label="职位">
+        <el-form-item label="职称">
           <el-input v-model="selectedUser.position" disabled />
         </el-form-item>
-        <el-form-item label="参与的团队项目">
-          <el-select v-model="selectedUser.projects" multiple disabled>
-            <el-option v-for="project in selectedUser.projects" :key="project" :label="project" :value="project" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="项目进度节点">
-          <el-table :data="selectedUser.projectProgress" style="width: 100%">
-            <el-table-column prop="project" label="项目" width="150" />
-            <el-table-column prop="progress" label="进度" width="100">
-              <template #default="scope">
-                <el-progress :percentage="scope.row.progress" />
-              </template>
-            </el-table-column>
-            <el-table-column prop="node" label="当前节点" />
-          </el-table>
+        <el-form-item label="账号状态">
+          <el-input v-model="selectedUser.status" disabled />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -322,6 +309,7 @@ const fetchUserList = async () => {
     const response = await request.get('/admin/users');
     if (response.data.code === 200) {
       const users = response.data.data || [];
+      console.log('获取到的用户列表:', users);
       originalUserList.value = users;
     }
   } catch (error) {
@@ -363,13 +351,12 @@ const formUser = ref({
 
 const selectedUser = ref({
   name: '',
-  gender: '',
+  sex: '',
   userId: '',
-  age: '',
+  email: '',
   department: '',
   position: '',
-  projects: [],
-  projectProgress: []
+  status: ''
 });
 
 const formPermission = ref({
@@ -408,17 +395,29 @@ const showAddUserDialog = () => {
 };
 
 const editUser = (user) => {
+  console.log('编辑用户时的用户对象:', user);
   isEditUser.value = true;
+  // 处理性别字段，将后端存储的字符转换为前端显示的文本
+  let sexValue = '';
+  if (user.sex === '男' || user.sex === '女') {
+    sexValue = user.sex;
+  } else if (user.sex === 'M') {
+    sexValue = '男';
+  } else if (user.sex === 'F') {
+    sexValue = '女';
+  }
+  
   formUser.value = {
     userId: user.userId,
     name: user.name,
     email: user.email || '',
     department: user.department || '',
-    sex: user.sex || '',
+    sex: sexValue,
     password: '',
     position: user.position,
     status: user.status
   };
+  console.log('设置后的formUser:', formUser.value);
   userDialogVisible.value = true;
 };
 
@@ -451,20 +450,15 @@ const saveUser = async () => {
 };
 
 const showUserDetail = (user) => {
-  // 模拟用户详情数据
+  // 显示从后端获取的用户信息
   selectedUser.value = {
     name: user.name,
-    gender: user.userId === '001' ? '男' : '女',
+    sex: user.sex || '',
     userId: user.userId,
-    age: 25 + parseInt(user.userId),
-    department: user.position === '管理员' ? '行政部' : '技术部',
+    email: user.email || '',
+    department: user.department || '',
     position: user.position,
-    projects: ['智慧教室', '实践教学平台', '在线考试系统'],
-    projectProgress: [
-      {project: '智慧教室', progress: 80, node: '测试阶段'},
-      {project: '实践教学平台', progress: 50, node: '开发阶段'},
-      {project: '在线考试系统', progress: 20, node: '需求分析'}
-    ]
+    status: user.status
   };
   userDetailVisible.value = true;
 };
