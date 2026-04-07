@@ -53,42 +53,60 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
+import {ref, computed, onMounted} from "vue";
 import {useRouter} from "vue-router";
+import request from "@/utils/request";
 
 const router = useRouter();
 const goToAddTask =()=>{
   router.push('/task/addTask');
 };
 
-const ingProjectList = ref([
-  '智慧教室 智慧云盘',
-  '实践教学管理平台',
-  '电子班牌管理系统',
-  '宿舍管理系统',
-  '在线试卷批改',
-  '智慧园区OA办公系统'
-]);
+// 任务数据
+const ingProjectList = ref([]);
+const ingTaskList = ref([]);
+const noBeginList = ref([]);
+const closeList = ref([]);
 
-const ingTaskList = ref([
-  '家长端，界面优化调整，新增功能：授权监...',
-  '班牌PC端管理界面调整，样式统一，菜单归类',
-  '班牌模板调整，参考海康，增加竖版',
-  '家校互通留言台'
-]);
+// 计算属性
+const ingCount = computed(() => ingProjectList.value.length);
+const noBeginCount = computed(() => noBeginList.value.length);
+const closeCount = computed(() => closeList.value.length);
 
-const noBeginList = ref([
-  '电子班牌管理系统',
-  '宿舍管理系统',
-  '在线试卷批改',
-  '智慧园区OA办公系统'
-]);
+// 从后端获取任务数据
+onMounted(() => {
+  fetchTaskData();
+});
 
-const closeList = ref([
-  '实践教学管理平台',
-  '电子班牌管理系统',
-  '宿舍管理系统'
-]);
+const fetchTaskData = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 获取任务列表
+      const taskResponse = await request.get(`/workbench/tasks?username=${user.username}`);
+      if (taskResponse.data.code === 200) {
+        const tasks = taskResponse.data.data;
+        // 分类任务
+        noBeginList.value = tasks
+          .filter(task => task.status === 1)
+          .map(task => task.name);
+        ingProjectList.value = tasks
+          .filter(task => task.status === 2)
+          .map(task => task.name);
+        ingTaskList.value = tasks
+          .filter(task => task.status === 3)
+          .map(task => task.name);
+        closeList.value = tasks
+          .filter(task => task.status === 4)
+          .map(task => task.name);
+      }
+    }
+  } catch (error) {
+    console.error('获取任务数据失败:', error);
+  }
+};
 </script>
 
 <style scoped>

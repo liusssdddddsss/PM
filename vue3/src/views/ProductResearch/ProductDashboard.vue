@@ -100,7 +100,7 @@
               <!-- 产品发布列表 -->
               <div v-if="activeTab === 1" class="product-release-list">
                 <el-table :data="productReleases" stripe style="width: 100%">
-                  <el-table-column prop="projectName" label="项目名称" min-width="250">
+                  <el-table-column prop="projectName" label="产品名称" min-width="250">
                     <template #default="scope">
                       <a href="#" class="project-link">{{ scope.row.projectName }}</a>
                     </template>
@@ -117,7 +117,7 @@
               <!-- 未关闭的产品列表 -->
               <div v-if="activeTab === 0" class="unclosed-product-list">
                 <el-table :data="unclosedProducts" stripe style="width: 100%">
-                  <el-table-column prop="projectName" label="项目名称" min-width="200">
+                  <el-table-column prop="projectName" label="产品名称" min-width="200">
                     <template #default="scope">
                       <a href="#" class="project-link">{{ scope.row.projectName }}</a>
                     </template>
@@ -359,9 +359,16 @@ const fetchUnclosedProducts = async () => {
 // 从后端获取产品发布列表数据
 const fetchProductReleases = async () => {
   try {
-    const response = await request.get('/dashboard/product-releases');
-    if (response.data.code === 200) {
-      productReleases.value = response.data.data || [];
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get('/dashboard/product-releases', {
+        params: { username: user.username }
+      });
+      if (response.data.code === 200) {
+        productReleases.value = response.data.data || [];
+      }
     }
   } catch (error) {
     console.error('获取产品发布列表数据失败:', error);
@@ -613,6 +620,10 @@ h3{
 
 .assigned-rd-requirements{
   background-color: #fff;
+}
+
+.el-card__body {
+  padding: 10px;
 }
 
 
@@ -1028,7 +1039,7 @@ h3{
 
 .el-table .cell {
   font-size: 13px;
-  padding: 8px 12px;
+  padding: 10px;
   text-align: center !important;
   vertical-align: middle !important;
 }
@@ -1037,7 +1048,7 @@ h3{
   font-size: 13px;
   font-weight: 500;
   background-color: #f9f9f9;
-  padding: 10px 12px;
+  padding: 10px;
   text-align: center !important;
   vertical-align: middle !important;
 }
@@ -1113,7 +1124,7 @@ h3{
 
 .product-release-list .el-table .cell {
   font-size: 13px;
-  padding: 8px 12px;
+  padding: 10px;
   text-align: left;
   vertical-align: middle;
 }
@@ -1122,7 +1133,7 @@ h3{
   font-size: 13px;
   font-weight: 500;
   background-color: #f9f9f9;
-  padding: 10px 12px;
+  padding: 10px;
   text-align: left;
   vertical-align: middle;
 }
@@ -1145,7 +1156,7 @@ h3{
 
 .assigned-rd-requirements .el-table .cell {
   font-size: 13px;
-  padding: 8px 12px;
+  padding: 10px;
   vertical-align: middle;
 }
 
@@ -1153,7 +1164,7 @@ h3{
   font-size: 13px;
   font-weight: 500;
   background-color: #f9f9f9;
-  padding: 10px 12px;
+  padding: 10px;
   vertical-align: middle;
 }
 

@@ -1,10 +1,5 @@
 <template>
   <div class="border-comment">
-    <div class="addProduct">
-      <el-button class="button">
-        添加产品
-      </el-button>
-    </div>
     <div class="comment">
       <div class="no-begin">
         <p>未开始({{noBeginCount}})</p>
@@ -51,36 +46,60 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
+import {ref, computed, onMounted} from "vue";
+import request from "@/utils/request";
 
-const ingProjectList = ref([
-  '智慧教室 智慧云盘',
-  '实践教学管理平台',
-  '电子班牌管理系统',
-  '宿舍管理系统',
-  '在线试卷批改',
-  '智慧园区OA办公系统'
-]);
+// 迭代数据
+const ingProjectList = ref([]);
+const ingTaskList = ref([]);
+const noBeginList = ref([]);
+const closeList = ref([]);
 
-const ingTaskList = ref([
-  '家长端，界面优化调整，新增功能：授权监...',
-  '班牌PC端管理界面调整，样式统一，菜单归类',
-  '班牌模板调整，参考海康，增加竖版',
-  '家校互通留言台'
-]);
+// 计算属性
+const ingCount = computed(() => ingProjectList.value.length);
+const noBeginCount = computed(() => noBeginList.value.length);
+const closeCount = computed(() => closeList.value.length);
 
-const noBeginList = ref([
-  '电子班牌管理系统',
-  '宿舍管理系统',
-  '在线试卷批改',
-  '智慧园区OA办公系统'
-]);
+// 从后端获取迭代数据
+onMounted(() => {
+  fetchIterationData();
+});
 
-const closeList = ref([
-  '实践教学管理平台',
-  '电子班牌管理系统',
-  '宿舍管理系统'
-]);
+const fetchIterationData = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 获取项目列表
+      const projectResponse = await request.get(`/workbench/projects?username=${user.username}`);
+      if (projectResponse.data.code === 200) {
+        const projects = projectResponse.data.data;
+        // 分类项目
+        ingProjectList.value = projects
+          .filter(project => project.status === 1)
+          .map(project => project.projectName);
+        noBeginList.value = projects
+          .filter(project => project.status === 0)
+          .map(project => project.projectName);
+        closeList.value = projects
+          .filter(project => project.status === 2)
+          .map(project => project.projectName);
+      }
+      
+      // 获取任务列表
+      const taskResponse = await request.get(`/workbench/tasks?username=${user.username}`);
+      if (taskResponse.data.code === 200) {
+        const tasks = taskResponse.data.data;
+        ingTaskList.value = tasks
+          .filter(task => task.status === 2)
+          .map(task => task.name);
+      }
+    }
+  } catch (error) {
+    console.error('获取迭代数据失败:', error);
+  }
+};
 </script>
 
 <style scoped>

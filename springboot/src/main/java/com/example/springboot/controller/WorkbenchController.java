@@ -127,17 +127,60 @@ public class WorkbenchController {
             List<Task> tasks = taskService.findall();
             List<Map<String, Object>> taskList = new ArrayList<>();
             
+            // 获取用户参与的项目ID列表（如果是产品经理）
+            List<Long> userProjectIds = new ArrayList<>();
+            boolean isProductManager = false;
+            
+            if (username != null && !username.isEmpty()) {
+                try {
+                    System.out.println("开始获取用户信息，用户名: " + username);
+                    var user = userService.findByUsername(username);
+                    System.out.println("获取到的用户信息: " + (user != null ? user.getName() : "null"));
+                    if (user != null) {
+                        System.out.println("用户角色id: " + user.getRole_id());
+                        // 假设role_id为1或2表示不需要筛选的角色
+                        if (user.getRole_id() != null) {
+                            System.out.println("用户角色id不为null，值为: " + user.getRole_id());
+                            if (user.getRole_id().equals(1L) || user.getRole_id().equals(2L)) {
+                                isProductManager = true;
+                                System.out.println("用户角色id为" + user.getRole_id() + "，返回所有任务");
+                            } else {
+                                System.out.println("用户角色id为" + user.getRole_id() + "，需要筛选任务");
+                            }
+                        } else {
+                            System.out.println("用户角色id为null，需要筛选任务");
+                        }
+                    } else {
+                        System.out.println("未找到用户信息");
+                    }
+                } catch (Exception e) {
+                    System.out.println("获取用户信息失败: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
             for (Task task : tasks) {
-                // 如果指定了用户名，只返回当前用户的任务
+                // 如果指定了用户名
                 if (username != null && !username.isEmpty()) {
                     try {
                         Integer userId = Integer.parseInt(username);
-                        if (task.getAssigneeId() == null || !task.getAssigneeId().equals(userId)) {
-                            continue; // 跳过不是当前用户的任务
+                        
+                        // 如果是产品经理
+                        if (isProductManager) {
+                            // 产品经理可以看到所有任务，包括projectId为null的任务
+                            // 不需要过滤，直接显示所有任务
+                            System.out.println("产品经理看到任务: " + task.getTitle());
+                        } else {
+                            // 非产品经理，只返回被指派给当前用户的任务
+                            if (task.getAssigneeId() == null || !task.getAssigneeId().equals(userId)) {
+                                continue; // 跳过不是当前用户的任务
+                            }
                         }
                     } catch (NumberFormatException e) {
-                        // 用户名不是数字格式，跳过
-                        continue;
+                        // 用户名不是数字格式，如果是产品经理，仍然显示所有任务
+                        if (!isProductManager) {
+                            continue; // 非产品经理，跳过
+                        }
                     }
                 }
                 
@@ -177,8 +220,10 @@ public class WorkbenchController {
                 taskMap.put("project_name", projectName);
                 
                 taskList.add(taskMap);
+                System.out.println("添加任务到列表: " + task.getTitle());
             }
             
+            System.out.println("返回的任务列表数量: " + taskList.size());
             return Result.success(taskList);
         } catch (Exception e) {
             e.printStackTrace();
@@ -272,20 +317,26 @@ public class WorkbenchController {
     @GetMapping("/projects")
     public Result getProjects(@RequestParam String username) {
         try {
+            System.out.println("获取项目列表请求，用户名: " + username);
             // 首先根据用户名获取用户信息
             var user = userService.findById(username);
+            System.out.println("获取到的用户信息: " + (user.isPresent() ? user.get().getName() : "不存在"));
             if (user.isPresent()) {
                 Long userId = Long.parseLong(user.get().getUsername());
+                System.out.println("用户ID: " + userId);
                 
                 // 根据用户ID查询参与的项目成员记录
                 List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                System.out.println("获取到的项目成员记录数量: " + projectMembers.size());
                 List<Map<String, Object>> projectList = new ArrayList<>();
                 
                 // 遍历项目成员记录，获取对应的项目信息
                 for (com.example.springboot.entity.ProjectMember member : projectMembers) {
                     Long projectId = member.getProjectId();
+                    System.out.println("项目ID: " + projectId);
                     if (projectId != null) {
                         var project = projectService.findById(projectId);
+                        System.out.println("获取到的项目信息: " + (project.isPresent() ? project.get().getName() : "不存在"));
                         if (project.isPresent()) {
                             Project p = project.get();
                             Map<String, Object> projectMap = new HashMap<>();
@@ -298,11 +349,14 @@ public class WorkbenchController {
                             
                             projectMap.put("finishTime", p.getEnd_date());
                             projectMap.put("degree", p.getProgress() != null ? p.getProgress() : 0);
+                            projectMap.put("status", p.getStatus() != null ? p.getStatus() : 0);
+                            System.out.println("项目进度: " + (p.getProgress() != null ? p.getProgress() : 0));
                             projectList.add(projectMap);
                         }
                     }
                 }
                 
+                System.out.println("返回的项目列表数量: " + projectList.size());
                 return Result.success(projectList);
             } else {
                 return Result.error("用户不存在");

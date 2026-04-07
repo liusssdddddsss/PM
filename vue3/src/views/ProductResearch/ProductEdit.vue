@@ -84,6 +84,8 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import request from '@/utils/request';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 
@@ -99,16 +101,40 @@ const productForm = ref({
 });
 
 // 保存产品
-const saveProduct = () => {
-  // 这里可以添加保存逻辑
-  console.log('保存产品:', productForm.value);
-  // 保存成功后返回
-  goBack();
+const saveProduct = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 构建产品数据
+      const productData = {
+        name: productForm.value.name,
+        description: productForm.value.description,
+        manager_id: user.username, // 使用当前登录用户作为产品负责人
+        status: 0, // 默认状态为未开始
+        start_date: new Date(),
+        end_date: null
+      };
+      // 调用后端API保存产品
+      const response = await request.post('/workbench/projects', productData);
+      if (response.data.code === 200) {
+        ElMessage.success('产品保存成功');
+        // 保存成功后返回
+        goBack();
+      } else {
+        ElMessage.error(response.data.msg || '产品保存失败');
+      }
+    }
+  } catch (error) {
+    console.error('保存产品失败:', error);
+    ElMessage.error('产品保存失败');
+  }
 };
 
 // 返回上一页
 const goBack = () => {
-  router.push('/itemSet/itemBorder');
+  router.push('/productResearch/productList');
 };
 </script>
 

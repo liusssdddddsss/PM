@@ -5,14 +5,18 @@ import com.example.springboot.entity.Team;
 import com.example.springboot.entity.TeamMember;
 import com.example.springboot.entity.Task;
 import com.example.springboot.entity.User;
+import com.example.springboot.entity.Project;
 import com.example.springboot.service.TeamService;
 import com.example.springboot.service.TeamMemberService;
 import com.example.springboot.service.TaskService;
 import com.example.springboot.service.UserService;
+import com.example.springboot.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +40,9 @@ public class TeamController {
 
     @Resource
     private TaskService taskService;
+
+    @Resource
+    private ProjectService projectService;
 
     /**
      * 团队概览统计：只统计当前登录用户所在团队
@@ -76,8 +83,13 @@ public class TeamController {
             }
 
             int totalMembers = memberUserIds.size();
-            // 暂时使用团队数量作为项目数量
-            int totalProjects = totalTeams;
+            
+            // 统计项目数量：获取所有项目，然后统计数量
+            Iterable<Project> projects = projectService.findAll();
+            int totalProjects = 0;
+            for (Project project : projects) {
+                totalProjects++;
+            }
 
             // 统计任务数量（暂时使用所有任务数量，后续可以根据团队关联的项目来统计）
             List<Task> allTasks = taskService.findall();
@@ -126,8 +138,12 @@ public class TeamController {
                 List<TeamMember> teamMembers = teamMemberService.findByTeamId(team.getId());
                 int memberCount = teamMembers.size();
 
-                // 项目数：暂时使用1，后续可以根据团队关联的项目来统计
-                int projectCount = 1;
+                // 项目数：获取所有项目，然后统计数量
+                Iterable<Project> projects = projectService.findAll();
+                int projectCount = 0;
+                for (Project project : projects) {
+                    projectCount++;
+                }
 
                 // 任务数：暂时使用所有任务数量，后续可以根据团队关联的项目来统计
                 int taskCount = allTasks.size();
@@ -162,6 +178,115 @@ public class TeamController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取所属团队列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建团队
+     */
+    @Operation(summary = "创建团队", description = "创建新团队")
+    @PostMapping("/create")
+    public Result createTeam(@RequestBody Map<String, Object> request) {
+        try {
+            String name = (String) request.get("name");
+            String description = (String) request.get("description");
+            String username = (String) request.get("username");
+
+            if (name == null || name.isEmpty()) {
+                return Result.error("团队名称不能为空");
+            }
+
+            Optional<User> userOpt = userService.findById(username);
+            if (userOpt.isEmpty()) {
+                return Result.error("用户不存在");
+            }
+
+            // 创建团队
+            Team team = new Team();
+            team.setName(name);
+            team.setDescription(description);
+            team.setCreatorId(Long.parseLong(userOpt.get().getUsername()));
+            team.setCreatedAt(new Date());
+            team = teamService.save(team);
+
+            // 将创建者添加为团队成员
+            TeamMember teamMember = new TeamMember();
+            teamMember.setTeamId(team.getId());
+            teamMember.setUserId(Long.parseLong(userOpt.get().getUsername()));
+            teamMember.setRoleInTeam("项目经理");
+            teamMember.setJoinedAt(new Date());
+            teamMemberService.save(teamMember);
+
+            return Result.success(team);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("创建团队失败");
+        }
+    }
+
+    /**
+     * 邀请成员
+     */
+    @Operation(summary = "邀请成员", description = "邀请成员加入团队")
+    @PostMapping("/invite")
+    public Result inviteMember(@RequestBody Map<String, Object> request) {
+        try {
+            String teamName = (String) request.get("teamId");
+            String username = (String) request.get("username");
+            String role = (String) request.get("role");
+
+            if (teamName == null || teamName.isEmpty()) {
+                return Result.error("团队名称不能为空");
+            }
+
+            if (username == null || username.isEmpty()) {
+                return Result.error("用户名不能为空");
+            }
+
+            if (role == null || role.isEmpty()) {
+                return Result.error("角色不能为空");
+            }
+
+            // 查找团队
+            List<Team> teams = teamService.findAll();
+            Team targetTeam = null;
+            for (Team team : teams) {
+                if (team.getName().equals(teamName)) {
+                    targetTeam = team;
+                    break;
+                }
+            }
+
+            if (targetTeam == null) {
+                return Result.error("团队不存在");
+            }
+
+            // 查找用户
+            Optional<User> userOpt = userService.findById(username);
+            if (userOpt.isEmpty()) {
+                return Result.error("用户不存在");
+            }
+
+            // 检查用户是否已经是团队成员
+            List<TeamMember> existingMembers = teamMemberService.findByTeamId(targetTeam.getId());
+            for (TeamMember member : existingMembers) {
+                if (member.getUserId().equals(Long.parseLong(username))) {
+                    return Result.error("用户已经是团队成员");
+                }
+            }
+
+            // 添加团队成员
+            TeamMember teamMember = new TeamMember();
+            teamMember.setTeamId(targetTeam.getId());
+            teamMember.setUserId(Long.parseLong(username));
+            teamMember.setRoleInTeam(role);
+            teamMember.setJoinedAt(new Date());
+            teamMemberService.save(teamMember);
+
+            return Result.success(teamMember);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("邀请成员失败: " + e.getMessage());
         }
     }
 }

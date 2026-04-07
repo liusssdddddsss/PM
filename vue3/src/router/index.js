@@ -71,7 +71,7 @@ const router = createRouter({
           meta:{
               tabs:[
                   {name:'迭代列表',route:'/iteration/iterationList'},
-                  {name:'项目看板',route:'/iteration/iterationBorder'},
+                  {name:'迭代看板',route:'/iteration/iterationBorder'},
               ]
           },
           children:[

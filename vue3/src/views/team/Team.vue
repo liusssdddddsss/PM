@@ -6,9 +6,9 @@
         <div class="team-header">
           <h3>团队管理</h3>
           <div class="header-actions">
-            <button class="btn">创建团队</button>
-            <button class="btn">邀请成员</button>
-            <button class="btn">导出报告</button>
+            <button class="btn" @click="createTeam">创建团队</button>
+            <button class="btn" @click="inviteMember">邀请成员</button>
+            <button class="btn" @click="exportReport">导出报告</button>
           </div>
         </div>
         <div class="overview-cards">
@@ -72,55 +72,64 @@
         </div>
       </el-card>
 
-      <!-- 所属团队 -->
+      <!-- 所属团队和团队分工 -->
       <el-card style="max-width: 98%; margin-top: 10px">
-        <h3>所属团队</h3>
+        <h3>团队管理</h3>
         <el-divider />
-        <div class="team-cards">
-          <div class="team-card" v-for="(team, index) in teams" :key="index" @click="switchTeam(team.name)">
-            <div class="team-info">
-              <h4 class="team-name">{{ team.name }}</h4>
-              <div class="team-stats">
-                <div class="stat-item">
-                  <span class="stat-label">成员</span>
-                  <span class="stat-value">{{ team.members }}人</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">项目</span>
-                  <span class="stat-value">{{ team.projects }}个</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">任务</span>
-                  <span class="stat-value">{{ team.tasks }}个</span>
+        <!-- 所属团队 -->
+        <div class="team-section" style="margin-bottom: 10px">
+          <h4 style="margin-bottom: 10px">所属团队</h4>
+          <div class="team-cards">
+            <div 
+              class="team-card" 
+              v-for="(team, index) in teams" 
+              :key="index" 
+              @click="switchTeam(team.name)"
+              :class="{ active: currentTeam === team.name }"
+            >
+              <div class="team-info">
+                <h4 class="team-name">{{ team.name }}</h4>
+                <div class="team-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">成员</span>
+                    <span class="stat-value">{{ team.members }}人</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">项目</span>
+                    <span class="stat-value">{{ team.projects }}个</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">任务</span>
+                    <span class="stat-value">{{ team.tasks }}个</span>
+                  </div>
                 </div>
               </div>
+              <button class="btn-small" @click.stop="switchTeam(team.name)">切换</button>
             </div>
-            <button class="btn-small" @click.stop="switchTeam(team.name)">切换</button>
           </div>
         </div>
-      </el-card>
-
-      <!-- 团队分工 -->
-      <el-card style="max-width: 98%; margin-top: 10px">
-        <h3>团队分工</h3>
-        <el-divider />
-        <div class="division-table">
-          <table width="100%">
-            <tr>
-              <th width="120">成员</th>
-              <th width="100">角色</th>
-              <th width="200">职责</th>
-              <th width="150">负责项目</th>
-              <th width="120">操作</th>
-            </tr>
-            <tr v-for="(item, index) in divisionData" :key="index">
-              <td>{{ item.member }}</td>
-              <td>{{ item.role }}</td>
-              <td>{{ item.responsibility }}</td>
-              <td>{{ item.projects }}</td>
-              <td><button class="btn-small" @click="editDivision(item)">编辑</button></td>
-            </tr>
-          </table>
+        
+        <!-- 团队分工 -->
+        <div class="division-section">
+          <h4>团队分工</h4>
+          <div class="division-table">
+            <table width="100%">
+              <tr>
+                <th width="120">成员</th>
+                <th width="100">角色</th>
+                <th width="200">职责</th>
+                <th width="150">负责项目</th>
+                <th width="120">操作</th>
+              </tr>
+              <tr v-for="(item, index) in divisionData" :key="index">
+                <td>{{ item.member }}</td>
+                <td>{{ item.role }}</td>
+                <td>{{ item.responsibility }}</td>
+                <td>{{ item.projects }}</td>
+                <td><button class="btn-small" @click="editDivision(item)">编辑</button></td>
+              </tr>
+            </table>
+          </div>
         </div>
       </el-card>
     </div>
@@ -213,13 +222,159 @@
           </div>
         </div>
       </el-card>
+
+      <!-- 创建团队弹窗 -->
+      <el-dialog
+        v-model="showCreateTeamDialog"
+        title="创建团队"
+        width="500px"
+      >
+        <el-form :model="createTeamForm" label-width="100px">
+          <el-form-item label="团队名称">
+            <el-input v-model="createTeamForm.name" placeholder="请输入团队名称"></el-input>
+          </el-form-item>
+          <el-form-item label="团队描述">
+            <el-input type="textarea" v-model="createTeamForm.description" placeholder="请输入团队描述"></el-input>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="showCreateTeamDialog = false">取消</el-button>
+            <el-button type="primary" @click="submitCreateTeam">确定</el-button>
+          </span>
+        </template>
+      </el-dialog>
+
+      <!-- 邀请成员弹窗 -->
+      <el-dialog
+        v-model="showInviteMemberDialog"
+        title="邀请成员"
+        width="500px"
+      >
+        <el-form :model="inviteMemberForm" label-width="100px">
+          <el-form-item label="团队">
+            <el-select v-model="inviteMemberForm.teamId" placeholder="请选择团队">
+              <el-option
+                v-for="team in teams"
+                :key="team.name"
+                :label="team.name"
+                :value="team.name"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="用户名">
+            <el-input v-model="inviteMemberForm.username" placeholder="请输入用户名"></el-input>
+          </el-form-item>
+          <el-form-item label="角色">
+            <el-select v-model="inviteMemberForm.role" placeholder="请选择角色">
+              <el-option label="项目经理" value="项目经理"></el-option>
+              <el-option label="前端开发" value="前端开发"></el-option>
+              <el-option label="后端开发" value="后端开发"></el-option>
+              <el-option label="测试工程师" value="测试工程师"></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="showInviteMemberDialog = false">取消</el-button>
+            <el-button type="primary" @click="submitInviteMember">确定</el-button>
+          </span>
+        </template>
+      </el-dialog>
+
+      <!-- 查看任务弹窗 -->
+      <el-dialog
+        v-model="showViewTaskDialog"
+        title="查看任务"
+        width="600px"
+      >
+        <el-form :model="currentTask" label-width="120px">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="任务名称">
+                <el-input v-model="currentTask.task" readonly></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="负责人">
+                <el-input v-model="currentTask.assignee" readonly></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="截止日期">
+                <el-input v-model="currentTask.deadline" readonly></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="进度">
+                <el-input v-model="currentTask.progress" suffix="%" readonly></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="状态">
+                <el-input v-model="currentTask.status" readonly></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="工时">
+                <el-input v-model="currentTask.workTime" readonly></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="剩余工时">
+                <el-input v-model="currentTask.remainingTime" readonly></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="showViewTaskDialog = false">关闭</el-button>
+          </span>
+        </template>
+      </el-dialog>
+
+      <!-- 催促任务弹窗 -->
+      <el-dialog
+        v-model="showRemindTaskDialog"
+        title="催促任务"
+        width="500px"
+      >
+        <el-form :model="currentRemindTask" label-width="100px">
+          <el-form-item label="任务名称">
+            <el-input v-model="currentRemindTask.task" readonly></el-input>
+          </el-form-item>
+          <el-form-item label="负责人">
+            <el-input v-model="currentRemindTask.assignee" readonly></el-input>
+          </el-form-item>
+          <el-form-item label="截止日期">
+            <el-input v-model="currentRemindTask.deadline" readonly></el-input>
+          </el-form-item>
+          <el-form-item label="催促消息">
+            <el-input type="textarea" v-model="currentRemindTask.remindMessage" placeholder="请输入催促消息"></el-input>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="showRemindTaskDialog = false">取消</el-button>
+            <el-button type="primary" @click="submitRemindTask">发送催促</el-button>
+          </span>
+        </template>
+      </el-dialog>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import request from '@/utils/request.js';
+import request from '@/utils/request';
+import { ElMessage } from 'element-plus';
 
 // 团队数据（从后端获取，只包含当前登录用户所在团队）
 const teams = ref([]);
@@ -232,6 +387,32 @@ const progressData = ref([]);
 
 // 标签页状态
 const activeTab = ref('announcements');
+
+// 当前选中的团队
+const currentTeam = ref('');
+
+// 查看任务弹窗
+const showViewTaskDialog = ref(false);
+const currentTask = ref({});
+
+// 催促任务弹窗
+const showRemindTaskDialog = ref(false);
+const currentRemindTask = ref({});
+
+// 创建团队弹窗
+const showCreateTeamDialog = ref(false);
+const createTeamForm = ref({
+  name: '',
+  description: ''
+});
+
+// 邀请成员弹窗
+const showInviteMemberDialog = ref(false);
+const inviteMemberForm = ref({
+  teamId: '',
+  username: '',
+  role: ''
+});
 
 // 任务进展数据
 const taskProgressData = ref([
@@ -341,6 +522,11 @@ const fetchTeamData = async () => {
     if (teamsRes.data.code === 200 && Array.isArray(teamsRes.data.data)) {
       teams.value = teamsRes.data.data;
       
+      // 默认选中第一个团队
+      if (teams.value.length > 0) {
+        currentTeam.value = teams.value[0].name;
+      }
+      
       // 处理团队成员数据，构建团队分工和个人进度
       processTeamMembers();
     }
@@ -363,13 +549,17 @@ const processTeamMembers = () => {
             name: member.name,
             role: member.role,
             projects: [team.name],
-            username: member.username
+            username: member.username,
+            teams: [team.name]
           });
         } else {
-          // 如果成员已经存在，添加项目
+          // 如果成员已经存在，添加项目和团队
           const existingMember = allMembers.get(member.userId);
           if (!existingMember.projects.includes(team.name)) {
             existingMember.projects.push(team.name);
+          }
+          if (!existingMember.teams.includes(team.name)) {
+            existingMember.teams.push(team.name);
           }
         }
       });
@@ -377,12 +567,25 @@ const processTeamMembers = () => {
   });
   
   // 构建团队分工数据
-  divisionData.value = Array.from(allMembers.values()).map(member => ({
-    member: member.name,
-    role: member.role || '成员',
-    responsibility: getResponsibilityByRole(member.role),
-    projects: member.projects.join('、')
-  }));
+  if (currentTeam.value) {
+    // 只显示当前选中团队的分工
+    divisionData.value = Array.from(allMembers.values())
+      .filter(member => member.teams.includes(currentTeam.value))
+      .map(member => ({
+        member: member.name,
+        role: member.role || '成员',
+        responsibility: getResponsibilityByRole(member.role),
+        projects: member.projects.join('、')
+      }));
+  } else {
+    // 显示所有团队的分工
+    divisionData.value = Array.from(allMembers.values()).map(member => ({
+      member: member.name,
+      role: member.role || '成员',
+      responsibility: getResponsibilityByRole(member.role),
+      projects: member.projects.join('、')
+    }));
+  }
   
   // 构建个人进度数据
   progressData.value = Array.from(allMembers.values()).map(member => ({
@@ -416,6 +619,9 @@ onMounted(() => {
 // 切换团队
 function switchTeam(team) {
   console.log('切换到团队:', team);
+  currentTeam.value = team;
+  // 重新处理团队成员数据，只显示当前选中团队的分工
+  processTeamMembers();
 }
 
 // 编辑分工
@@ -436,11 +642,15 @@ function remindMember(member) {
 // 查看任务
 function viewTask(task) {
   console.log('查看任务:', task);
+  currentTask.value = task;
+  showViewTaskDialog.value = true;
 }
 
 // 催促任务
 function remindTask(task) {
   console.log('催促任务:', task);
+  currentRemindTask.value = task;
+  showRemindTaskDialog.value = true;
 }
 
 // 回复消息
@@ -454,9 +664,102 @@ function markAsRead(message) {
   console.log('标记已读:', message);
 }
 
+// 创建团队
+function createTeam() {
+  // 显示创建团队弹窗
+  showCreateTeamDialog.value = true;
+}
+
+// 提交创建团队表单
+async function submitCreateTeam() {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 调用创建团队的API
+      const response = await request.post('/team/create', {
+        name: createTeamForm.value.name,
+        description: createTeamForm.value.description,
+        username: user.username
+      });
+      if (response.data.code === 200) {
+        // 提交成功后关闭弹窗
+        showCreateTeamDialog.value = false;
+        // 重置表单
+        createTeamForm.value = {
+          name: '',
+          description: ''
+        };
+        // 重新获取团队数据
+        fetchTeamData();
+        // 显示成功消息
+        ElMessage.success('团队创建成功');
+      } else {
+        // 显示错误消息
+        ElMessage.error(response.data.msg || '团队创建失败');
+      }
+    }
+  } catch (error) {
+    console.error('创建团队失败:', error);
+    ElMessage.error('团队创建失败');
+  }
+}
+
+// 邀请成员
+function inviteMember() {
+  // 显示邀请成员弹窗
+  showInviteMemberDialog.value = true;
+}
+
+// 提交邀请成员表单
+async function submitInviteMember() {
+  try {
+    // 调用邀请成员的API
+    const response = await request.post('/team/invite', {
+      teamId: inviteMemberForm.value.teamId,
+      username: inviteMemberForm.value.username,
+      role: inviteMemberForm.value.role
+    });
+    if (response.data.code === 200) {
+      // 提交成功后关闭弹窗
+      showInviteMemberDialog.value = false;
+      // 重置表单
+      inviteMemberForm.value = {
+        teamId: '',
+        username: '',
+        role: ''
+      };
+      // 重新获取团队数据
+      fetchTeamData();
+      // 显示成功消息
+      ElMessage.success('成员邀请成功');
+    } else {
+      // 显示错误消息
+      ElMessage.error(response.data.msg || '成员邀请失败');
+    }
+  } catch (error) {
+    console.error('邀请成员失败:', error);
+    ElMessage.error('成员邀请失败');
+  }
+}
+
 // 导出报告
 function exportReport() {
+  // 实现导出报告的功能
   console.log('导出团队报告');
+  // 这里可以添加导出报告的逻辑
+}
+
+// 提交催促任务
+function submitRemindTask() {
+  // 实现催促任务的功能
+  console.log('提交催促任务:', currentRemindTask.value);
+  // 这里可以添加催促任务的API调用
+  // 提交成功后关闭弹窗
+  showRemindTaskDialog.value = false;
+  // 显示成功消息
+  ElMessage.success('催促消息已发送');
 }
 </script>
 
@@ -691,13 +994,19 @@ function exportReport() {
   background-color: transparent;
   border-radius: 8px;
   padding: 5px;
-  transition: none;
+  transition: all 0.3s ease;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   border: 1px solid #e9ecef;
   box-shadow: none;
+}
+
+.team-card.active {
+  background-color: #e6f7ff;
+  border: 1px solid #1890ff;
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.2);
 }
 
 .team-info h4 {

@@ -12,10 +12,10 @@
         {{tab.count}}
       </span>
       <div class="addProduct">
-        <el-button @Click="goToProductEdit">
+        <el-button @click="goToProductEdit">
           编辑产品
         </el-button>
-        <el-button class="button">
+        <el-button class="button" @click="goToProductEdit">
           添加产品
         </el-button>
       </div>
@@ -33,9 +33,9 @@ import TaskList from "@/views/workbenchView/listView/TaskList.vue";
 import {useRouter} from "vue-router";
 
 const tabs = ref([
-  {name:'全部',type:'all',count:10},
-  {name:'未关闭',type:'noClose',count:10},
-  {name:'已关闭',type:'close',count:10},
+  {name:'全部',type:'all'},
+  {name:'未关闭',type:'noClose'},
+  {name:'已关闭',type:'close'},
 ]);
 const activeTab=ref('all');
 
@@ -46,23 +46,29 @@ const goToProductEdit = () =>{
 </script>
 
 <style scoped>
-.product-comment{
-  background-color: white;
-}
-.option{
-  height: 40px;
-  padding: 10px;
-}
-.option span{
-  display: inline-block;
-  width: 80px;
-  text-align: center;
-  margin-left: 10px;
-}
-.option span.active{
-  color: #238EFF;
-  border-bottom: 2px solid #238EFF;
-}
+  .product-comment{
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  }
+  .option{
+    height: 40px;
+    border-bottom: 1px solid #ebeef5;
+  }
+  .option span{
+    display: inline-block;
+    padding: 0 10px;
+    text-align: center;
+    //margin-right: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .option span.active{
+    color: #238EFF;
+    border-bottom: 2px solid #238EFF;
+    font-weight: 500;
+  }
 .addProduct{
   display: inline-block;
   float: right;

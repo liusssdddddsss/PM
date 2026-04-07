@@ -187,12 +187,19 @@ const fetchTasks = async () => {
   try {
     // 从本地存储中获取用户信息
     const userStr = localStorage.getItem('user');
+    console.log('获取用户信息:', userStr);
     if (userStr) {
       const user = JSON.parse(userStr);
+      console.log('解析用户信息:', user);
+      console.log('请求URL:', `/workbench/tasks?username=${user.username}`);
       const response = await request.get(`/workbench/tasks?username=${user.username}`);
       console.log('获取任务列表响应:', response);
+      console.log('响应状态码:', response.data.code);
+      console.log('响应数据:', response.data.data);
       if (response.data.code === 200) {
         // 转换数据格式以匹配前端组件
+        if (response.data.data && Array.isArray(response.data.data)) {
+          console.log('任务列表数据长度:', response.data.data.length);
           taskList.value = response.data.data.map(item => ({
             id: item.id,
             projectName: item.project_name,
@@ -204,11 +211,25 @@ const fetchTasks = async () => {
             workTime: item.actual_hours ? `${item.actual_hours}h` : '0h',
             remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h'
           }));
-        console.log('转换后的任务列表数据:', taskList.value);
+          console.log('转换后的任务列表数据:', taskList.value);
+          console.log('转换后的任务列表数据长度:', taskList.value.length);
+        } else {
+          taskList.value = [];
+          console.log('任务列表数据为空或不是数组');
+        }
+      } else {
+        taskList.value = [];
+        console.log('获取任务列表失败:', response.data.msg);
       }
+    } else {
+      taskList.value = [];
+      console.log('用户未登录');
     }
   } catch (error) {
     console.error('获取任务列表失败:', error);
+    console.error('错误详情:', error.message);
+    console.error('错误堆栈:', error.stack);
+    taskList.value = [];
   }
 };
 

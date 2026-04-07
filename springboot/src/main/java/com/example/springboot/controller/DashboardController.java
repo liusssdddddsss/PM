@@ -2,6 +2,7 @@ package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.*;
+import com.example.springboot.repository.ProjectMemberRepository;
 import com.example.springboot.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,9 @@ public class DashboardController {
 
     @Autowired
     private OperationLogService operationLogService;
+
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
 
     @Operation(summary = "获取测试统计数据", description = "返回测试相关的统计数据")
     @GetMapping("/test-statistics")
@@ -192,6 +196,9 @@ public class DashboardController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ProductService productService;
 
     @Operation(summary = "获取用户Bug列表", description = "返回当前用户的Bug列表")
     @GetMapping("/user-bugs")
@@ -428,35 +435,46 @@ public class DashboardController {
             Map<String, Object> overview = new HashMap<>();
             
             // 产品总数
-            int projectCount = 0;
+            int productCount = 0;
             Iterable<Product> products = productService.findAll();
             for (Product product : products) {
-                projectCount++;
+                productCount++;
             }
-            overview.put("projectCount", projectCount);
+            overview.put("productCount", productCount);
             
-            // 今年发布
-            int thisYearIssue = 0;
-            Calendar cal = Calendar.getInstance();
-            int currentYear = cal.get(Calendar.YEAR);
-            for (Product product : products) {
-                if (product.getCreated_at() != null) {
-                    cal.setTime(product.getCreated_at());
-                    if (cal.get(Calendar.YEAR) == currentYear) {
-                        thisYearIssue++;
-                    }
+            // 产品线总量（暂时与产品总数相同）
+            int productLineCount = productCount;
+            overview.put("productLineCount", productLineCount);
+            
+            // 未完成计划数
+            int unfinishedPlanCount = 0;
+            List<Project> projects = (List<Project>) projectService.findAll();
+            for (Project project : projects) {
+                if (project.getStatus() != null && project.getStatus() != 2) { // 假设2表示已完成
+                    unfinishedPlanCount++;
                 }
             }
-            overview.put("thisYearIssue", thisYearIssue);
+            overview.put("unfinishedPlanCount", unfinishedPlanCount);
             
-            // 关闭数量
-            int closeCount = 0;
-            for (Product product : products) {
-                if (product.getStatus() != null && product.getStatus() == 2) { // 假设2表示已关闭
-                    closeCount++;
+            // 未关闭需求数
+            int unclosedNeedCount = 0;
+            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
+            for (Requirement requirement : requirements) {
+                if (requirement.getStatus() != null && requirement.getStatus() != 2) { // 假设2表示已完成
+                    unclosedNeedCount++;
                 }
             }
-            overview.put("closeCount", closeCount);
+            overview.put("unclosedNeedCount", unclosedNeedCount);
+            
+            // 激活Bug数
+            int activeBugCount = 0;
+            List<Bug> bugs = bugService.findall();
+            for (Bug bug : bugs) {
+                if (bug.getStatus() != null && bug.getStatus() != 2) { // 假设2表示已解决
+                    activeBugCount++;
+                }
+            }
+            overview.put("activeBugCount", activeBugCount);
             
             return Result.success(overview);
         } catch (Exception e) {
@@ -545,11 +563,76 @@ public class DashboardController {
     @GetMapping("/product-progress")
     public Result getProductProgress(@RequestParam String year) {
         try {
-            // 模拟产品年度推进统计数据
+            // 从数据库获取产品年度推进统计数据
             Map<String, Object> progress = new HashMap<>();
-            progress.put("completedReleaseCount", 25);
-            progress.put("completedNeedCount", 120);
-            progress.put("completedBugCount", 85);
+            
+            // 已完成发布数
+            int completedReleaseCount = 0;
+            // 已完成需求数
+            int completedNeedCount = 0;
+            // 已完成Bug数
+            int completedBugCount = 0;
+            
+            // 获取指定年份
+            int targetYear = Integer.parseInt(year);
+            
+            // 统计已完成的发布数
+            Iterable<Project> projects = projectService.findAll();
+            Calendar cal = Calendar.getInstance();
+            for (Project project : projects) {
+                if (project.getStatus() != null && project.getStatus() == 2) { // 假设2表示已完成
+                    if (project.getEnd_date() != null) {
+                        cal.setTime(project.getEnd_date());
+                        if (cal.get(Calendar.YEAR) == targetYear) {
+                            completedReleaseCount++;
+                        }
+                    }
+                }
+            }
+            
+            // 统计已完成的需求数
+            Iterable<Requirement> requirements = requirementService.findAll();
+            for (Requirement requirement : requirements) {
+                if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已完成
+                    if (requirement.getCreated_at() != null) {
+                        // 尝试解析created_at字段
+                        try {
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date date = sdf.parse(requirement.getCreated_at());
+                            cal.setTime(date);
+                            if (cal.get(Calendar.YEAR) == targetYear) {
+                                completedNeedCount++;
+                            }
+                        } catch (Exception e) {
+                            // 解析失败，跳过
+                        }
+                    }
+                }
+            }
+            
+            // 统计已完成的Bug数
+            List<Bug> bugs = bugService.findall();
+            for (Bug bug : bugs) {
+                if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
+                    if (bug.getResolved_at() != null) {
+                        // 尝试解析resolved_at字段
+                        try {
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date date = sdf.parse(bug.getResolved_at());
+                            cal.setTime(date);
+                            if (cal.get(Calendar.YEAR) == targetYear) {
+                                completedBugCount++;
+                            }
+                        } catch (Exception e) {
+                            // 解析失败，跳过
+                        }
+                    }
+                }
+            }
+            
+            progress.put("completedReleaseCount", completedReleaseCount);
+            progress.put("completedNeedCount", completedNeedCount);
+            progress.put("completedBugCount", completedBugCount);
             return Result.success(progress);
         } catch (Exception e) {
             e.printStackTrace();
@@ -577,35 +660,41 @@ public class DashboardController {
     @GetMapping("/unclosed-products")
     public Result getUnclosedProducts() {
         try {
-            // 模拟未关闭的产品列表数据
+            // 从数据库获取未关闭的产品列表数据
             List<Map<String, Object>> products = new ArrayList<>();
-            products.add(Map.of(
-                "projectName", "实践教学管理平台",
-                "manager", "张三",
-                "activeNeeds", 5,
-                "completionRate", 75,
-                "plan", "进行中",
-                "activeBugs", 3,
-                "release", "计划中"
-            ));
-            products.add(Map.of(
-                "projectName", "电子班牌管理系统",
-                "manager", "李四",
-                "activeNeeds", 3,
-                "completionRate", 60,
-                "plan", "进行中",
-                "activeBugs", 2,
-                "release", "计划中"
-            ));
-            products.add(Map.of(
-                "projectName", "智慧校园(中学版)",
-                "manager", "王五",
-                "activeNeeds", 4,
-                "completionRate", 80,
-                "plan", "进行中",
-                "activeBugs", 1,
-                "release", "计划中"
-            ));
+            
+            // 获取所有产品
+            Iterable<Product> productList = productService.findAll();
+            for (Product product : productList) {
+                // 只返回未关闭的产品（status != 2）
+                if (product.getStatus() == null || product.getStatus() != 2) {
+                    Map<String, Object> productMap = new HashMap<>();
+                    productMap.put("projectName", product.getName());
+                    
+                    // 获取负责人信息
+                    if (product.getOwner_id() != null) {
+                        Optional<User> userOptional = userService.findById(product.getOwner_id().toString());
+                        if (userOptional.isPresent()) {
+                            User user = userOptional.get();
+                            productMap.put("manager", user.getName());
+                        } else {
+                            productMap.put("manager", "未知");
+                        }
+                    } else {
+                        productMap.put("manager", "未知");
+                    }
+                    
+                    // 模拟数据（实际项目中应该从数据库中获取）
+                    productMap.put("activeNeeds", 0);
+                    productMap.put("completionRate", 0);
+                    productMap.put("plan", "进行中");
+                    productMap.put("activeBugs", 0);
+                    productMap.put("release", "计划中");
+                    
+                    products.add(productMap);
+                }
+            }
+            
             return Result.success(products);
         } catch (Exception e) {
             e.printStackTrace();
@@ -615,28 +704,33 @@ public class DashboardController {
 
     @Operation(summary = "获取产品发布列表数据", description = "返回产品发布列表数据")
     @GetMapping("/product-releases")
-    public Result getProductReleases() {
+    public Result getProductReleases(@RequestParam String username) {
         try {
-            // 模拟产品发布列表数据
+            // 模拟产品发布列表数据，但根据当前登录用户的用户名来过滤
             List<Map<String, Object>> releases = new ArrayList<>();
-            releases.add(Map.of(
-                "projectName", "实践教学管理平台 v2.0",
-                "product", "实践教学管理平台",
-                "releaseDate", "2023-12-15",
-                "status", "已发布"
-            ));
-            releases.add(Map.of(
-                "projectName", "电子班牌管理系统 v1.5",
-                "product", "电子班牌管理系统",
-                "releaseDate", "2023-11-20",
-                "status", "已发布"
-            ));
-            releases.add(Map.of(
-                "projectName", "智慧校园(中学版) v1.0",
-                "product", "智慧校园(中学版)",
-                "releaseDate", "2024-01-10",
-                "status", "计划中"
-            ));
+            
+            // 只有当用户名为202201时，返回产品发布列表数据
+            if ("202201".equals(username)) {
+                releases.add(Map.of(
+                    "projectName", "实践教学管理平台 v2.0",
+                    "product", "实践教学管理平台",
+                    "releaseDate", "2023-12-15",
+                    "status", "已发布"
+                ));
+                releases.add(Map.of(
+                    "projectName", "电子班牌管理系统 v1.5",
+                    "product", "电子班牌管理系统",
+                    "releaseDate", "2023-11-20",
+                    "status", "已发布"
+                ));
+                releases.add(Map.of(
+                    "projectName", "智慧校园(中学版) v1.0",
+                    "product", "智慧校园(中学版)",
+                    "releaseDate", "2024-01-10",
+                    "status", "计划中"
+                ));
+            }
+            
             return Result.success(releases);
         } catch (Exception e) {
             e.printStackTrace();
@@ -648,25 +742,106 @@ public class DashboardController {
     @GetMapping("/year-work-statistics")
     public Result getYearWorkStatistics(@RequestParam String year) {
         try {
-            // 模拟产品年度工作量统计数据
+            // 从数据库获取产品年度工作量统计数据
             Map<String, Object> statistics = new HashMap<>();
             
+            // 完成需求规模
             List<Map<String, Object>> demandSizeList = new ArrayList<>();
-            demandSizeList.add(Map.of("name", "小型需求", "count", 85));
-            demandSizeList.add(Map.of("name", "中型需求", "count", 45));
-            demandSizeList.add(Map.of("name", "大型需求", "count", 20));
+            int smallDemandCount = 0;
+            int mediumDemandCount = 0;
+            int largeDemandCount = 0;
             
+            // 完成需求数（按季度）
             List<Map<String, Object>> demandCountList = new ArrayList<>();
-            demandCountList.add(Map.of("name", "第一季度", "count", 30));
-            demandCountList.add(Map.of("name", "第二季度", "count", 45));
-            demandCountList.add(Map.of("name", "第三季度", "count", 35));
-            demandCountList.add(Map.of("name", "第四季度", "count", 30));
+            int[] quarterlyDemandCount = new int[4]; // 四个季度
             
+            // 修复Bug数（按季度）
             List<Map<String, Object>> repairBugList = new ArrayList<>();
-            repairBugList.add(Map.of("name", "第一季度", "count", 25));
-            repairBugList.add(Map.of("name", "第二季度", "count", 30));
-            repairBugList.add(Map.of("name", "第三季度", "count", 20));
-            repairBugList.add(Map.of("name", "第四季度", "count", 10));
+            int[] quarterlyBugCount = new int[4]; // 四个季度
+            
+            // 获取指定年份
+            int targetYear = Integer.parseInt(year);
+            
+            // 统计需求数据
+            Iterable<Requirement> requirements = requirementService.findAll();
+            Calendar cal = Calendar.getInstance();
+            for (Requirement requirement : requirements) {
+                if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已完成
+                    if (requirement.getCreated_at() != null) {
+                        // 尝试解析created_at字段
+                        try {
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date date = sdf.parse(requirement.getCreated_at());
+                            cal.setTime(date);
+                            if (cal.get(Calendar.YEAR) == targetYear) {
+                                // 按需求规模统计
+                                if (requirement.getPriority() != null) {
+                                    switch (requirement.getPriority()) {
+                                        case 1: // 小型需求
+                                            smallDemandCount++;
+                                            break;
+                                        case 2: // 中型需求
+                                            mediumDemandCount++;
+                                            break;
+                                        case 3: // 大型需求
+                                            largeDemandCount++;
+                                            break;
+                                    }
+                                }
+                                
+                                // 按季度统计
+                                int quarter = (cal.get(Calendar.MONTH) / 3) + 1;
+                                if (quarter >= 1 && quarter <= 4) {
+                                    quarterlyDemandCount[quarter - 1]++;
+                                }
+                            }
+                        } catch (Exception e) {
+                            // 解析失败，跳过
+                        }
+                    }
+                }
+            }
+            
+            // 统计Bug修复数据
+            List<Bug> bugs = bugService.findall();
+            for (Bug bug : bugs) {
+                if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
+                    if (bug.getResolved_at() != null) {
+                        // 尝试解析resolved_at字段
+                        try {
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            Date date = sdf.parse(bug.getResolved_at());
+                            cal.setTime(date);
+                            if (cal.get(Calendar.YEAR) == targetYear) {
+                                // 按季度统计
+                                int quarter = (cal.get(Calendar.MONTH) / 3) + 1;
+                                if (quarter >= 1 && quarter <= 4) {
+                                    quarterlyBugCount[quarter - 1]++;
+                                }
+                            }
+                        } catch (Exception e) {
+                            // 解析失败，跳过
+                        }
+                    }
+                }
+            }
+            
+            // 构建需求规模列表
+            demandSizeList.add(Map.of("name", "小型需求", "count", smallDemandCount));
+            demandSizeList.add(Map.of("name", "中型需求", "count", mediumDemandCount));
+            demandSizeList.add(Map.of("name", "大型需求", "count", largeDemandCount));
+            
+            // 构建季度需求列表
+            demandCountList.add(Map.of("name", "第一季度", "count", quarterlyDemandCount[0]));
+            demandCountList.add(Map.of("name", "第二季度", "count", quarterlyDemandCount[1]));
+            demandCountList.add(Map.of("name", "第三季度", "count", quarterlyDemandCount[2]));
+            demandCountList.add(Map.of("name", "第四季度", "count", quarterlyDemandCount[3]));
+            
+            // 构建季度Bug修复列表
+            repairBugList.add(Map.of("name", "第一季度", "count", quarterlyBugCount[0]));
+            repairBugList.add(Map.of("name", "第二季度", "count", quarterlyBugCount[1]));
+            repairBugList.add(Map.of("name", "第三季度", "count", quarterlyBugCount[2]));
+            repairBugList.add(Map.of("name", "第四季度", "count", quarterlyBugCount[3]));
             
             statistics.put("demandSizeList", demandSizeList);
             statistics.put("demandCountList", demandCountList);
@@ -683,10 +858,43 @@ public class DashboardController {
     @GetMapping("/monthly-release")
     public Result getMonthlyRelease(@RequestParam String year) {
         try {
-            // 模拟月度发布数据
+            // 从数据库获取月度发布数据
             Map<String, Object> data = new HashMap<>();
-            data.put("months", Arrays.asList("1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"));
-            data.put("releaseCounts", Arrays.asList(2, 3, 1, 4, 2, 3, 5, 4, 3, 2, 4, 5));
+            
+            // 月份列表
+            List<String> months = Arrays.asList("1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月");
+            
+            // 月度发布次数
+            int[] releaseCounts = new int[12]; // 12个月
+            
+            // 获取指定年份
+            int targetYear = Integer.parseInt(year);
+            
+            // 统计月度发布数据
+            Iterable<Project> projects = projectService.findAll();
+            Calendar cal = Calendar.getInstance();
+            for (Project project : projects) {
+                if (project.getStatus() != null && project.getStatus() == 2) { // 假设2表示已完成
+                    if (project.getEnd_date() != null) {
+                        cal.setTime(project.getEnd_date());
+                        if (cal.get(Calendar.YEAR) == targetYear) {
+                            int month = cal.get(Calendar.MONTH); // 月份从0开始
+                            if (month >= 0 && month < 12) {
+                                releaseCounts[month]++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 转换为列表
+            List<Integer> releaseCountsList = new ArrayList<>();
+            for (int count : releaseCounts) {
+                releaseCountsList.add(count);
+            }
+            
+            data.put("months", months);
+            data.put("releaseCounts", releaseCountsList);
             return Result.success(data);
         } catch (Exception e) {
             e.printStackTrace();
@@ -698,10 +906,46 @@ public class DashboardController {
     @GetMapping("/yearly-ranking")
     public Result getYearlyRanking(@RequestParam String year) {
         try {
-            // 模拟年度发布榜数据
+            // 从数据库获取年度发布榜数据
             Map<String, Object> data = new HashMap<>();
-            data.put("products", Arrays.asList("实践教学管理平台", "电子班牌管理系统", "智慧校园(中学版)", "宿舍管理系统", "教务考试系统"));
-            data.put("releaseCounts", Arrays.asList(123, 101, 86, 71, 66));
+            
+            // 产品列表
+            List<String> products = new ArrayList<>();
+            // 发布次数列表
+            List<Integer> releaseCounts = new ArrayList<>();
+            
+            // 获取指定年份
+            int targetYear = Integer.parseInt(year);
+            
+            // 统计产品发布数据
+            Map<String, Integer> productReleaseCount = new HashMap<>();
+            Iterable<Project> projects = projectService.findAll();
+            Calendar cal = Calendar.getInstance();
+            for (Project project : projects) {
+                if (project.getStatus() != null && project.getStatus() == 2) { // 假设2表示已完成
+                    if (project.getEnd_date() != null) {
+                        cal.setTime(project.getEnd_date());
+                        if (cal.get(Calendar.YEAR) == targetYear) {
+                            if (project.getName() != null) {
+                                productReleaseCount.put(project.getName(), productReleaseCount.getOrDefault(project.getName(), 0) + 1);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 转换为列表并排序
+            List<Map.Entry<String, Integer>> entryList = new ArrayList<>(productReleaseCount.entrySet());
+            entryList.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
+            
+            // 构建发布榜数据
+            for (Map.Entry<String, Integer> entry : entryList) {
+                products.add(entry.getKey());
+                releaseCounts.add(entry.getValue());
+            }
+            
+            data.put("products", products);
+            data.put("releaseCounts", releaseCounts);
             return Result.success(data);
         } catch (Exception e) {
             e.printStackTrace();
@@ -996,9 +1240,6 @@ public class DashboardController {
     
     @Autowired
     private ProjectApprovalService projectApprovalService;
-
-    @Autowired
-    private ProductService productService;
     
     @Operation(summary = "获取工作台统计数据", description = "返回工作台统计数据")
     @GetMapping("/statistics")
