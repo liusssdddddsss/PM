@@ -44,9 +44,16 @@ public class AdminController {
         return  Result.success(list);
     }
 
+    public static class LoginRequest {
+        public String username;
+        public String password;
+    }
+
     @Operation(summary = "用户登录",description = "根据用户名和密码进行登录验证")
     @PostMapping("/login")
-    public Result login(@RequestParam(required = false) String username, @RequestParam(required = false) String password, HttpServletRequest request) {
+    public Result login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        String username = loginRequest.username;
+        String password = loginRequest.password;
         System.out.println("接收到登录请求，用户名: " + username + "，密码: " + (password != null ? "****" : "null"));
         
         if (username == null || password == null) {
@@ -174,6 +181,47 @@ public class AdminController {
             
             System.out.println("批量加密完成，共加密 " + encryptedCount + " 个用户的密码");
             return Result.success("批量加密完成，共加密 " + encryptedCount + " 个用户的密码");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("批量加密失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "批量加密用户邮箱", description = "对所有用户的邮箱地址进行AES加密")
+    @PostMapping("/encrypt-emails")
+    public Result encryptEmails() {
+        try {
+            System.out.println("开始批量加密用户邮箱");
+            // 获取所有用户
+            Iterable<User> users = userRepository.findAll();
+            int encryptedCount = 0;
+            
+            for (User user : users) {
+                try {
+                    String email = user.getEmail();
+                    if (email != null && !email.isEmpty()) {
+                        // 尝试解密邮箱，如果解密失败，说明邮箱是明文
+                        try {
+                            AESUtil.decrypt(email);
+                            // 邮箱已经是加密的，跳过
+                            System.out.println("用户 " + user.getUsername() + " 的邮箱已经是加密的，跳过");
+                        } catch (Exception e) {
+                            // 解密失败，说明邮箱是明文，进行加密
+                            System.out.println("用户 " + user.getUsername() + " 的邮箱是明文，开始加密: " + email);
+                            String encryptedEmail = AESUtil.encrypt(email);
+                            user.setEmail(encryptedEmail);
+                            userRepository.save(user);
+                            encryptedCount++;
+                            System.out.println("用户 " + user.getUsername() + " 的邮箱加密成功");
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("加密用户 " + user.getUsername() + " 的邮箱时出错: " + e.getMessage());
+                }
+            }
+            
+            System.out.println("批量加密完成，共加密 " + encryptedCount + " 个用户的邮箱");
+            return Result.success("批量加密完成，共加密 " + encryptedCount + " 个用户的邮箱");
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("批量加密失败: " + e.getMessage());

@@ -16,8 +16,14 @@ export default defineConfig({
     },
   },
   server: {
+    https: false,
     proxy: {
       '/workbench': {
+        target: 'http://localhost:9091',
+        changeOrigin: true,
+        secure: false
+      },
+      '/admin': {
         target: 'http://localhost:9091',
         changeOrigin: true,
         secure: false

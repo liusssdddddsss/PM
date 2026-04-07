@@ -5,6 +5,7 @@ import com.example.springboot.entity.User;
 import com.example.springboot.repository.UserRepository;
 import com.example.springboot.service.OptionLogService;
 import com.example.springboot.util.AESUtil;
+import com.example.springboot.util.BCryptUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +35,16 @@ public class AdminUserController {
                 var row = new java.util.HashMap<String, Object>();
                 row.put("userId", u.getUsername());
                 row.put("name", u.getName());
-                row.put("email", u.getEmail());
+                // 解密敏感信息
+                String decryptedEmail = u.getEmail();
+                try {
+                    if (decryptedEmail != null) {
+                        decryptedEmail = AESUtil.decrypt(decryptedEmail);
+                    }
+                } catch (Exception e) {
+                    // 解密失败，保持原值
+                }
+                row.put("email", decryptedEmail);
                 row.put("department", u.getDepartment());
                 // 处理性别字段，将存储的字符转换为前端显示的文本
                 String sexText = "";
@@ -73,11 +83,18 @@ public class AdminUserController {
             User u = new User();
             u.setUsername(request.userId);
             u.setName(request.name);
-            u.setEmail(request.email);
+            // 敏感信息使用AES加密
+            if (request.email != null) {
+                u.setEmail(AESUtil.encrypt(request.email));
+            }
+            if (request.avatar != null) {
+                u.setAvatar(AESUtil.encrypt(request.avatar));
+            }
             u.setDepartment(request.department);
             u.setSex(request.sex != null && !request.sex.isEmpty() ? request.sex.charAt(0) : null);
+            // 密码使用BCrypt加密
             if (request.password != null) {
-                u.setPassword(AESUtil.encrypt(request.password));
+                u.setPassword(BCryptUtil.encrypt(request.password));
             }
             u.setStatus(mapStatusValue(request.status));
             mapPositionToUser(u, request.position);
@@ -105,8 +122,12 @@ public class AdminUserController {
             if (request.name != null) {
                 u.setName(request.name);
             }
+            // 敏感信息使用AES加密
             if (request.email != null) {
-                u.setEmail(request.email);
+                u.setEmail(AESUtil.encrypt(request.email));
+            }
+            if (request.avatar != null) {
+                u.setAvatar(AESUtil.encrypt(request.avatar));
             }
             if (request.department != null) {
                 u.setDepartment(request.department);
@@ -114,8 +135,9 @@ public class AdminUserController {
             if (request.sex != null) {
                 u.setSex(request.sex.isEmpty() ? null : request.sex.charAt(0));
             }
+            // 密码使用BCrypt加密
             if (request.password != null && !request.password.isEmpty()) {
-                u.setPassword(AESUtil.encrypt(request.password));
+                u.setPassword(BCryptUtil.encrypt(request.password));
             }
 
             if (request.status != null) {
@@ -161,7 +183,7 @@ public class AdminUserController {
             if (request == null || request.password == null || request.password.isEmpty()) {
                 return Result.error("密码不能为空");
             }
-            u.setPassword(AESUtil.encrypt(request.password));
+            u.setPassword(BCryptUtil.encrypt(request.password));
             User saved = userRepository.save(u);
             optionLogService.log("admin", "修改用户密码: " + saved.getName(), "/admin/users/" + userId + "/password");
             return Result.success(saved);
@@ -241,6 +263,7 @@ public class AdminUserController {
         public String userId;
         public String name;
         public String email;
+        public String avatar;
         public String department;
         public String sex;
         public String password;

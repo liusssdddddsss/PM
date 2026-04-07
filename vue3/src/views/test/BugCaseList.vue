@@ -187,7 +187,7 @@
     <el-dialog
       v-model="resolveDialogVisible"
       title="解决Bug"
-      width="400px"
+      width="450px"
       :center="true"
     >
       <div class="dialog-content">
@@ -209,6 +209,25 @@
             placeholder="选择日期时间"
             style="width: 100%"
           />
+        </div>
+        <div class="form-item">
+          <label>附件：</label>
+          <el-upload
+            class="upload-demo"
+            action="#"
+            :auto-upload="false"
+            :on-change="handleResolveFileChange"
+            :file-list="resolveFileList"
+            drag
+          >
+            <i class="el-icon-upload"></i>
+            <div class="el-upload__text">选择文件</div>
+            <template #tip>
+              <div class="el-upload__tip">
+                可点击添加或拖拽上传，不超过100.0MB
+              </div>
+            </template>
+          </el-upload>
         </div>
       </div>
       <template #footer>
@@ -364,6 +383,7 @@ const resolveForm = ref({
   solution: '',
   resolveTime: ''
 });
+const resolveFileList = ref([]);
 
 // 删除确认对话框
 const deleteDialogVisible = ref(false);
@@ -388,12 +408,19 @@ const handleEdit = (bug) => {
 const handleResolve = (bug) => {
   console.log('点击解决按钮:', bug);
   currentBug.value = bug;
-  // 重置解决表单
+  // 重置解决表单和文件列表
   resolveForm.value = {
     solution: '',
     resolveTime: ''
   };
+  resolveFileList.value = [];
   resolveDialogVisible.value = true;
+};
+
+// 处理解决Bug附件选择
+const handleResolveFileChange = (file, fileList) => {
+  console.log('解决Bug附件变化:', file, fileList);
+  resolveFileList.value = fileList;
 };
 
 const handleDelete = (id) => {
@@ -448,13 +475,15 @@ const confirmResolve = async () => {
   try {
     console.log('确认解决Bug:', currentBug.value.id);
     console.log('解决表单:', resolveForm.value);
+    console.log('附件列表:', resolveFileList.value);
     
     // 这里可以添加解决Bug的逻辑，例如调用后端API
-    // 模拟API调用
+    // 模拟API调用，包含附件数据
     const response = await request.post('/bug/resolve', {
       bugId: currentBug.value.id,
       solution: resolveForm.value.solution,
-      resolveTime: resolveForm.value.resolveTime
+      resolveTime: resolveForm.value.resolveTime,
+      attachments: resolveFileList.value
     });
     
     if (response.data.code === 200) {
@@ -674,5 +703,23 @@ const confirmDelete = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.upload-demo {
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+}
+
+.el-upload__text {
+  color: #409eff;
+  margin-top: 10px;
+}
+
+.el-upload__tip {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #909399;
 }
 </style>

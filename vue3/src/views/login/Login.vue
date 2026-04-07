@@ -91,14 +91,15 @@ const handleLogin = async () => {
       password: form.password
     });
     
-    // 构建FormData对象
-    const formData = new FormData();
-    formData.append('username', form.username);
-    formData.append('password', form.password);
+    // 构建普通对象
+    const loginData = {
+      username: form.username,
+      password: form.password
+    };
     
     // 发送登录请求
     console.log('发送登录请求到:', '/admin/login');
-    const response = await request.post('/admin/login', formData);
+    const response = await request.post('/admin/login', loginData);
     console.log('登录响应:', response);
     
     if (response.data.code === 200) {

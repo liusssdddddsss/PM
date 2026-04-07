@@ -5,6 +5,7 @@ import com.example.springboot.entity.User;
 import com.example.springboot.repository.AdminRepository;
 import com.example.springboot.repository.UserRepository;
 import com.example.springboot.util.AESUtil;
+import com.example.springboot.util.BCryptUtil;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -29,34 +30,50 @@ public class AdminService {
             System.out.println("Admin查询结果: " + (admin != null ? "存在" : "不存在"));
             
             if (admin != null) {
-                System.out.println("Admin密码: " + admin.getPassword());
-                System.out.println("输入密码: " + password);
-                System.out.println("密码是否匹配: " + admin.getPassword().equals(password));
-            }
-            
-            if (admin != null) {
                 boolean passwordMatch = false;
+                
+                // 首先尝试BCrypt验证
                 try {
-                    // 尝试使用AES解密验证密码
-                    String decryptedPassword = AESUtil.decrypt(admin.getPassword());
-                    System.out.println("解密后的密码: " + decryptedPassword);
-                    System.out.println("输入密码: " + password);
-                    passwordMatch = decryptedPassword.equals(password);
-                    System.out.println("密码是否匹配: " + passwordMatch);
+                    passwordMatch = BCryptUtil.matches(password, admin.getPassword());
+                    System.out.println("BCrypt密码验证结果: " + passwordMatch);
                 } catch (Exception e) {
-                    // 解密失败，说明密码是明文，直接比较
-                    System.out.println("解密失败，使用明文比较: " + e.getMessage());
-                    passwordMatch = admin.getPassword().equals(password);
-                    System.out.println("明文密码是否匹配: " + passwordMatch);
-                    
-                    // 如果明文匹配，将密码加密后存储
-                    if (passwordMatch) {
-                        try {
-                            admin.setPassword(AESUtil.encrypt(password));
-                            adminRepository.save(admin);
-                            System.out.println("密码已加密并更新");
-                        } catch (Exception ex) {
-                            System.out.println("密码加密失败: " + ex.getMessage());
+                    System.out.println("BCrypt验证异常: " + e.getMessage());
+                }
+                
+                // 如果BCrypt验证失败，尝试AES验证
+                if (!passwordMatch) {
+                    try {
+                        // 尝试使用AES解密验证
+                        String decryptedPassword = AESUtil.decrypt(admin.getPassword());
+                        System.out.println("AES解密后的密码: " + decryptedPassword);
+                        passwordMatch = decryptedPassword.equals(password);
+                        System.out.println("AES密码验证结果: " + passwordMatch);
+                        
+                        // 如果AES匹配，将密码转换为BCrypt加密后存储
+                        if (passwordMatch) {
+                            try {
+                                admin.setPassword(BCryptUtil.encrypt(password));
+                                adminRepository.save(admin);
+                                System.out.println("密码已转换为BCrypt加密并更新");
+                            } catch (Exception ex) {
+                                System.out.println("BCrypt密码加密失败: " + ex.getMessage());
+                            }
+                        }
+                    } catch (Exception ex2) {
+                        // 解密失败，说明密码是明文，直接比较
+                        System.out.println("AES解密也失败，使用明文比较: " + ex2.getMessage());
+                        passwordMatch = admin.getPassword().equals(password);
+                        System.out.println("明文密码是否匹配: " + passwordMatch);
+                        
+                        // 如果明文匹配，将密码加密后存储
+                        if (passwordMatch) {
+                            try {
+                                admin.setPassword(BCryptUtil.encrypt(password));
+                                adminRepository.save(admin);
+                                System.out.println("密码已BCrypt加密并更新");
+                            } catch (Exception ex3) {
+                                System.out.println("密码加密失败: " + ex3.getMessage());
+                            }
                         }
                     }
                 }
