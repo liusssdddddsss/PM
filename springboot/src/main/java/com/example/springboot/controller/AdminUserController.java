@@ -4,6 +4,7 @@ import com.example.springboot.common.Result;
 import com.example.springboot.entity.User;
 import com.example.springboot.repository.UserRepository;
 import com.example.springboot.service.OptionLogService;
+import com.example.springboot.util.AESUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,7 +76,9 @@ public class AdminUserController {
             u.setEmail(request.email);
             u.setDepartment(request.department);
             u.setSex(request.sex != null && !request.sex.isEmpty() ? request.sex.charAt(0) : null);
-            u.setPassword(request.password);
+            if (request.password != null) {
+                u.setPassword(AESUtil.encrypt(request.password));
+            }
             u.setStatus(mapStatusValue(request.status));
             mapPositionToUser(u, request.position);
 
@@ -112,7 +115,7 @@ public class AdminUserController {
                 u.setSex(request.sex.isEmpty() ? null : request.sex.charAt(0));
             }
             if (request.password != null && !request.password.isEmpty()) {
-                u.setPassword(request.password);
+                u.setPassword(AESUtil.encrypt(request.password));
             }
 
             if (request.status != null) {
@@ -158,7 +161,7 @@ public class AdminUserController {
             if (request == null || request.password == null || request.password.isEmpty()) {
                 return Result.error("密码不能为空");
             }
-            u.setPassword(request.password);
+            u.setPassword(AESUtil.encrypt(request.password));
             User saved = userRepository.save(u);
             optionLogService.log("admin", "修改用户密码: " + saved.getName(), "/admin/users/" + userId + "/password");
             return Result.success(saved);

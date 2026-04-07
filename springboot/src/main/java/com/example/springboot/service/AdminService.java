@@ -4,6 +4,7 @@ import com.example.springboot.entity.Admin;
 import com.example.springboot.entity.User;
 import com.example.springboot.repository.AdminRepository;
 import com.example.springboot.repository.UserRepository;
+import com.example.springboot.util.AESUtil;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -33,32 +34,64 @@ public class AdminService {
                 System.out.println("密码是否匹配: " + admin.getPassword().equals(password));
             }
             
-            if (admin != null && admin.getPassword().equals(password)) {
-                // 检查用户状态，确保启用的用户才能登录
-                System.out.println("密码匹配，开始检查用户状态");
-                User user = userRepository.findByUsername(username);
-                System.out.println("User查询结果: " + (user != null ? "存在" : "不存在"));
+            if (admin != null) {
+                boolean passwordMatch = false;
+                try {
+                    // 尝试使用AES解密验证密码
+                    String decryptedPassword = AESUtil.decrypt(admin.getPassword());
+                    System.out.println("解密后的密码: " + decryptedPassword);
+                    System.out.println("输入密码: " + password);
+                    passwordMatch = decryptedPassword.equals(password);
+                    System.out.println("密码是否匹配: " + passwordMatch);
+                } catch (Exception e) {
+                    // 解密失败，说明密码是明文，直接比较
+                    System.out.println("解密失败，使用明文比较: " + e.getMessage());
+                    passwordMatch = admin.getPassword().equals(password);
+                    System.out.println("明文密码是否匹配: " + passwordMatch);
+                    
+                    // 如果明文匹配，将密码加密后存储
+                    if (passwordMatch) {
+                        try {
+                            admin.setPassword(AESUtil.encrypt(password));
+                            adminRepository.save(admin);
+                            System.out.println("密码已加密并更新");
+                        } catch (Exception ex) {
+                            System.out.println("密码加密失败: " + ex.getMessage());
+                        }
+                    }
+                }
                 
-                if (user != null) {
-                    System.out.println("用户状态: " + user.getStatus());
-                    if (user.getStatus() != null) {
-                        System.out.println("用户状态值: " + user.getStatus());
-                        if (user.getStatus() == 1) {
-                            System.out.println("用户状态正常，允许登录");
-                            return admin;
+                if (passwordMatch) {
+                    // 检查用户状态，确保启用的用户才能登录
+                    System.out.println("密码匹配，开始检查用户状态");
+                    User user = userRepository.findByUsername(username);
+                    System.out.println("User查询结果: " + (user != null ? "存在" : "不存在"));
+                    
+                    if (user != null) {
+                        System.out.println("用户状态: " + user.getStatus());
+                        if (user.getStatus() != null) {
+                            System.out.println("用户状态值: " + user.getStatus());
+                            if (user.getStatus() == 1) {
+                                System.out.println("用户状态正常，允许登录");
+                                return admin;
+                            } else {
+                                // 用户被禁用
+                                System.out.println("用户被禁用，禁止登录");
+                                throw new Exception("账号被封禁");
+                            }
                         } else {
-                            // 用户被禁用
-                            System.out.println("用户被禁用，禁止登录");
-                            throw new Exception("账号被封禁");
+                            System.out.println("用户状态为null");
+                            throw new Exception("用户状态未设置");
                         }
                     } else {
-                        System.out.println("用户状态为null");
-                        throw new Exception("用户状态未设置");
+                        // 用户在Admin表中存在，但在User表中不存在
+                        System.out.println("用户在Admin表中存在，但在User表中不存在");
+                        throw new Exception("用户信息不完整");
                     }
                 } else {
-                    // 用户在Admin表中存在，但在User表中不存在
-                    System.out.println("用户在Admin表中存在，但在User表中不存在");
-                    throw new Exception("用户信息不完整");
+                    // 用户名或密码错误
+                    System.out.println("用户名或密码错误");
+                    return null;
                 }
             } else {
                 // 用户名或密码错误

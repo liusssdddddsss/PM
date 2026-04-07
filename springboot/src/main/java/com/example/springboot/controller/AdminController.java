@@ -3,8 +3,11 @@ package com.example.springboot.controller;
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.Admin;
 import com.example.springboot.entity.LoginLog;
+import com.example.springboot.entity.User;
 import com.example.springboot.repository.LoginLogRepository;
+import com.example.springboot.repository.UserRepository;
 import com.example.springboot.service.AdminService;
+import com.example.springboot.util.AESUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -29,6 +32,9 @@ public class AdminController {
     
     @Resource
     LoginLogRepository loginLogRepository;
+    
+    @Resource
+    UserRepository userRepository;
 
 //    查询所有的数据
     @Operation(summary = "查询所有管理员",description = "返回管理员列表")
@@ -138,5 +144,39 @@ public class AdminController {
             ip = request.getRemoteAddr();
         }
         return ip;
+    }
+    
+    @Operation(summary = "批量加密用户密码", description = "对所有用户的密码进行AES加密")
+    @PostMapping("/encrypt-passwords")
+    public Result encryptPasswords() {
+        try {
+            System.out.println("开始批量加密用户密码");
+            // 获取所有用户
+            Iterable<User> users = userRepository.findAll();
+            int encryptedCount = 0;
+            
+            for (User user : users) {
+                try {
+                    // 尝试解密密码，如果解密失败，说明密码是明文
+                    AESUtil.decrypt(user.getPassword());
+                    // 密码已经是加密的，跳过
+                    System.out.println("用户 " + user.getUsername() + " 的密码已经是加密的，跳过");
+                } catch (Exception e) {
+                    // 解密失败，说明密码是明文，进行加密
+                    System.out.println("用户 " + user.getUsername() + " 的密码是明文，开始加密");
+                    String encryptedPassword = AESUtil.encrypt(user.getPassword());
+                    user.setPassword(encryptedPassword);
+                    userRepository.save(user);
+                    encryptedCount++;
+                    System.out.println("用户 " + user.getUsername() + " 的密码加密成功");
+                }
+            }
+            
+            System.out.println("批量加密完成，共加密 " + encryptedCount + " 个用户的密码");
+            return Result.success("批量加密完成，共加密 " + encryptedCount + " 个用户的密码");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("批量加密失败: " + e.getMessage());
+        }
     }
 }
