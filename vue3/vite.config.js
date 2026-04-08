@@ -27,6 +27,16 @@ export default defineConfig({
         target: 'http://localhost:9091',
         changeOrigin: true,
         secure: false
+      },
+      '/iteration': {
+        target: 'http://localhost:9091',
+        changeOrigin: true,
+        secure: false
+      },
+      '/team': {
+        target: 'http://localhost:9091',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

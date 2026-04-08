@@ -92,13 +92,16 @@
                 </template>
               </el-table-column>
               <el-table-column prop="position" label="用户职称" width="100" />
-              <el-table-column label="操作" min-width="320">
+              <el-table-column label="操作" min-width="380">
                 <template #default="scope">
                   <el-button size="small" type="primary" @click="showUserDetail(scope.row)">查看</el-button>
                   <el-button size="small" type="success" @click="editPermission(scope.row)">权限</el-button>
                   <el-button size="small" type="warning" @click="editUser(scope.row)">编辑</el-button>
-                  <el-button size="small" type="danger" @click="deleteUser(scope.row)">
+                  <el-button size="small" type="danger" @click="toggleUserStatus(scope.row)">
                     {{scope.row.status === '启用' ? '禁用' : '启用'}}
+                  </el-button>
+                  <el-button size="small" type="danger" @click="confirmDeleteUser(scope.row)">
+                    删除
                   </el-button>
                 </template>
               </el-table-column>
@@ -263,6 +266,7 @@
 
 <script setup>
 import {ref, computed, onMounted} from "vue";
+import { ElMessageBox } from 'element-plus';
 import request from "@/utils/request.js";
 
 // 统计数据
@@ -505,7 +509,7 @@ const savePassword = async () => {
   }
 };
 
-const deleteUser = async (user) => {
+const toggleUserStatus = async (user) => {
   try {
     const newStatus = user.status === '启用' ? '禁用' : '启用';
     const response = await request.put(`/admin/users/${user.userId}/status`, { status: newStatus });
@@ -517,6 +521,32 @@ const deleteUser = async (user) => {
     }
   } catch (error) {
     console.error('更新用户状态失败:', error);
+  }
+};
+
+const confirmDeleteUser = async (user) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除用户 ${user.name} 吗？此操作不可恢复！`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    
+    const response = await request.delete(`/admin/users/${user.userId}`);
+    if (response.data.code === 200) {
+      // 重新获取用户列表
+      await fetchUserList();
+      // 刷新统计数据
+      await fetchDashboardData();
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除用户失败:', error);
+    }
   }
 };
 </script>
