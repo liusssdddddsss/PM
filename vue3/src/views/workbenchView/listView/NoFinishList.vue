@@ -13,23 +13,28 @@
             {{ scope.$index + 1 }}
           </template>
         </el-table-column>
-        <el-table-column prop="title" label="项目名称" min-width="120">
+        <el-table-column prop="title" label="项目名称" min-width="80">
           <template #default="scope">
-            <span class="task-name">{{ scope.row.title }}</span>
+            <span class="task-name" @click="handleProjectClick(scope.row.title)">{{ scope.row.title }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="person" label="负责人" width="80"></el-table-column>
-        <el-table-column prop="states" label="状态" width="80">
+        <el-table-column prop="person" label="负责人" width="70"></el-table-column>
+        <el-table-column prop="states" label="状态" width="70">
           <template #default="scope">
-            <span class="status-tag" :class="scope.row.states === '进行中' ? 'status-in-progress' : 'status-scheduled'">{{ scope.row.states }}</span>
+            <span class="status-tag" :class="scope.row.states === '进行中' ? 'status-in-progress' : 'status-scheduled'">
+              {{ scope.row.states }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column prop="workTime" label="总计工时" width="120"></el-table-column>
-        <el-table-column prop="shengYuNeeds" label="剩余需求" width="120"></el-table-column>
-        <el-table-column prop="shengYuTask" label="剩余任务" width="120"></el-table-column>
-        <el-table-column prop="shengYuBug" label="剩余Bug" width="120"></el-table-column>
-        <el-table-column prop="finishTime" label="计划完成" width="110"></el-table-column>
-        <el-table-column prop="jinDu" label="进度" width="80">
+        <el-table-column prop="workTime" label="总计工时" width="80"></el-table-column>
+        <el-table-column prop="shengYuTask" label="剩余任务" width="80"></el-table-column>
+        <el-table-column prop="shengYuBug" label="剩余Bug" width="80"></el-table-column>
+        <el-table-column prop="finishTime" label="计划完成" width="100">
+          <template #default="scope">
+            {{ formatDate(scope.row.finishTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="jinDu" label="进度" width="70">
           <template #default="scope">
             <el-progress type="circle" :percentage="parseInt(scope.row.jinDu)" :width="20" :stroke-width="3" />
           </template>
@@ -42,6 +47,9 @@
 <script setup>
 import {ref, onMounted} from "vue";
 import request from "@/utils/request.js";
+
+// 定义自定义事件，用于向父组件传递项目名称
+const emit = defineEmits(['project-click']);
 
 //ddl列表
 const tableData = ref([]);
@@ -56,6 +64,25 @@ const fetchUnfinishedProjects = async () => {
   } catch (error) {
     console.error('获取未完成项目列表失败:', error);
   }
+};
+
+// 处理项目点击事件
+const handleProjectClick = (projectName) => {
+  console.log('点击了项目:', projectName);
+  // 触发自定义事件，将项目名称传递给父组件
+  emit('project-click', projectName);
+};
+
+// 格式化日期，只显示到日期部分
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
 };
 
 // 页面加载时获取未完成项目列表

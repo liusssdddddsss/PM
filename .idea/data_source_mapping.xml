@@ -2,5 +2,6 @@
 <project version="4">
   <component name="DataSourcePerFileMappings">
     <file url="das://34b6156e-8f04-4e4e-92f0-3450f7a42881/schema/pm.sql" value="34b6156e-8f04-4e4e-92f0-3450f7a42881" />
+    <file url="das://34b6156e-8f04-4e4e-92f0-3450f7a42881/schema/pm/table/users.sql" value="34b6156e-8f04-4e4e-92f0-3450f7a42881" />
   </component>
 </project>

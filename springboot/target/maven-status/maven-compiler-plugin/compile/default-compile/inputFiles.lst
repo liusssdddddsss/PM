@@ -1,6 +1,7 @@
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\common\CorsConfig.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\common\Result.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\common\SwaggerConfig.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\config\WebConfig.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminController.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminDashboardController.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\controller\AdminFeedbackController.java
@@ -26,7 +27,6 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Project.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\ProjectApproval.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\ProjectMember.java
-C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Requirement.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Task.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Team.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\TeamMember.java
@@ -43,7 +43,6 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\ProjectApprovalRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\ProjectMemberRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\ProjectRepository.java
-C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\RequirementRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\TaskRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\TeamMemberRepository.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\repository\TeamRepository.java
@@ -59,7 +58,6 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectApprovalService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectMemberService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectService.java
-C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\RequirementService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TaskService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TeamMemberService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TeamService.java

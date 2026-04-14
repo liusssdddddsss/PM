@@ -11,21 +11,23 @@ public class Admin {
 
     @Id
     private Integer id;
-    private String username;
+    private Long username;
     private String name;
     private String password;
     private Integer is_admin;
+    private String avatar;
 
     // 构造方法
     public Admin() {
     }
 
-    public Admin(Integer id, String username, String name, String password, Integer is_admin) {
+    public Admin(Integer id, Long username, String name, String password, Integer is_admin, String avatar) {
         this.id = id;
         this.username = username;
         this.name = name;
         this.password = password;
         this.is_admin = is_admin;
+        this.avatar = avatar;
     }
 
     // Getter 和 Setter 方法
@@ -37,11 +39,11 @@ public class Admin {
         this.id = id;
     }
 
-    public String getUsername() {
+    public Long getUsername() {
         return username;
     }
 
-    public void setUsername(String username) {
+    public void setUsername(Long username) {
         this.username = username;
     }
 
@@ -67,6 +69,14 @@ public class Admin {
 
     public void setIs_admin(Integer is_admin) {
         this.is_admin = is_admin;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 
 }

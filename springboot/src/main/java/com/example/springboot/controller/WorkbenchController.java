@@ -4,11 +4,11 @@ import com.example.springboot.common.Result;
 import com.example.springboot.entity.Bug;
 import com.example.springboot.entity.Project;
 import com.example.springboot.entity.ProjectApproval;
-import com.example.springboot.entity.Requirement;
+
 import com.example.springboot.entity.Task;
 import com.example.springboot.service.BugService;
 import com.example.springboot.service.ProjectApprovalService;
-import com.example.springboot.service.RequirementService;
+
 import com.example.springboot.service.TaskService;
 import com.example.springboot.service.ProjectService;
 import com.example.springboot.service.UserService;
@@ -41,8 +41,7 @@ public class WorkbenchController {
     ProjectApprovalService projectApprovalService;
     @Resource
     TaskService taskService;
-    @Resource
-    RequirementService requirementService;
+
     @Resource
     BugService bugService;
     @Resource
@@ -231,63 +230,9 @@ public class WorkbenchController {
         }
     }
 
-    @Operation(summary = "获取研发需求列表", description = "返回研发需求列表数据")
-    @GetMapping("/research-needs")
-    public Result getResearchNeeds(@RequestParam(required = false) String username) {
-        try {
-            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
-            // 过滤出type=1的研发需求
-            List<Requirement> researchNeeds = requirements.stream()
-                    .filter(req -> req.getType() != null && req.getType() == 1)
-                    .filter(req -> {
-                        // 如果指定了用户名，只返回当前用户的需求
-                        if (username != null && !username.isEmpty()) {
-                            try {
-                                Integer userId = Integer.parseInt(username);
-                                return req.getCreator_id() != null && req.getCreator_id().equals(userId);
-                            } catch (NumberFormatException e) {
-                                // 用户名不是数字格式，跳过
-                                return false;
-                            }
-                        }
-                        return true;
-                    })
-                    .toList();
-            return Result.success(researchNeeds);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error("获取研发需求列表失败: " + e.getMessage());
-        }
-    }
 
-    @Operation(summary = "获取用户需求列表", description = "返回用户需求列表数据")
-    @GetMapping("/user-needs")
-    public Result getUserNeeds(@RequestParam(required = false) String username) {
-        try {
-            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
-            // 过滤出type=2的用户需求
-            List<Requirement> userNeeds = requirements.stream()
-                    .filter(req -> req.getType() != null && req.getType() == 2)
-                    .filter(req -> {
-                        // 如果指定了用户名，只返回当前用户的需求
-                        if (username != null && !username.isEmpty()) {
-                            try {
-                                Integer userId = Integer.parseInt(username);
-                                return req.getCreator_id() != null && req.getCreator_id().equals(userId);
-                            } catch (NumberFormatException e) {
-                                // 用户名不是数字格式，跳过
-                                return false;
-                            }
-                        }
-                        return true;
-                    })
-                    .toList();
-            return Result.success(userNeeds);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error("获取用户需求列表失败: " + e.getMessage());
-        }
-    }
+
+
 
     @Operation(summary = "获取Bug列表", description = "返回Bug列表数据")
     @GetMapping("/bugs")
@@ -424,18 +369,7 @@ public class WorkbenchController {
                     }
                     projectMap.put("workTime", totalHours + "h");
                     
-                    // 计算剩余需求数量（从requirements表中获取）
-                    int remainingNeeds = 0;
-                    List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
-                    for (Requirement req : requirements) {
-                        if (req.getProject_id() != null && req.getProject_id().equals(projectId)) {
-                            // 假设需求状态为0表示未完成
-                            if (req.getStatus() == null || req.getStatus() == 0) {
-                                remainingNeeds++;
-                            }
-                        }
-                    }
-                    projectMap.put("shengYuNeeds", remainingNeeds);
+
                     
                     // 计算剩余任务数量（从tasks表中获取）
                     int remainingTasks = 0;
@@ -665,41 +599,10 @@ public class WorkbenchController {
                 }
             }
             
-            // 5. 获取研发需求数
-            int needsState = 0;
-            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
-            for (Requirement requirement : requirements) {
-                // 如果是产品经理，显示所有研发需求
-                if (isProductManager) {
-                    if (requirement.getType() != null && requirement.getType() == 1) {
-                        needsState++;
-                    }
-                } else {
-                    // 否则只显示当前用户所在团队的研发需求
-                    // 这里需要根据实际的团队关系来判断，暂时简化处理
-                    needsState++;
-                }
-            }
-            
-            // 6. 获取用户需求数
-            int userState = 0;
-            for (Requirement requirement : requirements) {
-                // 如果是产品经理，显示所有用户需求
-                if (isProductManager) {
-                    if (requirement.getType() != null && requirement.getType() == 2) {
-                        userState++;
-                    }
-                } else {
-                    // 否则只显示当前用户所在团队的用户需求
-                    // 这里需要根据实际的团队关系来判断，暂时简化处理
-                    userState++;
-                }
-            }
-            
-            // 7. 获取文档数（暂时模拟）
+            // 6. 获取文档数（暂时模拟）
             int passageState = 0;
             
-            // 8. 昨天处理任务和Bug的次数（暂时模拟）
+            // 7. 昨天处理任务和Bug的次数（暂时模拟）
             int bug = 0;
             
             // 构建返回数据
@@ -707,8 +610,6 @@ public class WorkbenchController {
             statistics.put("approveState", approveState);
             statistics.put("taskState", taskState);
             statistics.put("bugState", bugState);
-            statistics.put("needsState", needsState);
-            statistics.put("userState", userState);
             statistics.put("passageState", passageState);
             
             return Result.success(statistics);

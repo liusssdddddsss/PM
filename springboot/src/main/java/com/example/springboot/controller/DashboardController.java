@@ -29,8 +29,7 @@ public class DashboardController {
     @Autowired
     private TaskService taskService;
 
-    @Autowired
-    private RequirementService requirementService;
+
 
     @Autowired
     private OperationLogService operationLogService;
@@ -456,15 +455,7 @@ public class DashboardController {
             }
             overview.put("unfinishedPlanCount", unfinishedPlanCount);
             
-            // 未关闭需求数
-            int unclosedNeedCount = 0;
-            List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
-            for (Requirement requirement : requirements) {
-                if (requirement.getStatus() != null && requirement.getStatus() != 2) { // 假设2表示已完成
-                    unclosedNeedCount++;
-                }
-            }
-            overview.put("unclosedNeedCount", unclosedNeedCount);
+
             
             // 激活Bug数
             int activeBugCount = 0;
@@ -590,25 +581,7 @@ public class DashboardController {
                 }
             }
             
-            // 统计已完成的需求数
-            Iterable<Requirement> requirements = requirementService.findAll();
-            for (Requirement requirement : requirements) {
-                if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已完成
-                    if (requirement.getCreated_at() != null) {
-                        // 尝试解析created_at字段
-                        try {
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            Date date = sdf.parse(requirement.getCreated_at());
-                            cal.setTime(date);
-                            if (cal.get(Calendar.YEAR) == targetYear) {
-                                completedNeedCount++;
-                            }
-                        } catch (Exception e) {
-                            // 解析失败，跳过
-                        }
-                    }
-                }
-            }
+
             
             // 统计已完成的Bug数
             List<Bug> bugs = bugService.findall();
@@ -762,48 +735,11 @@ public class DashboardController {
             // 获取指定年份
             int targetYear = Integer.parseInt(year);
             
-            // 统计需求数据
-            Iterable<Requirement> requirements = requirementService.findAll();
-            Calendar cal = Calendar.getInstance();
-            for (Requirement requirement : requirements) {
-                if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已完成
-                    if (requirement.getCreated_at() != null) {
-                        // 尝试解析created_at字段
-                        try {
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            Date date = sdf.parse(requirement.getCreated_at());
-                            cal.setTime(date);
-                            if (cal.get(Calendar.YEAR) == targetYear) {
-                                // 按需求规模统计
-                                if (requirement.getPriority() != null) {
-                                    switch (requirement.getPriority()) {
-                                        case 1: // 小型需求
-                                            smallDemandCount++;
-                                            break;
-                                        case 2: // 中型需求
-                                            mediumDemandCount++;
-                                            break;
-                                        case 3: // 大型需求
-                                            largeDemandCount++;
-                                            break;
-                                    }
-                                }
-                                
-                                // 按季度统计
-                                int quarter = (cal.get(Calendar.MONTH) / 3) + 1;
-                                if (quarter >= 1 && quarter <= 4) {
-                                    quarterlyDemandCount[quarter - 1]++;
-                                }
-                            }
-                        } catch (Exception e) {
-                            // 解析失败，跳过
-                        }
-                    }
-                }
-            }
+
             
             // 统计Bug修复数据
             List<Bug> bugs = bugService.findall();
+            Calendar cal = Calendar.getInstance();
             for (Bug bug : bugs) {
                 if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
                     if (bug.getResolved_at() != null) {
@@ -826,16 +762,7 @@ public class DashboardController {
                 }
             }
             
-            // 构建需求规模列表
-            demandSizeList.add(Map.of("name", "小型需求", "count", smallDemandCount));
-            demandSizeList.add(Map.of("name", "中型需求", "count", mediumDemandCount));
-            demandSizeList.add(Map.of("name", "大型需求", "count", largeDemandCount));
-            
-            // 构建季度需求列表
-            demandCountList.add(Map.of("name", "第一季度", "count", quarterlyDemandCount[0]));
-            demandCountList.add(Map.of("name", "第二季度", "count", quarterlyDemandCount[1]));
-            demandCountList.add(Map.of("name", "第三季度", "count", quarterlyDemandCount[2]));
-            demandCountList.add(Map.of("name", "第四季度", "count", quarterlyDemandCount[3]));
+
             
             // 构建季度Bug修复列表
             repairBugList.add(Map.of("name", "第一季度", "count", quarterlyBugCount[0]));
@@ -843,8 +770,7 @@ public class DashboardController {
             repairBugList.add(Map.of("name", "第三季度", "count", quarterlyBugCount[2]));
             repairBugList.add(Map.of("name", "第四季度", "count", quarterlyBugCount[3]));
             
-            statistics.put("demandSizeList", demandSizeList);
-            statistics.put("demandCountList", demandCountList);
+
             statistics.put("repairBugList", repairBugList);
             
             return Result.success(statistics);
@@ -1051,30 +977,7 @@ public class DashboardController {
                 detail.put("workTimeConsumed", (int) workTimeConsumed);
                 detail.put("workTimeRemaining", (int) workTimeRemaining);
                 
-                // 2. 计算需求相关数据
-                int needTotal = 0; // 总需求数
-                int needFinished = 0; // 已完成
-                int needUnclosed = 0; // 未关闭
-                
-                List<Requirement> requirements = (List<Requirement>) requirementService.findAll();
-                for (Requirement req : requirements) {
-                    if (req.getProject_id() != null && req.getProject_id().equals(projectId.intValue())) {
-                        needTotal++;
-                        if (req.getStatus() != null) {
-                            if (req.getStatus() == 2) { // 假设2表示已完成
-                                needFinished++;
-                            } else if (req.getStatus() != 2) { // 未关闭
-                                needUnclosed++;
-                            }
-                        } else {
-                            needUnclosed++;
-                        }
-                    }
-                }
-                
-                detail.put("needTotal", needTotal);
-                detail.put("needFinished", needFinished);
-                detail.put("needUnclosed", needUnclosed);
+
                 
                 // 3. 计算任务相关数据
                 int taskTotal = 0; // 总任务数
@@ -1131,9 +1034,6 @@ public class DashboardController {
                 detail.put("workTimeTotal", 0);
                 detail.put("workTimeConsumed", 0);
                 detail.put("workTimeRemaining", 0);
-                detail.put("needTotal", 0);
-                detail.put("needFinished", 0);
-                detail.put("needUnclosed", 0);
                 detail.put("taskTotal", 0);
                 detail.put("taskNotStarted", 0);
                 detail.put("taskInProgress", 0);
@@ -1313,36 +1213,9 @@ public class DashboardController {
                 }
             }
             
-            // 5. 获取研发需求数
-            int needsState = 0;
-            Iterable<Requirement> requirements = requirementService.findAll();
-            for (Requirement requirement : requirements) {
-                // 如果是产品经理，显示所有研发需求
-                if (isProductManager) {
-                    if (requirement.getType() != null && requirement.getType() == 1) {
-                        needsState++;
-                    }
-                } else {
-                    // 否则只显示当前用户所在团队的研发需求
-                    // 这里需要根据实际的团队关系来判断，暂时简化处理
-                    needsState++;
-                }
-            }
+
             
-            // 6. 获取用户需求数
-            int userState = 0;
-            for (Requirement requirement : requirements) {
-                // 如果是产品经理，显示所有用户需求
-                if (isProductManager) {
-                    if (requirement.getType() != null && requirement.getType() == 2) {
-                        userState++;
-                    }
-                } else {
-                    // 否则只显示当前用户所在团队的用户需求
-                    // 这里需要根据实际的团队关系来判断，暂时简化处理
-                    userState++;
-                }
-            }
+
             
             // 7. 获取文档数（暂时模拟）
             int passageState = 0;
@@ -1355,8 +1228,6 @@ public class DashboardController {
             statistics.put("approveState", approveState);
             statistics.put("taskState", taskState);
             statistics.put("bugState", bugState);
-            statistics.put("needsState", needsState);
-            statistics.put("userState", userState);
             statistics.put("passageState", passageState);
             
             return Result.success(statistics);
@@ -1402,13 +1273,32 @@ public class DashboardController {
             
             // 如果指定了产品名称，返回该产品的统计数据
             if (productName != null && !productName.isEmpty()) {
-                // 查找对应的产品
+                // 首先尝试查找对应的产品
                 Product targetProduct = null;
                 Iterable<Product> products = productService.findAll();
                 for (Product product : products) {
                     if (product.getName().equals(productName)) {
                         targetProduct = product;
                         break;
+                    }
+                }
+                
+                // 如果没有找到产品，尝试根据项目名称找到对应的产品
+                if (targetProduct == null) {
+                    Iterable<Project> projects = projectService.findAll();
+                    for (Project project : projects) {
+                        if (project.getName().equals(productName)) {
+                            if (project.getProduct_id() != null) {
+                                // 根据产品ID查找产品
+                                for (Product product : products) {
+                                    if (product.getId().equals(project.getProduct_id())) {
+                                        targetProduct = product;
+                                        break;
+                                    }
+                                }
+                            }
+                            break;
+                        }
                     }
                 }
                 
@@ -1421,91 +1311,6 @@ public class DashboardController {
                             productProjects.add(project);
                         }
                     }
-                    
-                    // 查找这些项目下的所有需求
-                    if (!productProjects.isEmpty()) {
-                        // 从数据库中获取需求数据
-                        Iterable<Requirement> requirements = requirementService.findAll();
-                        for (Requirement requirement : requirements) {
-                            // 检查需求是否属于该产品的项目
-                            for (Project project : productProjects) {
-                                if (requirement.getProject_id() != null && requirement.getProject_id().equals(project.getId().intValue())) {
-                                    validNeeds++;
-                                    
-                                    // 检查需求状态
-                                    if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已交付
-                                        deliveredNeeds++;
-                                    } else {
-                                        unclosedNeeds++;
-                                    }
-                                    
-                                    // 检查是否是本月的需求
-                                    if (requirement.getCreated_at() != null) {
-                                        // 解析创建时间
-                                        try {
-                                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                                            java.util.Date createdDate = sdf.parse(requirement.getCreated_at());
-                                            Calendar createdCal = Calendar.getInstance();
-                                            createdCal.setTime(createdDate);
-                                            int createdYear = createdCal.get(Calendar.YEAR);
-                                            int createdMonth = createdCal.get(Calendar.MONTH) + 1;
-                                            
-                                            // 检查是否是本月新增
-                                            if (createdYear == currentYear && createdMonth == currentMonth) {
-                                                monthAdd++;
-                                            }
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                    
-                                    // 检查是否是本月完成
-                                    // 这里假设需求的完成时间存储在某个字段中
-                                    // 由于Requirement实体类中没有完成时间字段，暂时跳过
-                                    
-                                    break; // 找到对应的项目后，跳出内层循环
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // 如果没有指定产品名称，返回所有产品的统计数据
-                // 从数据库中获取所有需求数据
-                Iterable<Requirement> requirements = requirementService.findAll();
-                for (Requirement requirement : requirements) {
-                    validNeeds++;
-                    
-                    // 检查需求状态
-                    if (requirement.getStatus() != null && requirement.getStatus() == 2) { // 假设2表示已交付
-                        deliveredNeeds++;
-                    } else {
-                        unclosedNeeds++;
-                    }
-                    
-                    // 检查是否是本月的需求
-                    if (requirement.getCreated_at() != null) {
-                        // 解析创建时间
-                        try {
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            java.util.Date createdDate = sdf.parse(requirement.getCreated_at());
-                            Calendar createdCal = Calendar.getInstance();
-                            createdCal.setTime(createdDate);
-                            int createdYear = createdCal.get(Calendar.YEAR);
-                            int createdMonth = createdCal.get(Calendar.MONTH) + 1;
-                            
-                            // 检查是否是本月新增
-                            if (createdYear == currentYear && createdMonth == currentMonth) {
-                                monthAdd++;
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    
-                    // 检查是否是本月完成
-                    // 这里假设需求的完成时间存储在某个字段中
-                    // 由于Requirement实体类中没有完成时间字段，暂时跳过
                 }
             }
             
@@ -1514,18 +1319,130 @@ public class DashboardController {
                 deliveryRate = (double) deliveredNeeds / validNeeds * 100;
             }
             
-            // 设置统计数据
-            statistics.put("deliveryRate", Math.round(deliveryRate));
-            statistics.put("validNeeds", validNeeds);
-            statistics.put("deliveredNeeds", deliveredNeeds);
-            statistics.put("unclosedNeeds", unclosedNeeds);
-            statistics.put("monthFinish", monthFinish);
-            statistics.put("monthAdd", monthAdd);
-            
             return Result.success(statistics);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取未关闭产品统计数据失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取项目详细信息", description = "返回项目详细信息，包括开始时间、所属产品、团队成员及其职位等")
+    @GetMapping("/project-info")
+    public Result getProjectInfo(@RequestParam String projectName) {
+        try {
+            // 从数据库获取项目详细信息
+            Map<String, Object> projectInfo = new HashMap<>();
+            
+            // 根据项目名称查找项目
+            Project project = null;
+            Iterable<Project> projects = projectService.findAll();
+            for (Project p : projects) {
+                if (projectName.equals(p.getName())) {
+                    project = p;
+                    break;
+                }
+            }
+            
+            if (project != null) {
+                // 项目基本信息
+                projectInfo.put("projectName", project.getName());
+                projectInfo.put("startTime", project.getStart_date() != null ? project.getStart_date().toString() : "");
+                projectInfo.put("finishTime", project.getEnd_date() != null ? project.getEnd_date().toString() : "");
+                
+                // 计算剩余时间
+                if (project.getEnd_date() != null) {
+                    Calendar cal = Calendar.getInstance();
+                    Date today = cal.getTime();
+                    long diff = project.getEnd_date().getTime() - today.getTime();
+                    long days = diff / (1000 * 60 * 60 * 24);
+                    projectInfo.put("remainingTime", days + "天");
+                } else {
+                    projectInfo.put("remainingTime", "未知");
+                }
+                
+                // 项目风险（暂时设置为0，实际项目中应该从数据库获取）
+                projectInfo.put("risk", 0);
+                
+                // 所属产品
+                if (project.getProduct_id() != null) {
+                    Iterable<Product> products = productService.findAll();
+                    for (Product product : products) {
+                        if (product.getId().equals(project.getProduct_id())) {
+                            projectInfo.put("productName", product.getName());
+                            break;
+                        }
+                    }
+                } else {
+                    projectInfo.put("productName", "未知");
+                }
+                
+                // 项目状态
+                String status = "未知";
+                if (project.getStatus() != null) {
+                    switch (project.getStatus()) {
+                        case 0: status = "未开始"; break;
+                        case 1: status = "进行中"; break;
+                        case 2: status = "已完成"; break;
+                    }
+                }
+                projectInfo.put("projectStatus", status);
+                
+                // 项目进度
+                projectInfo.put("projectProgress", project.getProgress() != null ? project.getProgress() + "%" : "0%");
+                
+                // 项目经理
+                if (project.getManager_id() != null) {
+                    Iterable<User> users = userService.findAll();
+                    for (User user : users) {
+                        if (user.getUsername() != null && user.getUsername().equals(project.getManager_id().toString())) {
+                            projectInfo.put("projectManager", user.getName() != null ? user.getName() : user.getUsername());
+                            break;
+                        }
+                    }
+                } else {
+                    projectInfo.put("projectManager", "未知");
+                }
+                
+                // 团队成员及其职位（暂时模拟数据，实际项目中应该从数据库获取）
+                List<Map<String, String>> teamMembers = new ArrayList<>();
+                teamMembers.add(Map.of("name", "张三", "position", "项目经理"));
+                teamMembers.add(Map.of("name", "李四", "position", "开发工程师"));
+                teamMembers.add(Map.of("name", "王五", "position", "测试工程师"));
+                projectInfo.put("teamMembers", teamMembers);
+                
+                // 项目详情
+                projectInfo.put("description", "这是一个详细的项目描述，包含项目的目标、范围、功能等信息。");
+                
+                // 项目目标
+            List<String> projectGoals = new ArrayList<>();
+            projectGoals.add("完成智慧教室系统的开发");
+            projectGoals.add("实现智慧云盘功能");
+            projectGoals.add("确保系统稳定运行");
+            projectInfo.put("projectGoals", projectGoals);
+            
+            // 团队名称
+            projectInfo.put("teamName", "智慧教室开发团队");
+            } else {
+                // 如果没有找到项目，返回默认数据
+                projectInfo.put("projectName", "暂无项目");
+                projectInfo.put("startTime", "");
+                projectInfo.put("finishTime", "");
+                projectInfo.put("remainingTime", "");
+                projectInfo.put("risk", 0);
+                projectInfo.put("productName", "");
+                projectInfo.put("projectStatus", "");
+                projectInfo.put("projectProgress", "");
+                projectInfo.put("projectManager", "");
+                projectInfo.put("teamMembers", new ArrayList<>());
+            projectInfo.put("description", "");
+            projectInfo.put("projectGoals", new ArrayList<>());
+            projectInfo.put("teamName", "");
+            }
+            
+            return Result.success(projectInfo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目详细信息失败: " + e.getMessage());
         }
     }
 }

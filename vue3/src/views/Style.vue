@@ -1,6 +1,6 @@
-<temple>
+<template>
 
-</temple>
+</template>
 
 <script setup>
 

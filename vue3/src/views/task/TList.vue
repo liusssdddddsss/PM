@@ -10,14 +10,24 @@
         {{tab.name}}
         <span class="count">{{tab.count}}</span>
       </span>
-      <div class="addProduct">
-        <el-button class="button" @click="goToAddForm">
-          添加任务
-        </el-button>
+      <div class="search-add-container">
+        <div class="search-box">
+          <el-input
+              v-model="searchQuery"
+              placeholder="搜索任务名称"
+              size="small"
+              class="search-input"
+          />
+        </div>
+        <div class="addProduct">
+          <el-button class="button" @click="goToAddForm">
+            添加任务
+          </el-button>
+        </div>
       </div>
     </div>
     <div class="list">
-      <TaskList v-if="activeTab==='all'"/>
+      <TaskList v-if="activeTab==='all'" :search-query="searchQuery"/>
     </div>
   </div>
 </template>
@@ -35,6 +45,7 @@ const tabs = ref([
   {name:'我指派的',type:'meZhiPai'},
 ]);
 const activeTab=ref('all');
+const searchQuery=ref('');
 
 const router =useRouter();
 const goToEdit = () => {
@@ -91,13 +102,28 @@ const handleTabClick = (type) => {
   font-size: 12px;
   color: #909399;
 }
-.addProduct{
+.search-add-container {
   display: inline-block;
   float: right;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-box {
+  margin-right: 10px;
+}
+
+.search-input {
+  width: 200px;
+}
+
+.addProduct{
+  display: inline-block;
 }
 .button{
   background-color: #238EFF;
   color: #fff;
-  margin-left: 10px;
+  margin-left: 0;
 }
 </style>

@@ -16,25 +16,36 @@ export default defineConfig({
     },
   },
   server: {
+    port: 3000,
     https: false,
     proxy: {
       '/workbench': {
-        target: 'http://localhost:9091',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
       },
       '/admin': {
-        target: 'http://localhost:9091',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
       },
       '/iteration': {
-        target: 'http://localhost:9091',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
       },
       '/team': {
-        target: 'http://localhost:9091',
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/dashboard': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api': {
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
       }

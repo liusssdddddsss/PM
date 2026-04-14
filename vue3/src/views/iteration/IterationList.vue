@@ -11,10 +11,20 @@
         {{tab.name}}
         <span class="count">{{tab.count}}</span>
       </span>
-      <div class="addIteration">
-        <el-button class="button" @click="goToAddIteration">
-          添加迭代
-        </el-button>
+      <div class="search-add-container">
+        <div class="search-box">
+          <el-input
+              v-model="searchQuery"
+              placeholder="搜索迭代名称"
+              size="small"
+              class="search-input"
+          />
+        </div>
+        <div class="addIteration">
+          <el-button class="button" @click="goToAddIteration">
+            添加迭代
+          </el-button>
+        </div>
       </div>
     </div>
     <div class="list">
@@ -82,6 +92,7 @@ const tabs = ref([
   {name:'已关闭',type:'close'},
 ]);
 const activeTab=ref('all');
+const searchQuery=ref('');
 const iterations = ref([]);
 
 const router =useRouter();
@@ -125,18 +136,29 @@ onMounted(() => {
   fetchIterations();
 });
 
-// 根据当前标签过滤数据
+// 根据当前标签和搜索词过滤数据
 const filteredData = computed(() => {
-  if (activeTab.value === 'all') {
-    return iterations.value;
-  } else if (activeTab.value === 'ing') {
-    return iterations.value.filter(item => item.status === 1);
+  let result = iterations.value;
+  
+  // 首先根据标签过滤
+  if (activeTab.value === 'ing') {
+    result = result.filter(item => item.status === 1);
   } else if (activeTab.value === 'noBegin') {
-    return iterations.value.filter(item => item.status === 0);
+    result = result.filter(item => item.status === 0);
   } else if (activeTab.value === 'close') {
-    return iterations.value.filter(item => item.status === 2);
+    result = result.filter(item => item.status === 2);
   }
-  return iterations.value;
+  
+  // 然后根据搜索词过滤
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.projectName.toLowerCase().includes(query)
+    );
+  }
+  
+  return result;
 });
 
 // 获取状态文本
@@ -243,14 +265,29 @@ const handleDelete = async (id) => {
   font-size: 12px;
   color: #909399;
 }
-.addIteration{
+.search-add-container {
   display: inline-block;
   float: right;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-box {
+  margin-right: 10px;
+}
+
+.search-input {
+  width: 200px;
+}
+
+.addIteration{
+  display: inline-block;
 }
 .button{
   background-color: #238EFF;
   color: #fff;
-  margin-left: 10px;
+  margin-left: 0;
 }
 
 .IterationTable {

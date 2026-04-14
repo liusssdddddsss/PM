@@ -4,6 +4,7 @@ import com.example.springboot.common.Result;
 import com.example.springboot.entity.Admin;
 import com.example.springboot.entity.LoginLog;
 import com.example.springboot.entity.User;
+import com.example.springboot.repository.AdminRepository;
 import com.example.springboot.repository.LoginLogRepository;
 import com.example.springboot.repository.UserRepository;
 import com.example.springboot.service.AdminService;
@@ -12,12 +13,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 
 import java.util.Date;
 import java.util.List;
@@ -35,6 +44,12 @@ public class AdminController {
     
     @Resource
     UserRepository userRepository;
+    
+    @Resource
+    AdminRepository adminRepository;
+    
+    @Value("${file.upload-dir}")
+    private String uploadDir;   // 从配置文件读取上传根目录
 
 //    查询所有的数据
     @Operation(summary = "查询所有管理员",description = "返回管理员列表")
@@ -78,7 +93,7 @@ public class AdminController {
             // 记录登录日志
             LoginLog loginLog = new LoginLog();
             if (admin != null) {
-                loginLog.setUser_id(admin.getUsername());
+                loginLog.setUser_id(admin.getUsername().toString());
                 loginLog.setStatus(1); // 1表示成功
                 System.out.println("登录成功，记录日志，用户: " + admin.getUsername());
             } else {
@@ -225,6 +240,95 @@ public class AdminController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("批量加密失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "上传头像", description = "上传用户头像并更新用户信息")
+    @PostMapping("/upload-avatar")
+    public Result uploadAvatar(@RequestParam("file") MultipartFile file, @RequestParam("username") String username) {
+        // 1. 基础校验
+        if (file == null || file.isEmpty()) {
+            return Result.error("上传文件不能为空");
+        }
+
+        // 2. 安全的数字转换
+        Long usernameLong;
+        try {
+            usernameLong = Long.parseLong(username.trim());
+        } catch (NumberFormatException e) {
+            return Result.error("用户名格式错误，必须为纯数字");
+        }
+
+        // 3. 限制文件类型为图片
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return Result.error("只允许上传图片文件");
+        }
+
+        // 4. 获取文件原始后缀
+        String originalFilename = file.getOriginalFilename();
+        String suffix = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        } else {
+            suffix = ".png"; // 默认
+        }
+
+        // 5. 生成唯一文件名（使用UUID保证不重名）
+        String fileName = UUID.randomUUID().toString() + suffix;
+
+        // 6. 构建保存路径：./uploads/avatar/文件名
+        Path avatarDir = Paths.get(uploadDir, "avatar");
+        try {
+            if (!Files.exists(avatarDir)) {
+                Files.createDirectories(avatarDir);  // 创建多级目录
+            }
+
+            Path filePath = avatarDir.resolve(fileName);
+            // 保存文件到磁盘
+            file.transferTo(filePath.toFile());
+
+            // 7. 生成访问URL
+            String avatarUrl = "/uploads/avatar/" + fileName;
+
+            // 8. 更新数据库
+            Admin admin = adminRepository.findByUsername(usernameLong);
+            if (admin != null) {
+                admin.setAvatar(avatarUrl);   // 存储路径，不是Base64
+                adminRepository.save(admin);
+                System.out.println("用户 " + username + " 的头像更新成功，路径: " + avatarUrl);
+                return Result.success(avatarUrl);
+            } else {
+                return Result.error("用户不存在");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Result.error("文件保存失败: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("系统内部错误: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取用户头像", description = "根据用户名获取用户头像")
+    @GetMapping("/avatar")
+    public Result getAvatar(@RequestParam("username") String username) {
+        try {
+            try {
+                Long usernameLong = Long.parseLong(username);
+                Admin admin = adminRepository.findByUsername(usernameLong);
+                if (admin != null && admin.getAvatar() != null) {
+                    return Result.success(admin.getAvatar());
+                } else {
+                    return Result.success("https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png");
+                }
+            } catch (NumberFormatException e) {
+                return Result.error("用户名格式错误");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取头像失败: " + e.getMessage());
         }
     }
 }

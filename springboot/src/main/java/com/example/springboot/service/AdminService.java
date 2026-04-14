@@ -26,7 +26,17 @@ public class AdminService {
     public Admin login(String username, String password) throws Exception {
         try {
             System.out.println("登录请求，用户名: " + username);
-            Admin admin = adminRepository.findByUsername(username);
+            
+            // 将用户名从String转换为Long
+            Long usernameLong = null;
+            try {
+                usernameLong = Long.parseLong(username);
+            } catch (NumberFormatException e) {
+                System.out.println("用户名格式错误: " + e.getMessage());
+                throw new Exception("用户名格式错误");
+            }
+            
+            Admin admin = adminRepository.findByUsername(usernameLong);
             System.out.println("Admin查询结果: " + (admin != null ? "存在" : "不存在"));
             
             if (admin != null) {

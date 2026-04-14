@@ -7,58 +7,14 @@
           <p>
             {{currentTime}}
           </p>
-          <p>
-            昨日您处理任务和Bug
-            <span>{{bug}}</span>
-            次
-          </p>
+<!--          <p>-->
+<!--            昨日您处理任务和Bug-->
+<!--            <span>{{bug}}</span>-->
+<!--            次-->
+<!--          </p>-->
           <div class="state">
-            <div class="label">
-              <div class="user-avatar">
-                <img src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" alt="头像" class="avatar">
-              </div>
-              <p>
-                {{name}}，上午好
-              </p>
-            </div>
-            <div class="tasks">
-              <div class="approve">
-                <p class="tasks-shu">
-                  {{approveState}}
-                </p>
-                <span>待我审批数</span>
-              </div>
-              <div class="task">
-                <p class="tasks-shu">
-                  {{taskState}}
-                </p>
-                <span>任务数</span>
-              </div>
-              <div class="bugs">
-                <p class="tasks-shu">
-                  {{bugState}}
-                </p>
-                <span>BUG数</span>
-              </div>
-              <div class="needs">
-                <p class="tasks-shu">
-                  {{needsState}}
-                </p>
-                <span>研发需求数</span>
-              </div>
-              <div class="users">
-                <p class="tasks-shu">
-                  {{userState}}
-                </p>
-                <span>用户需求数</span>
-              </div>
-              <div class="passages">
-                <p class="tasks-shu">
-                  {{passageState}}
-                </p>
-                <span>文档数</span>
-              </div>
-            </div>
+            <div class="label">              <div class="user-avatar" @click="triggerFileInput">                <img :src="userAvatar" alt="头像" class="avatar">                <input type="file" ref="fileInput" accept="image/*" @change="handleFileChange" style="display: none;">              </div>              <p>                {{name}}，上午好              </p>            </div>
+            <div class="tasks">              <div class="approve">                <p class="tasks-shu">                  {{projectCount}}                </p>                <span>产品总数</span>              </div>              <div class="task">                <p class="tasks-shu">                  {{xiangMuCount}}                </p>                <span>项目总数</span>              </div>              <div class="bugs">                <p class="tasks-shu">                  {{taskAllCount}}                </p>                <span>任务总数</span>              </div>              <div class="needs">                <p class="tasks-shu">                  {{bugState}}                </p>                <span>Bug数</span>              </div>              <div class="users">                <p class="tasks-shu">                  {{approveState}}                </p>                <span>待审批数</span>              </div>            </div>
           </div>
         </div>
       </el-card>
@@ -73,7 +29,7 @@
                 :key="item.id"
                 class="project-item"
             >
-              <div class="project-card">
+              <div class="project-card" @click="handleProjectCardClick(item.projectName)">
                 <div class="project-header">
                   <h3 class="project-title">{{item.projectName}}</h3>
                   <div class="project-arrow">
@@ -103,6 +59,7 @@
               :key="index" 
               :class="['tab-item', { active: activeTab === index }]"
               @click="activeTab = index"
+              v-if="index !== 2 && index !== 3"
             >
               {{ item.name }}
               <el-icon v-if="item.hasArrow" class="arrow-icon"><ArrowUp /></el-icon>
@@ -114,9 +71,7 @@
         <main class="content-area">
           <ApproveList v-if="activeTab === 0"/>
           <TaskList v-if="activeTab === 1"/>
-          <ResearchList v-if="activeTab === 2"/>
-          <UserNeedList v-if="activeTab === 3"/>
-          <BugList v-if="activeTab === 4"/>
+          <BugList v-if="activeTab === 2"/>
         </main>
       </el-card>
 
@@ -124,126 +79,215 @@
       <el-card style="max-width: 98%;margin-top: 10px">
         <h3 style="margin-bottom: 15px">未完成的项目列表</h3>
         <div class="unfinish-project">
-          <NoFinishList/>
+          <NoFinishList @project-click="handleUnfinishedProjectClick"/>
         </div>
       </el-card>
 
-<!--      项目统计-->
-      <el-card style="max-width: 98%;margin-top: 10px" :body-style="{ padding: '15px' }">
-        <h3 style="margin-bottom: 5px">项目统计</h3>
-        <div class="project-statistics">
-          <div class="project-list-container">
-            <ProjectList @project-click="handleProjectClick"/>
-          </div>
-          <div class="project-statistics-task">
-            <div class="project-header-info">
-              <div class="project-name">{{ projectDetail.projectName || '暂无项目' }}</div>
-              <div class="project-meta">
-                <span class="finish-time">预计完成时间: {{ formatDate(projectDetail.finishTime) || '—' }}</span>
-                <span class="risk-count">存在风险 <span class="risk-number">0</span></span>
-                <span class="problem-count">存在问题 <span class="problem-number">0</span></span>
+<!-- 统计弹窗 -->
+      <el-dialog
+        v-model="dialogVisible"
+        title="项目统计"
+        width="70%"
+        :close-on-click-modal="false"
+      >
+        <div class="dialog-content">
+          <!-- 项目统计 -->
+          <div class="project-statistics">
+            <h3 style="margin-bottom: 15px">项目统计</h3>
+            <div class="project-statistics-task">
+              <div class="project-header-info">
+                <div class="project-name">{{ projectDetail.projectName || '暂无项目' }}</div>
+                <div class="project-meta">
+                  <span class="finish-time">预计完成时间: {{ formatDate(projectDetail.finishTime) || '—' }}</span>
+                  <span class="risk-count">存在风险 <span class="risk-number">0</span></span>
+                  <span class="problem-count">存在问题 <span class="problem-number">0</span></span>
+                </div>
               </div>
-            </div>
-            <div class="project-statistics-task-kuai">
-              <el-row :gutter="15">
-                <el-col :span="5" class="stat-card">
-                  <div class="stat-card-header">投入</div>
-                  <div class="stat-card-content">
-                    <div class="stat-item">已投入工时 <span class="stat-value">{{ projectDetail.workTimeTotal || 0 }}h</span></div>
-                    <div class="stat-item">消耗工时 <span class="stat-value">{{ projectDetail.workTimeConsumed || 0 }}h</span></div>
-                    <div class="stat-item">预计剩余 <span class="stat-value">{{ projectDetail.workTimeRemaining || 0 }}h</span></div>
-                  </div>
-                </el-col>
-                <el-col :span="5" class="stat-card">
-                  <div class="stat-card-header">需求</div>
-                  <div class="stat-card-content">
-                    <div class="stat-item">总需求数 <span class="stat-value">{{ projectDetail.needTotal || 0 }}个</span></div>
-                    <div class="stat-item">已完成 <span class="stat-value">{{ projectDetail.needFinished || 0 }}个</span></div>
-                    <div class="stat-item">未关闭 <span class="stat-value">{{ projectDetail.needUnclosed || 0 }}个</span></div>
-                  </div>
-                </el-col>
-                <el-col :span="5" class="stat-card">
-                  <div class="stat-card-header">任务</div>
-                  <div class="stat-card-content">
-                    <div class="stat-item">总任务数 <span class="stat-value">{{ projectDetail.taskTotal || 0 }}个</span></div>
-                    <div class="stat-item">未开始 <span class="stat-value">{{ projectDetail.taskNotStarted || 0 }}个</span></div>
-                    <div class="stat-item">进行中 <span class="stat-value">{{ projectDetail.taskInProgress || 0 }}个</span></div>
-                  </div>
-                </el-col>
-                <el-col :span="5" class="stat-card">
-                  <div class="stat-card-header">Bug</div>
-                  <div class="stat-card-content">
-                    <div class="stat-item">总Bug数 <span class="stat-value">{{ projectDetail.bugTotal || 0 }}个</span></div>
-                    <div class="stat-item">已关闭 <span class="stat-value">{{ projectDetail.bugClosed || 0 }}个</span></div>
-                    <div class="stat-item">未关闭 <span class="stat-value">{{ projectDetail.bugUnclosed || 0 }}个</span></div>
-                  </div>
-                </el-col>
-              </el-row>
-            </div>
-          </div>
-        </div>
-      </el-card>
+              <div class="project-statistics-task-kuai">
+                <el-row :gutter="15">
+                  <el-col :span="5" class="stat-card">
+                    <div class="stat-card-header">投入</div>
+                    <div class="stat-card-content">
+                      <div class="stat-item">已投入工时 <span class="stat-value">{{ projectDetail.workTimeTotal || 0 }}h</span></div>
+                      <div class="stat-item">消耗工时 <span class="stat-value">{{ projectDetail.workTimeConsumed || 0 }}h</span></div>
+                      <div class="stat-item">预计剩余 <span class="stat-value">{{ projectDetail.workTimeRemaining || 0 }}h</span></div>
+                    </div>
+                  </el-col>
 
-<!--      未关闭的产品统计-->
-      <el-card style="max-width: 98%;margin-top: 10px" :body-style="{ padding: '15px' }">
-        <h3 style="margin-bottom: 5px">未关闭的产品统计</h3>
-        <div class="product-statistics">
-          <div class="product-list-container">
-            <ul class="project-list">
-<!--              <li -->
-<!--                :class="{ active: activeProductIndex === -1 }"-->
-<!--                @click="handleProductClick(-1, '全部产品')"-->
-<!--              >-->
-<!--                全部产品-->
-<!--              </li>-->
-              <li 
-                v-for="(product, index) in productStatistics.productList" 
-                :key="product.id"
-                :class="{ active: activeProductIndex === index }"
-                @click="handleProductClick(index, product.name)"
-              >
-                {{ product.name }}
-              </li>
-            </ul>
+                  <el-col :span="5" class="stat-card">
+                    <div class="stat-card-header">任务</div>
+                    <div class="stat-card-content">
+                      <div class="stat-item">总任务数 <span class="stat-value">{{ projectDetail.taskTotal || 0 }}个</span></div>
+                      <div class="stat-item">未开始 <span class="stat-value">{{ projectDetail.taskNotStarted || 0 }}个</span></div>
+                      <div class="stat-item">进行中 <span class="stat-value">{{ projectDetail.taskInProgress || 0 }}个</span></div>
+                    </div>
+                  </el-col>
+                  <el-col :span="5" class="stat-card">
+                    <div class="stat-card-header">Bug</div>
+                    <div class="stat-card-content">
+                      <div class="stat-item">总Bug数 <span class="stat-value">{{ projectDetail.bugTotal || 0 }}个</span></div>
+                      <div class="stat-item">已关闭 <span class="stat-value">{{ projectDetail.bugClosed || 0 }}个</span></div>
+                      <div class="stat-item">未关闭 <span class="stat-value">{{ projectDetail.bugUnclosed || 0 }}个</span></div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
           </div>
-          <div class="product-statistics-content">
-            <div class="delivery-rate">
-              <h4>需求交付率</h4>
-              <el-progress type="circle" :percentage="productStatistics.deliveryRate || 0" />
-              <div class="delivery-stats">
-                <span>有效需求 <span class="stat-number">{{ productStatistics.validNeeds || 0 }}</span></span>
-                <span>已交付 <span class="stat-number">{{ productStatistics.deliveredNeeds || 0 }}</span></span>
-                <span>未关闭 <span class="stat-number">{{ productStatistics.unclosedNeeds || 0 }}</span></span>
-              </div>
+          </div>
+        </div>
+      </el-dialog>
+
+      <!-- 项目详情弹窗 -->
+      <el-dialog
+        v-model="projectDetailDialogVisible"
+        title="项目详情"
+        width="70%"
+        :close-on-click-modal="false"
+      >
+        <div class="project-detail-content">
+          <div class="project-detail-header">
+            <h3 class="project-detail-name" @click="goToProjectModule">{{ currentProjectDetail.projectName || '暂无项目' }}</h3>
+            <div class="project-detail-meta">
+              <span class="start-time">开始时间: {{ formatDate(currentProjectDetail.startTime) || '—' }}</span>
+              <span class="finish-time">预计完成时间: {{ formatDate(currentProjectDetail.finishTime) || '—' }}</span>
+              <span class="remaining-time">剩余时间: {{ currentProjectDetail.remainingTime || '—' }}</span>
             </div>
-            <div class="needs-statistics">
-              <h4>需求统计</h4>
-              <div class="monthly-stats">
-                <span>本月完成 <span class="stat-number">{{ productStatistics.monthFinish || 0 }}</span></span>
-                <span>本月新增 <span class="stat-number">{{ productStatistics.monthAdd || 0 }}</span></span>
-              </div>
-              <div ref="needsDom" style="width: 100%; height: 200px;"></div>
-            </div>
-            <div class="latest-progress">
-              <h4>产品最新推进</h4>
-              <div class="latest-task">
-                <p>最新任务</p>
-                <div class="task-item">
-                  <a class="task-name">班牌PC端管理界面调整</a>
-                  <span class="task-status">未开始</span>
+          </div>
+          
+          <div class="project-detail-body">
+            <!-- 项目基本信息 -->
+            <div class="project-basic-info">
+              <h4>项目基本信息</h4>
+              <div class="basic-info-grid">
+                <div class="info-item">
+                  <span class="info-label">项目经理:</span>
+                  <span class="info-value">{{ currentProjectDetail.projectManager || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">项目状态:</span>
+                  <span class="info-value">{{ currentProjectDetail.projectStatus || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">项目进度:</span>
+                  <span class="info-value">{{ currentProjectDetail.projectProgress || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">所属产品:</span>
+                  <span class="info-value">{{ currentProjectDetail.productName || '—' }}</span>
                 </div>
               </div>
-              <div class="latest-release">
-                <p>最新发布</p>
-                <div class="release-item">
-                  <a class="release-name">自动给学生推送实训档案</a>
-                  <span class="release-status">进行中</span>
+            </div>
+            
+            <!-- 团队成员 -->
+            <div class="project-team">
+              <h4 @click="goToTeamModule" style="cursor: pointer; color: #238EFF;">
+                所属团队：{{ currentProjectDetail.teamName || '未知团队' }}
+              </h4>
+              <div class="team-members">
+                <div 
+                  v-for="(member, index) in currentProjectDetail.teamMembers" 
+                  :key="index"
+                  class="team-member"
+                >
+                  <div class="member-name">{{ member.name || '未知' }}</div>
+                  <div class="member-position">{{ member.position || '未知职位' }}</div>
+                </div>
+                <span v-if="!currentProjectDetail.teamMembers || currentProjectDetail.teamMembers.length === 0" class="no-members">
+                  暂无团队成员
+                </span>
+              </div>
+            </div>
+            
+            <!-- 项目目标 -->
+            <div class="project-goals">
+              <h4>项目目标</h4>
+              <ul class="goal-list">
+                <li v-for="(goal, index) in currentProjectDetail.projectGoals" :key="index">
+                  {{ goal }}
+                </li>
+                <li v-if="!currentProjectDetail.projectGoals || currentProjectDetail.projectGoals.length === 0" class="no-goals">
+                  暂无项目目标
+                </li>
+              </ul>
+            </div>
+            
+            <!-- 项目详情 -->
+            <div class="project-info">
+              <h4>项目详情</h4>
+              <p class="project-description">{{ currentProjectDetail.description || '暂无项目详情' }}</p>
+            </div>
+          </div>
+        </div>
+      </el-dialog>
+
+      <!-- 团队完成情况弹窗 -->
+      <el-dialog
+        v-model="teamDialogVisible"
+        title="团队完成情况"
+        width="70%"
+        :close-on-click-modal="false"
+      >
+        <div class="team-dialog-content">
+          <div class="stats-grid">
+            <div class="icon">
+              <div class="kuai">
+                <div class="icon-container blue">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </div>
+                <div>
+                  <div>完成任务数量</div>
+                  昨日 <span class="number">{{yesterday.task}}</span> | 今日 <span class="number blue">{{today.task}}</span>
+                </div>
+              </div>
+              <div class="kuai">
+                <div class="icon-container green">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </div>
+                <div>
+                  <div>创建需求数量</div>
+                  昨日 <span class="number">{{yesterday.create}}</span> | 今日 <span class="number blue">{{today.create}}</span>
+                </div>
+              </div>
+              <div class="kuai">
+                <div class="icon-container orange">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 10C21.523 14.728 18.391 19 14 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3.985"></path><path d="M19 17v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"></path><path d="M12 3v4"></path><path d="M9 5h6"></path></svg>
+                </div>
+                <div>
+                  <div>提出Bug数量</div>
+                  昨日 <span class="number">{{yesterday.tiChu}}</span> | 今日 <span class="number blue">{{today.tiChu}}</span>
+                </div>
+              </div>
+              <div class="kuai">
+                <div class="icon-container red">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 10C21.523 14.728 18.391 19 14 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3.985"></path><path d="M19 17v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"></path><path d="M12 3v4"></path><path d="M9 5h6"></path></svg>
+                </div>
+                <div>
+                  <div>修改Bug数量</div>
+                  昨日 <span class="number">{{yesterday.bug}}</span> | 今日 <span class="number blue">{{today.bug}}</span>
+                </div>
+              </div>
+              <div class="kuai">
+                <div class="icon-container light-blue">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div>
+                  <div>总消耗工时/h</div>
+                  昨日 <span class="number">{{yesterday.clock}}</span> | 今日 <span class="number blue">{{today.clock}}</span>
+                </div>
+              </div>
+              <div class="kuai">
+                <div class="icon-container purple">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div>
+                  <div>平均消耗工时/h</div>
+                  昨日 <span class="number">{{yesterday.averageClock}}</span> | 今日 <span class="number blue">{{today.averageClock}}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </el-card>
+      </el-dialog>
     </div>
 
 
@@ -258,141 +302,9 @@
         </div>
       </el-card>
 
-<!--      团队完成情况-->
-      <el-card style="max-width: 98%;margin-top: 10px">
-        <h3>团队完成情况</h3>
-        <el-divider />
-        <div class="stats-grid">
-          <div class="icon">
-            <div class="kuai">
-              <div class="icon-container blue">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              </div>
-              <div>
-                <div>完成任务数量</div>
-                昨日 <span class="number">{{yesterday.task}}</span> | 今日 <span class="number blue">{{today.task}}</span>
-              </div>
-            </div>
-            <div class="kuai">
-              <div class="icon-container green">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </div>
-              <div>
-                <div>创建需求数量</div>
-                昨日 <span class="number">{{yesterday.create}}</span> | 今日 <span class="number blue">{{today.create}}</span>
-              </div>
-            </div>
-            <div class="kuai">
-              <div class="icon-container orange">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 10C21.523 14.728 18.391 19 14 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3.985"></path><path d="M19 17v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"></path><path d="M12 3v4"></path><path d="M9 5h6"></path></svg>
-              </div>
-              <div>
-                <div>提出Bug数量</div>
-                昨日 <span class="number">{{yesterday.tiChu}}</span> | 今日 <span class="number blue">{{today.tiChu}}</span>
-              </div>
-            </div>
-            <div class="kuai">
-              <div class="icon-container red">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 10C21.523 14.728 18.391 19 14 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3.985"></path><path d="M19 17v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"></path><path d="M12 3v4"></path><path d="M9 5h6"></path></svg>
-              </div>
-              <div>
-                <div>修改Bug数量</div>
-                昨日 <span class="number">{{yesterday.bug}}</span> | 今日 <span class="number blue">{{today.bug}}</span>
-              </div>
-            </div>
-            <div class="kuai">
-              <div class="icon-container light-blue">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              </div>
-              <div>
-                <div>总消耗工时/h</div>
-                昨日 <span class="number">{{yesterday.clock}}</span> | 今日 <span class="number blue">{{today.clock}}</span>
-              </div>
-            </div>
-            <div class="kuai">
-              <div class="icon-container purple">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              </div>
-              <div>
-                <div>平均消耗工时/h</div>
-                昨日 <span class="number">{{yesterday.averageClock}}</span> | 今日 <span class="number blue">{{today.averageClock}}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </el-card>
 
-<!--      产品总览-->
-      <el-card style="max-width: 98%;margin-top: 10px">
-        <div class="project-overview">
-          <h3>产品总览</h3>
-          <el-divider/>
-          <div>
-          <span>
-            <p>{{projectCount}}</p>
-            产品总数
-          </span>
-            <el-divider direction="vertical" />
-            <span>
-            <p>{{thisYearIssue}}</p>
-            今年发布
-          </span>
-            <el-divider direction="vertical" />
-            <span>
-            <p>{{closeCount}}</p>
-            关闭数量
-          </span>
-          </div>
-        </div>
-      </el-card>
 
-<!--      项目总览-->
-      <el-card style="max-width: 98%;margin-top: 10px">
-        <div class="project-overview">
-          <h3>项目总览</h3>
-          <el-divider/>
-          <div>
-            <span>
-              <p>{{xiangMuCount}}</p>
-              项目总数
-            </span>
-            <el-divider direction="vertical" />
-            <span>
-              <p>{{thisYearFinish}}</p>
-              今年完成
-            </span>
-            <el-divider direction="vertical" />
-            <span>
-              近三年完成的项目数量分布
-              <div ref="chartDom" style="width: 150px; height: 100px;"></div>
-            </span>
-          </div>
-        </div>
-      </el-card>
 
-<!--      任务完成总览-->
-      <el-card style="max-width: 98%;margin-top: 10px">
-        <div class="project-overview">
-          <h3>任务完成总览</h3>
-          <el-divider/>
-          <div>
-            <span>
-              <p>{{taskAllCount}}</p>
-              任务总数
-            </span>
-            <el-divider direction="vertical" />
-            <span>
-              <p>{{taskFinishCount}}</p>
-              完成数量
-            </span>
-            <el-divider direction="vertical" />
-            <span>
-              未关闭的任务分布
-              <div ref="taskDom" style="width: 150px; height: 100px;"></div>
-            </span>
-          </div>
-        </div>
-      </el-card>
 <!--      测试统计-->
       <el-card style="max-width: 98%;margin-top: 10px">
         <div class="measure">
@@ -479,7 +391,8 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from "vue";
+import {ref, onMounted, watch} from "vue";
+import { useRouter } from "vue-router";
 import ApproveList from '@/views/workbenchView/listView/ApproveList.vue';
 import TaskList from "@/views/workbenchView/listView/TaskList.vue";
 import ResearchList from "@/views/workbenchView/listView/ResearchList.vue";
@@ -494,13 +407,14 @@ import { useEcharts } from '@/utils/useEcharts.js';
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
 import request from "@/utils/request.js";
 
+// 初始化路由
+const router = useRouter();
+
 // 待处理标签
 const activeTab = ref(0);
 const tabs = ref([
   {name: '审批', hasArrow: true},
   {name: '任务', hasArrow: true},
-  {name: '研发需求', hasArrow: true},
-  {name: '用户需求', hasArrow: true},
   {name: 'BUG', hasArrow: true}
 ]);
 
@@ -518,6 +432,8 @@ const bugState = ref(0);
 const needsState = ref(0);
 const userState = ref(0);
 const passageState = ref(0);
+const userAvatar = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png');
+const fileInput = ref(null);
 
 //我参与的项目数
 const projectList = ref([]);
@@ -547,11 +463,15 @@ const fetchUserInfo = async (username) => {
     // 从后端获取管理员信息
     const response = await request.get('/admin/findAll');
     if (response.data.code === 200) {
-      // 找到当前登录用户的信息
-      const currentUser = response.data.data.find(user => user.username === username);
+      // 找到当前登录用户的信息（注意类型转换，后端是Long，前端是String）
+      const currentUser = response.data.data.find(user => String(user.username) === username);
       if (currentUser) {
         // 使用数据库中的name字段
         name.value = currentUser.name || currentUser.username || '用户';
+        // 如果用户有头像，使用用户的头像
+        if (currentUser.avatar) {
+          userAvatar.value = getAvatarUrl(currentUser.avatar);
+        }
       }
     }
   } catch (error) {
@@ -594,7 +514,12 @@ onMounted(async () => {
     // 先使用username作为默认值
     name.value = user.username || '用户';
     
-    // 从后端获取用户的真实姓名
+    // 如果本地存储中有头像，先显示本地存储的头像
+    if (user.avatar) {
+      userAvatar.value = getAvatarUrl(user.avatar);
+    }
+    
+    // 从后端获取用户的真实姓名和头像
     fetchUserInfo(user.username);
   }
   
@@ -617,9 +542,6 @@ onMounted(async () => {
   
   // 从后端获取任务完成总览数据
   await fetchTaskOverview();
-  
-  // 从后端获取需求统计数据
-  await fetchNeedsStatistics();
   
   // 从后端获取测试统计数据
   await fetchTestStatistics();
@@ -645,6 +567,78 @@ const formatDate = (dateString) => {
   });
 };
 
+// 触发文件选择
+const triggerFileInput = () => {
+  fileInput.value.click();
+};
+
+// 处理文件选择
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    // 预览头像
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      userAvatar.value = e.target.result;
+      // 上传头像到服务器
+      uploadAvatar(file);
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+// 上传头像到服务器
+const uploadAvatar = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 调用后端API上传头像
+      const response = await request.post(`/admin/upload-avatar?username=${user.username}`, formData);
+      if (response.data.code === 200 && response.data.data) {
+        console.log('头像上传成功');
+        // 处理返回的头像URL
+        const avatarUrl = getAvatarUrl(response.data.data);
+        // 更新本地存储中的头像信息
+        user.avatar = response.data.data;
+        localStorage.setItem('user', JSON.stringify(user));
+        // 更新当前显示的头像
+        userAvatar.value = avatarUrl;
+      }
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error);
+  }
+};
+
+// 获取用户头像
+const fetchUserAvatar = async (username) => {
+  try {
+    // 调用后端API获取用户头像
+    const response = await request.get(`/admin/avatar?username=${username}`);
+    if (response.data.code === 200 && response.data.data) {
+      userAvatar.value = getAvatarUrl(response.data.data);
+    }
+  } catch (error) {
+    console.error('获取用户头像失败:', error);
+  }
+};
+
+// 处理头像URL
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
+  // 如果存储的是完整http路径，直接返回；否则拼接后端地址
+  if (avatarPath.startsWith('http')) {
+    return avatarPath;
+  }
+  // 拼接后端地址，确保前端能正确访问静态资源
+  return `http://localhost:8080${avatarPath}`;
+};
+
 // 团队完成情况
 const yesterday=ref({
   task:0,
@@ -667,6 +661,7 @@ const today=ref({
 const projectCount=ref(0);
 const thisYearIssue=ref(0);
 const closeCount=ref(0);
+const productCount=ref(0);
 
 // 单个项目统计详情（项目统计卡片）
 const projectDetail = ref({
@@ -775,6 +770,28 @@ const testStatistics = ref({
 // 产品统计相关
 const activeProductIndex = ref(-1); // -1表示全部产品
 
+// 控制统计弹窗显示
+const dialogVisible = ref(false);
+
+// 控制团队完成情况弹窗显示
+const teamDialogVisible = ref(false);
+
+// 控制项目详情弹窗显示
+const projectDetailDialogVisible = ref(false);
+
+// 当前项目详情
+const currentProjectDetail = ref({
+  projectName: '',
+  startTime: '',
+  finishTime: '',
+  remainingTime: '',
+  risk: 0,
+  teamMembers: [],
+  description: ''
+});
+
+
+
 // 处理产品点击事件
 const handleProductClick = async (index, productName) => {
   activeProductIndex.value = index;
@@ -798,6 +815,62 @@ const handleTestProjectClick = async (projectName) => {
   await fetchTestStatistics(projectName);
 };
 
+// 处理未完成项目列表的项目点击事件
+const handleUnfinishedProjectClick = async (projectName) => {
+  console.log('点击了未完成项目:', projectName);
+  // 显示团队完成情况弹窗
+  teamDialogVisible.value = true;
+};
+
+// 处理项目卡片点击事件，显示项目详情弹窗
+const handleProjectCardClick = async (projectName) => {
+  console.log('点击了项目卡片:', projectName);
+  try {
+    // 调用后端API获取项目详细信息
+    const response = await request.get('/dashboard/project-info', {
+      params: { projectName }
+    });
+    if (response.data.code === 200) {
+      // 更新项目详情数据
+      currentProjectDetail.value = {
+        projectName: response.data.data.projectName || '暂无项目',
+        startTime: response.data.data.startTime || '',
+        finishTime: response.data.data.finishTime || '',
+        remainingTime: response.data.data.remainingTime || '',
+        risk: response.data.data.risk || 0,
+        productName: response.data.data.productName || '未知',
+        projectManager: response.data.data.projectManager || '未知',
+        projectStatus: response.data.data.projectStatus || '未知',
+        projectProgress: response.data.data.projectProgress || '0%',
+        teamMembers: response.data.data.teamMembers || [],
+        description: response.data.data.description || '暂无项目详情',
+        projectGoals: response.data.data.projectGoals || [],
+        teamName: response.data.data.teamName || '未知团队'
+      };
+      // 显示项目详情弹窗
+      projectDetailDialogVisible.value = true;
+    } else {
+      console.error('获取项目详情失败:', response.data.msg || '未知错误');
+    }
+  } catch (error) {
+    console.error('获取项目详情失败:', error.message || error || '未知错误');
+  }
+};
+
+// 跳转到团队模块
+const goToTeamModule = () => {
+  console.log('跳转到团队模块');
+  // 跳转到团队模块的页面
+  router.push('/teams/team');
+};
+
+// 跳转到项目集模块
+const goToProjectModule = () => {
+  console.log('跳转到项目集模块');
+  // 跳转到项目集模块的页面，并传递项目名称作为筛选条件
+  router.push(`/itemSet/itemList?projectName=${encodeURIComponent(currentProjectDetail.value.projectName)}`);
+};
+
 // 从后端获取团队完成情况数据
 const fetchTeamStatistics = async () => {
   try {
@@ -818,9 +891,10 @@ const fetchProductOverview = async () => {
     const response = await request.get('/dashboard/product-overview');
     if (response.data.code === 200) {
       const data = response.data.data;
-      projectCount.value = data.projectCount || 0;
-      thisYearIssue.value = data.thisYearIssue || 0;
-      closeCount.value = data.closeCount || 0;
+      projectCount.value = data.productCount || 0;
+      thisYearIssue.value = data.unfinishedPlanCount || 0;
+      closeCount.value = data.unclosedNeedCount || 0;
+      productCount.value = data.productCount || 0;
     }
   } catch (error) {
     console.error('获取产品总览失败:', error);
@@ -907,22 +981,7 @@ const fetchTaskOverview = async () => {
   }
 };
 
-// 从后端获取需求统计数据
-const fetchNeedsStatistics = async () => {
-  try {
-    const response = await request.get('/dashboard/needs-statistics');
-    if (response.data.code === 200) {
-      const data = response.data.data;
-      if (data.needsChartData) {
-        needsChartData.value = data.needsChartData;
-        // 更新图表
-        updateNeedsChart(needsChartData.value);
-      }
-    }
-  } catch (error) {
-    console.error('获取需求统计数据失败:', error);
-  }
-};
+
 
 // 从后端获取测试统计数据
 const fetchTestStatistics = async (projectName = '') => {
@@ -1237,6 +1296,265 @@ p{
   background-color: #ffffff;
 }
 
+/* 弹窗内容布局 */
+.dialog-content {
+  width: 100%;
+}
+
+/* 团队完成情况弹窗布局 */
+.team-dialog-content {
+  width: 100%;
+}
+
+.stats-grid {
+  width: 100%;
+}
+
+.icon {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.kuai {
+  width: 100%;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.icon-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.icon-container.blue {
+  background-color: #409EFF;
+}
+
+.icon-container.green {
+  background-color: #67C23A;
+}
+
+.icon-container.orange {
+  background-color: #E6A23C;
+}
+
+.icon-container.red {
+  background-color: #F56C6C;
+}
+
+.icon-container.light-blue {
+  background-color: #90C9FF;
+}
+
+.icon-container.purple {
+  background-color: #C084FC;
+}
+
+.kuai div:last-child {
+  flex: 1;
+}
+
+.kuai div:last-child div:first-child {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.number {
+  font-size: 14px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.number.blue {
+  color: #409EFF;
+}
+
+/* 项目详情弹窗样式 */
+.project-detail-content {
+  width: 100%;
+}
+
+.project-detail-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.project-detail-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 10px;
+  cursor: pointer;
+  color: #409EFF;
+}
+
+.project-detail-name:hover {
+  text-decoration: underline;
+}
+
+.project-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.project-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.project-basic-info,
+.project-team,
+.project-goals,
+.project-risks,
+.project-info {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.project-basic-info h4,
+.project-team h4,
+.project-goals h4,
+.project-risks h4,
+.project-info h4 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 10px;
+}
+
+.basic-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #909399;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.team-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.team-member {
+  padding: 10px 15px;
+  background-color: #ffffff;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #303133;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin: 5px;
+  min-width: 120px;
+  text-align: center;
+}
+
+.team-member:hover {
+  background-color: #ecf5ff;
+  border-color: #c6e2ff;
+}
+
+.member-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #409EFF;
+}
+
+.member-position {
+  font-size: 12px;
+  color: #909399;
+}
+
+.no-members {
+  font-size: 14px;
+  color: #909399;
+  font-style: italic;
+}
+
+.goal-list,
+.risk-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.goal-list li,
+.risk-list li {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.goal-list li::before,
+.risk-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #409EFF;
+}
+
+.no-goals,
+.no-risks {
+  font-size: 14px;
+  color: #909399;
+  font-style: italic;
+  padding-left: 0 !important;
+}
+
+.no-goals::before,
+.no-risks::before {
+  display: none;
+}
+
+.project-description {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .stat-card-header {
   font-size: 14px;
   font-weight: 500;
@@ -1345,10 +1663,10 @@ p{
 }
 
 .product-statistics{
-  height: 250px;
+  min-height: 250px;
 }
 .product-statistics-content {
-  height: 250px;
+  min-height: 250px;
   flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);

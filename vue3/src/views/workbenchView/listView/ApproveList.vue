@@ -127,6 +127,8 @@ const fetchApprovals = async () => {
   border-radius: 0;
   box-shadow: none;
   overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .table-container {

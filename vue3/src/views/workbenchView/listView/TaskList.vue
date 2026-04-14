@@ -2,7 +2,7 @@
   <div class="task-table-container">
     <div class="table-container">
       <el-table
-          :data="taskList"
+          :data="filteredTaskList"
           style="width: 100%"
           class="TaskTable"
           :row-style="{height: '45px'}"
@@ -166,9 +166,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed, defineProps } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+
+// 接收父组件传递的搜索词
+const props = defineProps({
+  searchQuery: {
+    type: String,
+    default: ''
+  }
+});
 
 const router = useRouter();
 const goToProductEdit = () =>{
@@ -181,6 +189,18 @@ const taskList = ref([]);
 // 从后端获取任务列表数据
 onMounted(() => {
   fetchTasks();
+});
+
+// 根据搜索词过滤任务列表
+const filteredTaskList = computed(() => {
+  if (!props.searchQuery) {
+    return taskList.value;
+  }
+  const query = props.searchQuery.toLowerCase();
+  return taskList.value.filter(task => 
+    task.name.toLowerCase().includes(query) ||
+    task.projectName.toLowerCase().includes(query)
+  );
 });
 
 const fetchTasks = async () => {
@@ -397,6 +417,8 @@ const confirmSubmitCode = async () => {
   border-radius: 0;
   box-shadow: none;
   overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .table-container {

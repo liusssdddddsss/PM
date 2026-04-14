@@ -10,13 +10,23 @@
       >
         {{tab.name}}
       </span>
-      <div class="addProject">
-<!--        <el-button @click="goToItemEdit">-->
-<!--          编辑项目-->
-<!--        </el-button>-->
-        <el-button class="button" @click="goToAddProject">
-          添加项目
-        </el-button>
+      <div class="search-add-container">
+        <div class="search-box">
+          <el-input
+              v-model="searchQuery"
+              placeholder="搜索项目名称"
+              size="small"
+              class="search-input"
+          />
+        </div>
+        <div class="addProject">
+<!--        <el-button @click="goToItemEdit">
+          编辑项目
+        </el-button>-->
+          <el-button class="button" @click="goToAddProject">
+            添加项目
+          </el-button>
+        </div>
       </div>
     </div>
     <div class="list">
@@ -91,6 +101,7 @@ const tabs = ref([
   {name:'已关闭',type:'close'},
 ]);
 const activeTab=ref('all');
+const searchQuery=ref('');
 
 const router =useRouter();
 const goToItemEdit = () =>{
@@ -166,23 +177,45 @@ const fetchTasksForHours = async () => {
 };
 
 // 组件挂载时获取数据
-import { onMounted } from 'vue';
+import { onMounted, onBeforeMount } from 'vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+
+onBeforeMount(() => {
+  // 从URL参数中获取projectName
+  const projectName = route.query.projectName;
+  if (projectName) {
+    searchQuery.value = projectName;
+  }
+});
+
 onMounted(() => {
   fetchProjects();
 });
 
-// 根据当前标签过滤数据
+// 根据当前标签和搜索词过滤数据
 const filteredData = computed(() => {
-  if (activeTab.value === 'all') {
-    return projectData.value;
-  } else if (activeTab.value === 'ing') {
-    return projectData.value.filter(item => item.states === '进行中');
+  let result = projectData.value;
+  
+  // 首先根据标签过滤
+  if (activeTab.value === 'ing') {
+    result = result.filter(item => item.states === '进行中');
   } else if (activeTab.value === 'noBegin') {
-    return projectData.value.filter(item => item.states === '未开始');
+    result = result.filter(item => item.states === '未开始');
   } else if (activeTab.value === 'close') {
-    return projectData.value.filter(item => item.states === '已关闭');
+    result = result.filter(item => item.states === '已关闭');
   }
-  return projectData.value;
+  
+  // 然后根据搜索词过滤
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(item => 
+      item.title.toLowerCase().includes(query)
+    );
+  }
+  
+  return result;
 });
 
 // 获取状态标签的类名
@@ -326,14 +359,29 @@ const handleDelete = (project) => {
   font-weight: 500;
 }
 
-.addProject{
+.search-add-container {
   display: inline-block;
   float: right;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-box {
+  margin-right: 10px;
+}
+
+.search-input {
+  width: 200px;
+}
+
+.addProject{
+  display: inline-block;
 }
 .button{
   background-color: #238EFF;
   color: #fff;
-  margin-left: 10px;
+  margin-left: 0;
 }
 
 .project-table-container {

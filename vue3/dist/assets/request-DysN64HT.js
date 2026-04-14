@@ -1,0 +1,1 @@
+import{a as t}from"./index-C0Zqfgkc.js";const r=t.create({baseURL:"http://localhost:8080",timeout:3e4});r.interceptors.request.use(e=>(e.headers["Content-Type"]="application/json;charset=UTF-8",e),e=>Promise.reject(e));r.interceptors.response.use(e=>e,e=>Promise.reject(e));export{r};
