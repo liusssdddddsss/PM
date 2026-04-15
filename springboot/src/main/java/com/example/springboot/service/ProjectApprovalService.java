@@ -19,4 +19,8 @@ public class ProjectApprovalService {
     public long count() {
         return projectApprovalRepository.count();
     }
+
+    public ProjectApproval save(ProjectApproval projectApproval) {
+        return projectApprovalRepository.save(projectApproval);
+    }
 }

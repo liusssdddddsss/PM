@@ -27,16 +27,16 @@
       </div>
     </div>
     <div class="list">
-      <TaskList v-if="activeTab==='all'" :search-query="searchQuery"/>
+      <TaskList :activeTab="activeTab" :search-query="searchQuery"/>
     </div>
   </div>
 </template>
 
 <script setup>
 
-import {ref} from "vue";
+import {ref, onMounted} from "vue";
 import TaskList from "@/views/workbenchView/listView/TaskList.vue";
-import {useRouter} from "vue-router";
+import {useRouter, useRoute} from "vue-router";
 
 const tabs = ref([
   {name:'全部',type:'all'},
@@ -48,6 +48,8 @@ const activeTab=ref('all');
 const searchQuery=ref('');
 
 const router =useRouter();
+const route = useRoute();
+
 const goToEdit = () => {
   router.push('/task/taskEdit');
 };
@@ -61,16 +63,18 @@ const goToAddForm = () => {
 // 处理标签点击
 const handleTabClick = (type) => {
   activeTab.value = type;
-  if (type === 'all') {
-    router.push('/task/taskList');
-  } else if (type === 'zhiPaiMe') {
-    router.push('/task/assignedTasks');
-  } else if (type === 'meJoin') {
-    router.push('/task/meJoinTasks');
-  } else if (type === 'meZhiPai') {
-    router.push('/task/meAssignedTasks');
-  }
 };
+
+// 组件加载时检查URL参数中的projectName或search
+onMounted(() => {
+  const projectName = route.query.projectName;
+  const search = route.query.search;
+  if (projectName) {
+    searchQuery.value = projectName;
+  } else if (search) {
+    searchQuery.value = search;
+  }
+});
 </script>
 
 <style scoped>

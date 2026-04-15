@@ -13,28 +13,36 @@
         </div>
         <div class="overview-cards">
           <div class="overview-card">
-            <div class="overview-icon team-icon">👥</div>
+            <div class="overview-icon team-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
             <div class="overview-content">
               <div class="overview-value">{{ totalTeams }}</div>
               <div class="overview-label">团队数量</div>
             </div>
           </div>
           <div class="overview-card">
-            <div class="overview-icon member-icon">👤</div>
+            <div class="overview-icon member-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
             <div class="overview-content">
               <div class="overview-value">{{ totalMembers }}</div>
               <div class="overview-label">总成员数</div>
             </div>
           </div>
           <div class="overview-card">
-            <div class="overview-icon project-icon">📁</div>
+            <div class="overview-icon project-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </div>
             <div class="overview-content">
               <div class="overview-value">{{ totalProjects }}</div>
               <div class="overview-label">项目数量</div>
             </div>
           </div>
           <div class="overview-card">
-            <div class="overview-icon task-icon">✅</div>
+            <div class="overview-icon task-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
             <div class="overview-content">
               <div class="overview-value">{{ totalTasks }}</div>
               <div class="overview-label">任务总数</div>
@@ -43,34 +51,7 @@
         </div>
       </el-card>
 
-      <!-- 任务进展 -->
-      <el-card style="max-width: 98%; margin-top: 10px">
-        <h3>任务进展</h3>
-        <el-divider />
-        <div class="task-progress">
-          <table width="100%">
-            <tr>
-              <th width="200">任务</th>
-              <th width="120">负责人</th>
-              <th width="150">截止日期</th>
-              <th width="100">进度</th>
-              <th width="100">状态</th>
-              <th width="150">操作</th>
-            </tr>
-            <tr v-for="(task, index) in taskProgressData" :key="index">
-              <td>{{ task.task }}</td>
-              <td>{{ task.assignee }}</td>
-              <td>{{ task.deadline }}</td>
-              <td>{{ task.progress }}%</td>
-              <td>{{ task.status }}</td>
-              <td>
-                <button class="btn-small" @click="viewTask(task)">查看</button>
-                <button class="btn-small warn" @click="remindTask(task)">催促</button>
-              </td>
-            </tr>
-          </table>
-        </div>
-      </el-card>
+
 
       <!-- 所属团队和团队分工 -->
       <el-card style="max-width: 98%; margin-top: 10px">
@@ -282,91 +263,7 @@
         </template>
       </el-dialog>
 
-      <!-- 查看任务弹窗 -->
-      <el-dialog
-        v-model="showViewTaskDialog"
-        title="查看任务"
-        width="600px"
-      >
-        <el-form :model="currentTask" label-width="120px">
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="任务名称">
-                <el-input v-model="currentTask.task" readonly></el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="负责人">
-                <el-input v-model="currentTask.assignee" readonly></el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="截止日期">
-                <el-input v-model="currentTask.deadline" readonly></el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="进度">
-                <el-input v-model="currentTask.progress" suffix="%" readonly></el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="状态">
-                <el-input v-model="currentTask.status" readonly></el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="工时">
-                <el-input v-model="currentTask.workTime" readonly></el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="剩余工时">
-                <el-input v-model="currentTask.remainingTime" readonly></el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </el-form>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="showViewTaskDialog = false">关闭</el-button>
-          </span>
-        </template>
-      </el-dialog>
 
-      <!-- 催促任务弹窗 -->
-      <el-dialog
-        v-model="showRemindTaskDialog"
-        title="催促任务"
-        width="500px"
-      >
-        <el-form :model="currentRemindTask" label-width="100px">
-          <el-form-item label="任务名称">
-            <el-input v-model="currentRemindTask.task" readonly></el-input>
-          </el-form-item>
-          <el-form-item label="负责人">
-            <el-input v-model="currentRemindTask.assignee" readonly></el-input>
-          </el-form-item>
-          <el-form-item label="截止日期">
-            <el-input v-model="currentRemindTask.deadline" readonly></el-input>
-          </el-form-item>
-          <el-form-item label="催促消息">
-            <el-input type="textarea" v-model="currentRemindTask.remindMessage" placeholder="请输入催促消息"></el-input>
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="showRemindTaskDialog = false">取消</el-button>
-            <el-button type="primary" @click="submitRemindTask">发送催促</el-button>
-          </span>
-        </template>
-      </el-dialog>
     </div>
   </div>
 </template>
@@ -391,13 +288,7 @@ const activeTab = ref('announcements');
 // 当前选中的团队
 const currentTeam = ref('');
 
-// 查看任务弹窗
-const showViewTaskDialog = ref(false);
-const currentTask = ref({});
 
-// 催促任务弹窗
-const showRemindTaskDialog = ref(false);
-const currentRemindTask = ref({});
 
 // 创建团队弹窗
 const showCreateTeamDialog = ref(false);
@@ -414,23 +305,7 @@ const inviteMemberForm = ref({
   role: ''
 });
 
-// 任务进展数据
-const taskProgressData = ref([
-  {
-    task: '智慧教室前端页面开发',
-    assignee: '李四',
-    deadline: '2023-06-15',
-    progress: 60,
-    status: '进行中'
-  },
-  {
-    task: '产品需求文档编写',
-    assignee: '张三',
-    deadline: '2023-05-30',
-    progress: 85,
-    status: '待审核'
-  }
-]);
+
 
 // 消息数据
 const messages = ref([
@@ -464,30 +339,53 @@ const messages = ref([
   }
 ]);
 
-// 公告数据
-const announcements = ref([
-  {
-    id: 1,
-    title: '团队周会通知',
-    content: '本周团队周会将于周五下午2点在会议室A举行，请所有团队成员准时参加。会议将讨论下周工作计划和项目进度。',
-    date: '2023-05-28',
-    author: '张三'
-  },
-  {
-    id: 2,
-    title: '系统升级通知',
-    content: '系统将于本周末进行升级维护，预计维护时间为周六上午9点至下午3点。期间系统将暂时不可用，请提前做好工作安排。',
-    date: '2023-05-25',
-    author: '李四'
-  },
-  {
-    id: 3,
-    title: '新成员加入',
-    content: '欢迎王五加入我们的团队，担任后端开发工程师一职。请大家相互熟悉，共同协作。',
-    date: '2023-05-20',
-    author: '张三'
-  }
-]);
+// 团队公告数据（按团队分类）
+const teamAnnouncements = ref({
+  'xx产品团队': [
+    {
+      id: 1,
+      title: '团队周会通知',
+      content: '本周团队周会将于周五下午2点在会议室A举行，请所有团队成员准时参加。会议将讨论下周工作计划和项目进度。',
+      date: '2023-05-28',
+      author: '张三'
+    },
+    {
+      id: 2,
+      title: '系统升级通知',
+      content: '系统将于本周末进行升级维护，预计维护时间为周六上午9点至下午3点。期间系统将暂时不可用，请提前做好工作安排。',
+      date: '2023-05-25',
+      author: '李四'
+    }
+  ],
+  '研发团队': [
+    {
+      id: 1,
+      title: '技术分享会',
+      content: '下周三下午将举行前端技术分享会，主题为Vue3新特性，请团队成员积极参加。',
+      date: '2023-06-01',
+      author: '王五'
+    },
+    {
+      id: 2,
+      title: '代码规范更新',
+      content: '团队代码规范已更新，请所有成员按照新规范进行代码编写。',
+      date: '2023-05-20',
+      author: '赵六'
+    }
+  ],
+  '测试团队': [
+    {
+      id: 1,
+      title: '测试计划变更',
+      content: '下周测试计划有所调整，请查看最新的测试用例文档。',
+      date: '2023-05-30',
+      author: '孙七'
+    }
+  ]
+});
+
+// 当前团队的公告
+const announcements = ref([]);
 
 // 概览统计（从后端获取）
 const overview = ref({
@@ -506,29 +404,51 @@ const totalTasks = computed(() => overview.value.totalTasks || 0);
 // 从后端获取团队概览和所属团队（仅限当前登录用户）
 const fetchTeamData = async () => {
   try {
+    console.log('开始获取团队数据');
     const userStr = localStorage.getItem('user');
-    if (!userStr) return;
+    if (!userStr) {
+      console.error('用户未登录');
+      return;
+    }
     const user = JSON.parse(userStr);
     const username = user.username;
+    console.log('获取团队数据，用户名:', username);
 
     // 概览数据
+    console.log('开始获取团队概览数据');
     const overviewRes = await request.get(`/team/overview?username=${username}`);
+    console.log('获取团队概览数据响应:', overviewRes);
     if (overviewRes.data.code === 200 && overviewRes.data.data) {
       overview.value = overviewRes.data.data;
+      console.log('更新团队概览数据:', overview.value);
+    } else {
+      console.error('获取团队概览数据失败:', overviewRes.data.msg || '未知错误');
     }
 
     // 所属团队列表
+    console.log('开始获取所属团队列表');
     const teamsRes = await request.get(`/team/my-teams?username=${username}`);
+    console.log('获取所属团队列表响应:', teamsRes);
     if (teamsRes.data.code === 200 && Array.isArray(teamsRes.data.data)) {
       teams.value = teamsRes.data.data;
+      console.log('更新所属团队列表:', teams.value);
       
       // 默认选中第一个团队
       if (teams.value.length > 0) {
         currentTeam.value = teams.value[0].name;
+        console.log('默认选中团队:', currentTeam.value);
       }
       
       // 处理团队成员数据，构建团队分工和个人进度
       processTeamMembers();
+      
+      // 初始化当前团队的公告和个人进度
+      if (currentTeam.value) {
+        updateTeamAnnouncements(currentTeam.value);
+        updateTeamProgress(currentTeam.value);
+      }
+    } else {
+      console.error('获取所属团队列表失败:', teamsRes.data.msg || '未知错误');
     }
   } catch (e) {
     console.error('获取团队数据失败:', e);
@@ -622,6 +542,54 @@ function switchTeam(team) {
   currentTeam.value = team;
   // 重新处理团队成员数据，只显示当前选中团队的分工
   processTeamMembers();
+  // 更新当前团队的公告
+  updateTeamAnnouncements(team);
+  // 更新当前团队的个人进度
+  updateTeamProgress(team);
+}
+
+// 更新团队公告
+function updateTeamAnnouncements(team) {
+  // 从团队公告数据中获取当前团队的公告
+  announcements.value = teamAnnouncements.value[team] || [];
+}
+
+// 更新团队个人进度
+function updateTeamProgress(team) {
+  // 从所有成员中筛选出当前团队的成员
+  const allMembers = new Map();
+  
+  teams.value.forEach(t => {
+    if (t.memberDetails && Array.isArray(t.memberDetails)) {
+      t.memberDetails.forEach(member => {
+        if (!allMembers.has(member.userId)) {
+          allMembers.set(member.userId, {
+            id: member.userId,
+            name: member.name,
+            role: member.role,
+            teams: [t.name]
+          });
+        } else {
+          const existingMember = allMembers.get(member.userId);
+          if (!existingMember.teams.includes(t.name)) {
+            existingMember.teams.push(t.name);
+          }
+        }
+      });
+    }
+  });
+  
+  // 只显示当前团队的成员进度
+  progressData.value = Array.from(allMembers.values())
+    .filter(member => member.teams.includes(team))
+    .map(member => ({
+      name: member.name,
+      role: member.role || '成员',
+      completionRate: Math.floor(Math.random() * 100), // 模拟数据
+      currentTasks: Math.floor(Math.random() * 10), // 模拟数据
+      overdueTasks: Math.floor(Math.random() * 3), // 模拟数据
+      unreadMessages: Math.floor(Math.random() * 5) // 模拟数据
+    }));
 }
 
 // 编辑分工
@@ -637,20 +605,6 @@ function viewDetails(member) {
 // 催促成员
 function remindMember(member) {
   console.log('催促成员:', member);
-}
-
-// 查看任务
-function viewTask(task) {
-  console.log('查看任务:', task);
-  currentTask.value = task;
-  showViewTaskDialog.value = true;
-}
-
-// 催促任务
-function remindTask(task) {
-  console.log('催促任务:', task);
-  currentRemindTask.value = task;
-  showRemindTaskDialog.value = true;
 }
 
 // 回复消息
@@ -751,16 +705,7 @@ function exportReport() {
   // 这里可以添加导出报告的逻辑
 }
 
-// 提交催促任务
-function submitRemindTask() {
-  // 实现催促任务的功能
-  console.log('提交催促任务:', currentRemindTask.value);
-  // 这里可以添加催促任务的API调用
-  // 提交成功后关闭弹窗
-  showRemindTaskDialog.value = false;
-  // 显示成功消息
-  ElMessage.success('催促消息已发送');
-}
+
 </script>
 
 <style scoped>
@@ -1017,8 +962,7 @@ function submitRemindTask() {
 }
 
 /* 表格样式 */
-.division-table table,
-.task-progress table {
+.division-table table {
   border-collapse: collapse;
   width: 100%;
   border-radius: 8px;
@@ -1029,24 +973,20 @@ function submitRemindTask() {
 }
 
 .division-table th,
-.division-table td,
-.task-progress th,
-.task-progress td {
+.division-table td {
   padding: 12px 16px;
   text-align: left;
   border: 1px solid #e9ecef;
 }
 
-.division-table th,
-.task-progress th {
+.division-table th {
   background-color: transparent;
   font-weight: 600;
   color: #495057;
   border-bottom: 2px solid #f1f3f5;
 }
 
-.division-table tr,
-.task-progress tr {
+.division-table tr {
   transition: none;
 }
 
@@ -1158,7 +1098,7 @@ function submitRemindTask() {
 /* 标签页样式 */
 .tab-container {
   width: 100%;
-  height: 650px;
+  height: 480px;
 }
 
 .tabs {

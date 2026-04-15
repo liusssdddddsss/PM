@@ -232,6 +232,8 @@ import {useEcharts} from "@/utils/useEcharts.js";
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
 import ProjectList from "@/views/workbenchView/listView/ProjectList.vue";
 import request from "@/utils/request.js";
+// 调试：查看request对象的baseURL
+console.log('Request baseURL:', request.defaults.baseURL);
 // 选择的年份
 const selectedYear = ref('2023');
 

@@ -272,6 +272,15 @@ public class DashboardController {
         try {
             // 从数据库获取操作日志数据
             List<OperationLog> operationLogs = operationLogService.findall();
+            
+            // 按时间倒序排序，越靠近现在的时间越在前
+            operationLogs.sort((o1, o2) -> {
+                if (o1.getCreated_at() == null || o2.getCreated_at() == null) {
+                    return 0;
+                }
+                return o2.getCreated_at().compareTo(o1.getCreated_at());
+            });
+            
             List<Map<String, String>> dynamicData = new ArrayList<>();
             
             // 从数据库获取所有用户
@@ -294,14 +303,13 @@ public class DashboardController {
                 if (log.getUser_id() != null) {
                     try {
                         // 遍历所有用户，找到对应的用户
-                        for (User user : allUsers) {
-                            // 注意：users表的主键是username字段（在数据库中是bigint类型，但是在实体类中是String类型）
-                            // 我们需要将log.getUser_id()（Long类型）转换为String类型进行比较
-                            if (user.getUsername() != null && user.getUsername().equals(String.valueOf(log.getUser_id()))) {
-                                operator = user.getName() != null ? user.getName() : user.getUsername();
-                                break;
-                            }
-                        }
+                for (User user : allUsers) {
+                    // 直接使用String类型比较，因为log.getUser_id()现在是String类型
+                    if (user.getUsername() != null && user.getUsername().equals(log.getUser_id())) {
+                        operator = user.getName() != null ? user.getName() : user.getUsername();
+                        break;
+                    }
+                }
                     } catch (Exception e) {
                         // 如果获取用户信息失败，使用默认值
                     }

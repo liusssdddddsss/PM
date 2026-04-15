@@ -7,7 +7,7 @@
       >
         <div class="dynamic-content">
           <div class="dynamic-message">
-            {{item.operator}}{{item.action}}
+            {{item.operator}}{{getActionText(item.action, item.link)}}
             <span class="dynamic-link" v-if="item.link">
                     {{item.link}}
           </span>
@@ -48,6 +48,34 @@ const fetchDynamicData = async () => {
 onMounted(() => {
   fetchDynamicData();
 });
+
+// 根据action和link生成操作文本
+const getActionText = (action, link) => {
+  if (action && action.trim() !== '') {
+    return action;
+  }
+  
+  // 根据link字段生成默认操作文本
+  if (link) {
+    if (link.includes('product') || link.includes('auth')) {
+      return '创建了产品';
+    } else if (link.includes('project')) {
+      return '创建了项目';
+    } else if (link.includes('task')) {
+      return '完成了任务';
+    } else if (link.includes('bug')) {
+      return '提交了Bug';
+    } else if (link.includes('user')) {
+      return '管理了用户';
+    } else if (link.includes('approval')) {
+      return '处理了审批';
+    } else {
+      return '进行了操作';
+    }
+  }
+  
+  return '';
+};
 
 </script>
 

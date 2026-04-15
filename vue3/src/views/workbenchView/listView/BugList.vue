@@ -15,7 +15,7 @@
     </el-table-column>
     <el-table-column prop="title" label="标题" width="320">
       <template #default="scope">
-        <span class="task-name">{{ scope.row.title }}</span>
+        <span class="task-name" style="cursor: pointer;" @click="handleTitleClick(scope.row.title)">{{ scope.row.title }}</span>
       </template>
     </el-table-column>
     <el-table-column prop="priority" label="优先级" width="80">
@@ -37,7 +37,18 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+
+// 初始化路由
+const router = useRouter();
+
+// 处理标题点击事件
+const handleTitleClick = (title) => {
+  console.log('点击了Bug标题:', title);
+  // 跳转到Bug模块，并传递标题作为筛选条件
+  router.push(`/bug?title=${encodeURIComponent(title)}`);
+};
 
 //ddl列表
 const tableData = ref([]);

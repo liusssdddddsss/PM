@@ -42,4 +42,9 @@ public class TeamMemberService {
     public void deleteById(Integer id) {
         teamMemberRepository.deleteById(id);
     }
+    
+    // 计算团队成员数量
+    public long count() {
+        return teamMemberRepository.count();
+    }
 }

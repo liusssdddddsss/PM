@@ -21,6 +21,7 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Feedback.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Iteration.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\LoginLog.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Message.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\OperationLog.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\OptionLog.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Product.java
@@ -29,6 +30,7 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\ProjectMember.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Task.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\Team.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\TeamAnnouncement.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\TeamMember.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\TestSuite.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\entity\User.java
@@ -52,6 +54,7 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\BugService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\FeedbackService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\IterationService.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\MessageService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\OperationLogService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\OptionLogService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProductService.java
@@ -59,6 +62,7 @@ C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\exam
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectMemberService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\ProjectService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TaskService.java
+C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TeamAnnouncementService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TeamMemberService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TeamService.java
 C:\Users\86137\Desktop\graduate\springboot_vue\springboot\src\main\java\com\example\springboot\service\TestSuiteService.java

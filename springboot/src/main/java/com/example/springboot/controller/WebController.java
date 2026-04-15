@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,8 +22,9 @@ public class WebController {
         return ResponseEntity.ok().headers(headers).body(content);
     }
     
-    // 处理所有前端路由路径，转发到index.html
-    @GetMapping("/**")
+    // 处理前端路由路径，转发到index.html
+    // 只处理前端路由，不拦截API请求
+    @GetMapping({"/workbench/**", "/itemSet/**", "/products/**", "/tasks/**", "/iterations/**", "/teams/**", "/test/**", "/feedback/**", "/AI/**"})
     public ResponseEntity<byte[]> handleFrontendRoutes() throws IOException {
         ClassPathResource resource = new ClassPathResource("static/index.html");
         byte[] content = Files.readAllBytes(resource.getFile().toPath());

@@ -13,7 +13,7 @@ public class OperationLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long user_id;
+    private String user_id;
     private String action;
     private String module;
     private Long target_id;
@@ -25,7 +25,7 @@ public class OperationLog {
     public OperationLog() {
     }
 
-    public OperationLog(Long id, Long user_id, String action, String module, Long target_id, String ip_address, String user_agent, Date created_at) {
+    public OperationLog(Long id, String user_id, String action, String module, Long target_id, String ip_address, String user_agent, Date created_at) {
         this.id = id;
         this.user_id = user_id;
         this.action = action;
@@ -45,11 +45,11 @@ public class OperationLog {
         this.id = id;
     }
 
-    public Long getUser_id() {
+    public String getUser_id() {
         return user_id;
     }
 
-    public void setUser_id(Long user_id) {
+    public void setUser_id(String user_id) {
         this.user_id = user_id;
     }
 

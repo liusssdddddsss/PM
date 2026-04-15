@@ -9,8 +9,8 @@ const router = createRouter({
             tabs:[
                 {name:'仪表盘',route:'/workbench/dashboard'},
                 {name:'日程',route:'/workbench/schedule'},
-                {name:'待处理',route:'/workbench/pending'},
-                {name:'待审批',route:'/workbench/approval'},
+                // {name:'待处理',route:'/workbench/pending'},
+                // {name:'待审批',route:'/workbench/approval'},
                 // {name:'项目',route:'/workbench/projects'},
                 // {name:'任务',route:'/workbench/tasks'}
             ]

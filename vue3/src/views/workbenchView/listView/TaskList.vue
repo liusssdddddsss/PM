@@ -15,7 +15,7 @@
         </el-table-column>
         <el-table-column prop="projectName" label="项目名称" min-width="120">
           <template #default="scope">
-            <span class="task-name">{{ scope.row.projectName }}</span>
+            <span class="task-name" style="cursor: pointer;" @click="handleProjectNameClick(scope.row.projectName)">{{ scope.row.projectName }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="任务描述" min-width="180">
@@ -166,15 +166,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, defineProps } from "vue";
+import { ref, onMounted, computed, defineProps, watch } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
 
-// 接收父组件传递的搜索词
+// 接收父组件传递的搜索词和活动标签
 const props = defineProps({
   searchQuery: {
     type: String,
     default: ''
+  },
+  activeTab: {
+    type: String,
+    default: 'all'
   }
 });
 
@@ -191,16 +195,46 @@ onMounted(() => {
   fetchTasks();
 });
 
-// 根据搜索词过滤任务列表
+// 监听 activeTab 变化，重新获取任务列表
+watch(() => props.activeTab, () => {
+  fetchTasks();
+});
+
+// 根据搜索词和标签过滤任务列表
 const filteredTaskList = computed(() => {
-  if (!props.searchQuery) {
-    return taskList.value;
+  let filtered = taskList.value;
+  
+  // 根据标签过滤
+  if (props.activeTab !== 'all') {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const userId = parseInt(user.username);
+      
+      if (props.activeTab === 'zhiPaiMe') {
+        // 指派我的任务
+        filtered = filtered.filter(task => task.assignee_id === userId);
+      } else if (props.activeTab === 'meJoin') {
+        // 我参与的任务
+        // 这里简化处理，假设参与的任务是指被指派的任务
+        filtered = filtered.filter(task => task.assignee_id === userId);
+      } else if (props.activeTab === 'meZhiPai') {
+        // 我指派的任务
+        filtered = filtered.filter(task => task.creator_id === userId);
+      }
+    }
   }
-  const query = props.searchQuery.toLowerCase();
-  return taskList.value.filter(task => 
-    task.name.toLowerCase().includes(query) ||
-    task.projectName.toLowerCase().includes(query)
-  );
+  
+  // 根据搜索词过滤
+  if (props.searchQuery) {
+    const query = props.searchQuery.toLowerCase();
+    filtered = filtered.filter(task => 
+      task.name.toLowerCase().includes(query) ||
+      task.projectName.toLowerCase().includes(query)
+    );
+  }
+  
+  return filtered;
 });
 
 const fetchTasks = async () => {
@@ -229,7 +263,9 @@ const fetchTasks = async () => {
             deadline: item.due_date,
             progress: item.progress || 0,
             workTime: item.actual_hours ? `${item.actual_hours}h` : '0h',
-            remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h'
+            remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h',
+            assignee_id: item.assignee_id,
+            creator_id: item.creator_id
           }));
           console.log('转换后的任务列表数据:', taskList.value);
           console.log('转换后的任务列表数据长度:', taskList.value.length);
@@ -338,6 +374,13 @@ const getStatusClass = (status) => {
 const handleClose = (task) => {
   currentTask.value = task;
   dialogVisible.value = true;
+};
+
+// 处理项目名称点击事件
+const handleProjectNameClick = (projectName) => {
+  console.log('点击了项目名称:', projectName);
+  // 跳转到任务模块，并传递项目名称作为筛选条件
+  router.push(`/task/taskList?projectName=${encodeURIComponent(projectName)}`);
 };
 
 const handleEdit = (id) => {

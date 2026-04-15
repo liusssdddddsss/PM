@@ -9,16 +9,26 @@
       >
         {{tab.name}}
       </span>
-      <div class="addProduct">
-        <el-button class="button"
-                   @click="goToBugSubmit"
-        >
-          创建Bug
-        </el-button>
+      <div class="search-add-container">
+        <div class="search-box">
+          <el-input
+              v-model="searchQuery"
+              placeholder="搜索Bug名称"
+              size="small"
+              class="search-input"
+          />
+        </div>
+        <div class="addProduct">
+          <el-button class="button"
+                     @click="goToBugSubmit"
+          >
+            创建Bug
+          </el-button>
+        </div>
       </div>
     </div>
     <div class="list">
-      <BugCaseList :activeTab="activeTab" />
+      <BugCaseList :activeTab="activeTab" :search-query="searchQuery" />
     </div>
   </div>
 </template>
@@ -27,7 +37,7 @@
 
 import {ref, onMounted} from "vue";
 import BugCaseList from "@/views/test/BugCaseList.vue";
-import {useRouter} from "vue-router";
+import {useRouter, useRoute} from "vue-router";
 import request from "@/utils/request.js";
 
 const tabs = ref([
@@ -38,12 +48,23 @@ const tabs = ref([
 ]);
 
 const activeTab = ref('all');
+const searchQuery = ref('');
 
 const router = useRouter();
+const route = useRoute();
+
 const goToBugSubmit =()=>{
   // 跳转到Bug提交页面
   router.push('/test/createBug');
 };
+
+// 组件加载时检查URL参数中的search
+onMounted(() => {
+  const search = route.query.search;
+  if (search) {
+    searchQuery.value = search;
+  }
+});
 </script>
 
 <style scoped>
@@ -71,9 +92,24 @@ const goToBugSubmit =()=>{
   font-weight: 500;
 }
 
-.addProduct {
+.search-add-container {
   display: inline-block;
   float: right;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-box {
+  margin-right: 10px;
+}
+
+.search-input {
+  width: 200px;
+}
+
+.addProduct {
+  display: inline-block;
 }
 
 .button {

@@ -18,12 +18,13 @@ public class ProjectApproval {
     private String type;
     private String comment;
     private String created_at;
+    private String finish_time;
 
     // 构造方法
     public ProjectApproval() {
     }
 
-    public ProjectApproval(Integer id, Integer project_id, Integer approver_id, String action, String type, String comment, String created_at) {
+    public ProjectApproval(Integer id, Integer project_id, Integer approver_id, String action, String type, String comment, String created_at, String finish_time) {
         this.id = id;
         this.project_id = project_id;
         this.approver_id = approver_id;
@@ -31,6 +32,7 @@ public class ProjectApproval {
         this.type = type;
         this.comment = comment;
         this.created_at = created_at;
+        this.finish_time = finish_time;
     }
 
     // Getter 和 Setter 方法
@@ -88,6 +90,14 @@ public class ProjectApproval {
 
     public void setCreated_at(String created_at) {
         this.created_at = created_at;
+    }
+
+    public String getFinish_time() {
+        return finish_time;
+    }
+
+    public void setFinish_time(String finish_time) {
+        this.finish_time = finish_time;
     }
 
 }

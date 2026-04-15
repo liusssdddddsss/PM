@@ -26,11 +26,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import java.util.Optional;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
+import java.util.Date;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.example.springboot.entity.OperationLog;
+import com.example.springboot.service.OperationLogService;
 
 @RestController
 @RequestMapping("/workbench")
@@ -616,6 +621,118 @@ public class WorkbenchController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取工作台统计数据失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "更新审批状态", description = "更新审批状态")
+    @PutMapping("/approvals/{id}")
+    public Result updateApprovalStatus(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        try {
+            // 根据ID查找审批
+            ProjectApproval approval = null;
+            List<ProjectApproval> approvals = projectApprovalService.findall();
+            for (ProjectApproval a : approvals) {
+                if (a.getId() != null && a.getId().equals(id)) {
+                    approval = a;
+                    break;
+                }
+            }
+            
+            if (approval != null) {
+                // 更新审批状态
+                String action = (String) body.get("action");
+                if (action != null) {
+                    approval.setAction(action);
+                    
+                    // 当操作是通过或拒绝时，更新finish_time
+                    if ("通过".equals(action) || "退回".equals(action)) {
+                        String approvalTime = (String) body.get("approvalTime");
+                        if (approvalTime != null) {
+                            approval.setFinish_time(approvalTime);
+                        }
+                    }
+                }
+                
+                // 保存更新后的审批状态
+                projectApprovalService.save(approval);
+                
+                return Result.success("审批状态更新成功");
+            } else {
+                return Result.error("审批不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新审批状态失败: " + e.getMessage());
+        }
+    }
+    
+    @Resource
+    private OperationLogService operationLogService;
+    
+    @Operation(summary = "记录操作日志", description = "记录操作日志")
+    @PostMapping("/operation-logs")
+    public Result recordOperationLog(@RequestBody Map<String, Object> body) {
+        try {
+            // 创建操作日志对象
+            OperationLog operationLog = new OperationLog();
+            
+            // 设置用户ID
+            String username = (String) body.get("username");
+            if (username != null) {
+                operationLog.setUser_id(username);
+            }
+            
+            // 设置操作内容
+            String action = (String) body.get("action");
+            if (action != null) {
+                operationLog.setAction(action);
+            }
+            
+            // 设置目标ID
+            Object targetIdObj = body.get("targetId");
+            if (targetIdObj != null) {
+                try {
+                    if (targetIdObj instanceof Integer) {
+                        operationLog.setTarget_id(((Integer) targetIdObj).longValue());
+                    } else if (targetIdObj instanceof Long) {
+                        operationLog.setTarget_id((Long) targetIdObj);
+                    } else if (targetIdObj instanceof String) {
+                        operationLog.setTarget_id(Long.parseLong((String) targetIdObj));
+                    }
+                } catch (NumberFormatException e) {
+                    // 目标ID不是数字格式，跳过
+                }
+            }
+            
+            // 设置模块
+            String targetType = (String) body.get("targetType");
+            if (targetType != null) {
+                operationLog.setModule(targetType);
+            }
+            
+            // 设置创建时间
+            String createTimeStr = (String) body.get("createTime");
+            if (createTimeStr != null) {
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                    Date createTime = sdf.parse(createTimeStr);
+                    operationLog.setCreated_at(createTime);
+                } catch (ParseException e) {
+                    // 时间格式错误，使用当前时间
+                    operationLog.setCreated_at(new Date());
+                }
+            } else {
+                // 没有提供时间，使用当前时间
+                operationLog.setCreated_at(new Date());
+            }
+            
+            // 保存操作日志到数据库
+            operationLogService.save(operationLog);
+            System.out.println("记录操作日志: " + body);
+            return Result.success("操作日志记录成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("记录操作日志失败: " + e.getMessage());
         }
     }
 }

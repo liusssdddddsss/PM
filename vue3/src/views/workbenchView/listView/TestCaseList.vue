@@ -330,6 +330,10 @@ const props = defineProps({
   activeTab: {
     type: String,
     default: 'all'
+  },
+  searchQuery: {
+    type: String,
+    default: ''
   }
 });
 
@@ -338,18 +342,30 @@ const router = useRouter();
 // 原始测试用例数据
 const allTestCaseList = ref([]);
 
-// 根据activeTab筛选显示的数据
+// 根据activeTab和searchQuery筛选显示的数据
 const testCaseList = computed(() => {
+  // 首先根据activeTab筛选
+  let filteredList = [];
   if (props.activeTab === 'all') {
-    return allTestCaseList.value;
+    filteredList = allTestCaseList.value;
   } else if (props.activeTab === 'stayingTest') {
-    return allTestCaseList.value.filter(tc => tc.status === '待测试');
+    filteredList = allTestCaseList.value.filter(tc => tc.status === '待测试');
   } else if (props.activeTab === 'testing') {
-    return allTestCaseList.value.filter(tc => tc.status === '测试中');
+    filteredList = allTestCaseList.value.filter(tc => tc.status === '测试中');
   } else if (props.activeTab === 'finish') {
-    return allTestCaseList.value.filter(tc => tc.status === '已完成');
+    filteredList = allTestCaseList.value.filter(tc => tc.status === '已完成');
   }
-  return [];
+  
+  // 然后根据searchQuery筛选
+  if (props.searchQuery) {
+    const query = props.searchQuery.toLowerCase();
+    filteredList = filteredList.filter(tc => 
+      tc.name.toLowerCase().includes(query) ||
+      tc.projectName.toLowerCase().includes(query)
+    );
+  }
+  
+  return filteredList;
 });
 
 // 从后端获取测试用例列表数据

@@ -268,6 +268,10 @@ const props = defineProps({
   activeTab: {
     type: String,
     default: 'all'
+  },
+  searchQuery: {
+    type: String,
+    default: ''
   }
 });
 
@@ -276,18 +280,30 @@ const router = useRouter();
 // 原始Bug数据
 const allBugList = ref([]);
 
-// 根据activeTab筛选显示的数据
+// 根据activeTab和searchQuery筛选显示的数据
 const bugList = computed(() => {
+  // 首先根据activeTab筛选
+  let filteredList = [];
   if (props.activeTab === 'all') {
-    return allBugList.value;
+    filteredList = allBugList.value;
   } else if (props.activeTab === 'pending') {
-    return allBugList.value.filter(bug => bug.status === '待处理');
+    filteredList = allBugList.value.filter(bug => bug.status === '待处理');
   } else if (props.activeTab === 'processing') {
-    return allBugList.value.filter(bug => bug.status === '处理中');
+    filteredList = allBugList.value.filter(bug => bug.status === '处理中');
   } else if (props.activeTab === 'resolved') {
-    return allBugList.value.filter(bug => bug.status === '已解决');
+    filteredList = allBugList.value.filter(bug => bug.status === '已解决');
   }
-  return [];
+  
+  // 然后根据searchQuery筛选
+  if (props.searchQuery) {
+    const query = props.searchQuery.toLowerCase();
+    filteredList = filteredList.filter(bug => 
+      bug.name.toLowerCase().includes(query) ||
+      bug.projectName.toLowerCase().includes(query)
+    );
+  }
+  
+  return filteredList;
 });
 
 // 从后端获取Bug列表数据

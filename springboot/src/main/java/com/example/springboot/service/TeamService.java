@@ -43,4 +43,9 @@ public class TeamService {
     public void deleteById(Integer id) {
         teamRepository.deleteById(id);
     }
+    
+    // 计算团队数量
+    public long count() {
+        return teamRepository.count();
+    }
 }

@@ -371,7 +371,7 @@
                 <h3>待测试的测试单</h3>
                 <ul class="test-list">
                   <li v-for="(item, index) in testStatistics.testLists" :key="index">
-                    <a href="#">{{item}}</a>
+                    <a href="#" style="cursor: pointer;" @click.prevent="handleTestClick(item)">{{item}}</a>
                   </li>
                   <li v-if="testStatistics.testLists.length === 0">
                     <span style="color: #909399;">暂无待测试的测试单</span>
@@ -409,6 +409,12 @@ import request from "@/utils/request.js";
 
 // 初始化路由
 const router = useRouter();
+
+// 处理测试单点击事件
+const handleTestClick = (testName) => {
+  // 跳转到测试列表页面，并传递测试名称作为搜索参数
+  router.push(`/test/testList?search=${encodeURIComponent(testName)}`);
+};
 
 // 待处理标签
 const activeTab = ref(0);
@@ -462,17 +468,27 @@ const fetchUserInfo = async (username) => {
   try {
     // 从后端获取管理员信息
     const response = await request.get('/admin/findAll');
+    console.log('后端返回的用户列表:', response.data.data);
+    console.log('要查找的用户名:', username);
     if (response.data.code === 200) {
-      // 找到当前登录用户的信息（注意类型转换，后端是Long，前端是String）
-      const currentUser = response.data.data.find(user => String(user.username) === username);
-      if (currentUser) {
-        // 使用数据库中的name字段
-        name.value = currentUser.name || currentUser.username || '用户';
-        // 如果用户有头像，使用用户的头像
-        if (currentUser.avatar) {
-          userAvatar.value = getAvatarUrl(currentUser.avatar);
+      // 遍历用户列表，找到匹配的用户
+      for (const user of response.data.data) {
+        console.log('遍历用户:', user);
+        // 直接比较数字类型的username
+        if (user.username == username) {
+          // 使用数据库中的name字段
+          name.value = user.name || user.username || '用户';
+          console.log('获取到的用户姓名:', name.value);
+          // 如果用户有头像，使用用户的头像
+          if (user.avatar) {
+            userAvatar.value = getAvatarUrl(user.avatar);
+          }
+          return;
         }
       }
+      console.error('未找到用户信息:', username);
+    } else {
+      console.error('获取用户信息失败:', response.data.msg);
     }
   } catch (error) {
     console.error('获取用户信息失败:', error);
@@ -509,10 +525,13 @@ const fetchStatistics = async () => {
 onMounted(async () => {
   // 从本地存储中获取用户信息
   const userStr = localStorage.getItem('user');
+  console.log('从本地存储获取用户信息:', userStr);
   if (userStr) {
     const user = JSON.parse(userStr);
+    console.log('解析后的用户信息:', user);
     // 先使用username作为默认值
     name.value = user.username || '用户';
+    console.log('默认用户名:', name.value);
     
     // 如果本地存储中有头像，先显示本地存储的头像
     if (user.avatar) {
@@ -521,6 +540,8 @@ onMounted(async () => {
     
     // 从后端获取用户的真实姓名和头像
     fetchUserInfo(user.username);
+  } else {
+    console.error('本地存储中没有用户信息');
   }
   
   // 从后端获取统计数据
