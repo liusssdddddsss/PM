@@ -27,4 +27,8 @@ public class ProjectService {
     public Iterable<Project> findAll() {
         return projectRepository.findAll();
     }
+
+    public long count() {
+        return projectRepository.count();
+    }
 }

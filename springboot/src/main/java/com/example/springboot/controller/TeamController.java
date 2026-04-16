@@ -11,6 +11,8 @@ import com.example.springboot.service.MessageService;
 import com.example.springboot.service.TeamService;
 import com.example.springboot.service.TeamMemberService;
 import com.example.springboot.service.UserService;
+import com.example.springboot.service.ProjectService;
+import com.example.springboot.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -50,6 +52,12 @@ public class TeamController {
     
     @Resource
     private UserService userService;
+    
+    @Resource
+    private ProjectService projectService;
+    
+    @Resource
+    private TaskService taskService;
 
     // 获取团队公告
     @Operation(summary = "获取团队公告", description = "根据团队ID获取公告列表")
@@ -169,11 +177,11 @@ public class TeamController {
             // 计算成员数量
             long totalMembers = teamMemberService.count();
             
-            // 计算项目数量（这里简化处理，实际应该从项目表中获取）
-            long totalProjects = 0;
+            // 计算项目数量
+            long totalProjects = projectService.count();
             
-            // 计算任务数量（这里简化处理，实际应该从任务表中获取）
-            long totalTasks = 0;
+            // 计算任务数量
+            long totalTasks = taskService.count();
             
             Map<String, Object> overview = new HashMap<>();
             overview.put("totalTeams", totalTeams);

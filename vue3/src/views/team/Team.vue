@@ -30,7 +30,7 @@
               <div class="overview-label">总成员数</div>
             </div>
           </div>
-          <div class="overview-card">
+          <div class="overview-card" style="cursor: pointer;" @click="goToProjectModule">
             <div class="overview-icon project-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
             </div>
@@ -39,7 +39,7 @@
               <div class="overview-label">项目数量</div>
             </div>
           </div>
-          <div class="overview-card">
+          <div class="overview-card" style="cursor: pointer;" @click="goToTaskModule">
             <div class="overview-icon task-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
@@ -270,8 +270,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import request from '@/utils/request';
 import { ElMessage } from 'element-plus';
+
+// 初始化路由
+const router = useRouter();
 
 // 团队数据（从后端获取，只包含当前登录用户所在团队）
 const teams = ref([]);
@@ -705,6 +709,17 @@ function exportReport() {
   // 这里可以添加导出报告的逻辑
 }
 
+// 跳转到项目集模块
+function goToProjectModule() {
+  console.log('跳转到项目集模块');
+  router.push('/itemSet/itemList');
+}
+
+// 跳转到任务模块
+function goToTaskModule() {
+  console.log('跳转到任务模块');
+  router.push('/task/taskList');
+}
 
 </script>
 
