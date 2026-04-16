@@ -143,6 +143,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
 
@@ -164,11 +165,17 @@ const taskForm = ref({
 });
 
 // 保存任务
-const saveTask = () => {
-  console.log('保存任务:', taskForm.value);
-  // 这里可以添加表单验证和保存逻辑
-  // 保存成功后跳转回任务列表
-  router.push('/task/taskList');
+const saveTask = async () => {
+  try {
+    console.log('保存任务:', taskForm.value);
+    // 这里可以添加表单验证和保存逻辑
+    // 记录操作日志
+    await recordOperationLog('创建了', '任务', null, taskForm.value.name);
+    // 保存成功后跳转回任务列表
+    router.push('/task/taskList');
+  } catch (error) {
+    console.error('保存任务失败:', error);
+  }
 };
 
 // 返回上一页

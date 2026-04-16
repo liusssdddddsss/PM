@@ -68,6 +68,7 @@
 <script setup>
 import {ref, onMounted} from "vue";
 import request from "@/utils/request.js";
+import { recordOperationLog } from "@/utils/operationLog.js";
 
 //ddl列表
 const tableData = ref([]);
@@ -135,7 +136,10 @@ const handleApprove = async () => {
       }
       
       // 记录操作日志
-      await recordOperationLog('通过', currentApproval.value.id, currentApproval.value.title);
+      await recordOperationLog('审批通过了', '审批', currentApproval.value.id, currentApproval.value.title);
+      
+      // 触发全局事件，通知其他组件刷新最新动态
+      window.dispatchEvent(new CustomEvent('refreshDynamic'));
     }
   } catch (error) {
     console.error('审批操作失败:', error);
@@ -181,7 +185,10 @@ const handleReject = async () => {
       }
       
       // 记录操作日志
-      await recordOperationLog('拒绝', currentApproval.value.id, currentApproval.value.title);
+      await recordOperationLog('审批拒绝了', '审批', currentApproval.value.id, currentApproval.value.title);
+      
+      // 触发全局事件，通知其他组件刷新最新动态
+      window.dispatchEvent(new CustomEvent('refreshDynamic'));
     }
   } catch (error) {
     console.error('审批操作失败:', error);
@@ -191,26 +198,7 @@ const handleReject = async () => {
   }
 };
 
-// 记录操作日志
-const recordOperationLog = async (action, approvalId, approvalTitle) => {
-  try {
-    // 从本地存储中获取用户信息
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      // 调用后端API记录操作日志
-      await request.post('/workbench/operation-logs', {
-        username: user.username,
-        action: `审批${action}：${approvalTitle}`,
-        targetId: approvalId,
-        targetType: 'approval',
-        createTime: new Date().toISOString()
-      });
-    }
-  } catch (error) {
-    console.error('记录操作日志失败:', error);
-  }
-};
+// 记录操作日志函数已从工具文件导入
 
 // 处理待定操作
 const handlePending = async () => {
@@ -248,7 +236,10 @@ const handlePending = async () => {
       }
       
       // 记录操作日志
-      await recordOperationLog('待定', currentApproval.value.id, currentApproval.value.title);
+      await recordOperationLog('审批待定', '审批', currentApproval.value.id, currentApproval.value.title);
+      
+      // 触发全局事件，通知其他组件刷新最新动态
+      window.dispatchEvent(new CustomEvent('refreshDynamic'));
     }
   } catch (error) {
     console.error('审批操作失败:', error);

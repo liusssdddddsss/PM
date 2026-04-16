@@ -169,6 +169,7 @@
 import { ref, onMounted, computed, defineProps, watch } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+import { recordOperationLog } from "@/utils/operationLog.js";
 
 // 接收父组件传递的搜索词和活动标签
 const props = defineProps({
@@ -389,9 +390,15 @@ const handleEdit = (id) => {
 
 const handleDelete = async (id) => {
   try {
+    // 查找任务名称
+    const task = taskList.value.find(t => t.id === id);
+    const taskName = task ? task.name : '未知任务';
+    
     const response = await request.delete(`/workbench/tasks/${id}`);
     if (response.code === 200) {
       console.log('删除任务成功:', id);
+      // 记录操作日志
+      await recordOperationLog('删除任务', 'task', id, taskName);
       // 重新获取任务列表
       await fetchTasks();
     }
@@ -401,10 +408,12 @@ const handleDelete = async (id) => {
 };
 
 // 确认关闭任务
-const confirmClose = () => {
+const confirmClose = async () => {
   console.log('确认关闭任务:', currentTask.value.id);
   console.log('关闭表单:', closeForm.value);
   dialogVisible.value = false;
+  // 记录操作日志
+  await recordOperationLog('关闭任务', 'task', currentTask.value.id, currentTask.value.name);
   // 这里可以添加关闭任务的逻辑
 };
 
@@ -444,6 +453,8 @@ const confirmSubmitCode = async () => {
     
     if (response.data.code === 200) {
       console.log('代码提交成功');
+      // 记录操作日志
+      await recordOperationLog('提交代码', 'task', currentTask.value.id, currentTask.value.name);
       codeDialogVisible.value = false;
       // 可以添加成功提示
     }

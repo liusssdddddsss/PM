@@ -86,6 +86,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import request from '@/utils/request';
 import { ElMessage } from 'element-plus';
+import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
 
@@ -119,6 +120,8 @@ const saveProduct = async () => {
       // 调用后端API保存产品
       const response = await request.post('/workbench/projects', productData);
       if (response.data.code === 200) {
+        // 记录操作日志
+        await recordOperationLog('创建了', '产品', null, productForm.value.name);
         ElMessage.success('产品保存成功');
         // 保存成功后返回
         goBack();

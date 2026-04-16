@@ -109,28 +109,105 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import request from '@/utils/request.js';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
+const route = useRoute();
 
 // 项目表单数据
 const projectForm = ref({
-
+  name: '',
+  type: '',
+  startDate: '',
+  endDate: '',
+  leader: '',
+  participants: '',
+  remark: '',
+  accessControl: 'public',
+  permissionControl: 'inherit',
+  requirements: []
 });
 
+// 获取项目详情
+const fetchProjectDetail = async () => {
+  const projectId = route.query.id;
+  if (!projectId) {
+    ElMessage.error('缺少项目ID');
+    return;
+  }
+  
+  try {
+    const response = await request.get(`/workbench/projects/${projectId}`);
+    if (response.data.code === 200) {
+      const project = response.data.data;
+      // 填充表单数据
+      projectForm.value = {
+        name: project.title || '',
+        type: project.type || '',
+        startDate: project.startTime ? new Date(project.startTime) : '',
+        endDate: project.finishTime ? new Date(project.finishTime) : '',
+        leader: project.person || '',
+        participants: project.participants || '',
+        remark: project.remark || '',
+        accessControl: project.accessControl || 'public',
+        permissionControl: project.permissionControl || 'inherit',
+        requirements: project.requirements || []
+      };
+    }
+  } catch (error) {
+    console.error('获取项目详情失败:', error);
+    ElMessage.error('获取项目详情失败');
+  }
+};
+
 // 保存项目
-const saveProject = () => {
-  // 这里可以添加保存逻辑
-  console.log('保存项目:', projectForm.value);
-  // 保存成功后返回
-  goBack();
+const saveProject = async () => {
+  const projectId = route.query.id;
+  if (!projectId) {
+    ElMessage.error('缺少项目ID');
+    return;
+  }
+  
+  try {
+    // 构建保存数据
+    const saveData = {
+      title: projectForm.value.name,
+      type: projectForm.value.type,
+      startTime: projectForm.value.startDate,
+      finishTime: projectForm.value.endDate,
+      person: projectForm.value.leader,
+      participants: projectForm.value.participants,
+      remark: projectForm.value.remark,
+      accessControl: projectForm.value.accessControl,
+      permissionControl: projectForm.value.permissionControl,
+      requirements: projectForm.value.requirements
+    };
+    
+    // 调用后端API保存项目
+    const response = await request.put(`/workbench/projects/${projectId}`, saveData);
+    if (response.data.code === 200) {
+      ElMessage.success('项目保存成功');
+      // 保存成功后返回
+      goBack();
+    }
+  } catch (error) {
+    console.error('保存项目失败:', error);
+    ElMessage.error('保存项目失败');
+  }
 };
 
 // 返回上一页
 const goBack = () => {
   router.push('/itemSet/itemList');
 };
+
+// 页面加载时获取项目详情
+onMounted(() => {
+  fetchProjectDetail();
+});
 </script>
 
 <style scoped>

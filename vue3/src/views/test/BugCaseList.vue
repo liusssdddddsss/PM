@@ -263,6 +263,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+import { recordOperationLog } from "@/utils/operationLog.js";
 
 const props = defineProps({
   activeTab: {
@@ -477,6 +478,8 @@ const confirmEdit = async () => {
     
     if (response.data.code === 200) {
       console.log('Bug编辑成功');
+      // 记录操作日志
+      await recordOperationLog('编辑Bug', 'bug', currentBug.value.id, currentBug.value.name);
       editDialogVisible.value = false;
       // 重新获取Bug列表
       await fetchBugs();
@@ -504,6 +507,8 @@ const confirmResolve = async () => {
     
     if (response.data.code === 200) {
       console.log('Bug解决成功');
+      // 记录操作日志
+      await recordOperationLog('解决Bug', 'bug', currentBug.value.id, currentBug.value.name);
       resolveDialogVisible.value = false;
       // 重新获取Bug列表
       await fetchBugs();
@@ -523,6 +528,8 @@ const confirmDelete = async () => {
       const response = await request.delete(`/bug/${currentDeleteId.value}`);
       if (response.data.code === 200) {
         console.log('删除Bug成功:', currentDeleteId.value);
+        // 记录操作日志
+        await recordOperationLog('删除Bug', 'bug', currentDeleteId.value, currentBug.value.name);
         deleteDialogVisible.value = false;
         // 重新获取Bug列表
         await fetchBugs();

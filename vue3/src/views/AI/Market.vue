@@ -170,7 +170,7 @@ const generateReport = async () => {
     const prompt = `请根据以下市场信息生成一份详细的市场分析报告：\n\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}\n\n请生成一份结构清晰、内容正式的市场分析报告，包括：市场规模分析、发展趋势、竞争格局、机会与挑战等内容。报告应该专业、全面，并且易于理解。`;
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.5-flash',
+      model: 'qwen3.5-plus',
       messages: [
         { role: 'user', content: prompt }
       ]
@@ -225,7 +225,7 @@ const sendMessage = async () => {
     }));
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.5-flash',
+      model: 'qwen3.5-plus',
       messages: messages
     }, {
       headers: {

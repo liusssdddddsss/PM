@@ -677,8 +677,9 @@ public class WorkbenchController {
             OperationLog operationLog = new OperationLog();
             
             // 设置用户ID
-            String username = (String) body.get("username");
-            if (username != null) {
+            Object usernameObj = body.get("username");
+            if (usernameObj != null) {
+                String username = usernameObj.toString();
                 operationLog.setUser_id(username);
             }
             

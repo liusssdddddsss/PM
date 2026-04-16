@@ -157,7 +157,7 @@ const generateAnalysis = async () => {
     const prompt = `请根据以下项目信息进行风险分析和预警：\n\n项目名称：${formData.value.projectName}\n分析维度：${formData.value.analysisDimensions.join(', ')}\n项目周期：${formData.value.projectPeriod ? formData.value.projectPeriod[0] + ' 至 ' + formData.value.projectPeriod[1] : '未指定'}\n项目状态：${formData.value.projectStatus}\n\n请生成一份详细的风险分析报告，包括：\n1. 各维度的风险评估\n2. 潜在风险点的预警\n3. 风险缓解建议\n4. 优先级排序\n\n报告应该专业、全面，并且易于理解。`;
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.5-flash',
+      model: 'qwen3.5-plus',
       messages: [
         { role: 'user', content: prompt }
       ]
@@ -212,7 +212,7 @@ const sendMessage = async () => {
     }));
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.5-flash',
+      model: 'qwen3.5-plus',
       messages: messages
     }, {
       headers: {

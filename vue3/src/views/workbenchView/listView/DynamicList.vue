@@ -8,7 +8,7 @@
         <div class="dynamic-content">
           <div class="dynamic-message">
             {{item.operator}}{{getActionText(item.action, item.link)}}
-            <span class="dynamic-link" v-if="item.link">
+            <span class="dynamic-link" v-if="item.link" @click="navigateToModule(item.link)">
                     {{item.link}}
           </span>
           </div>
@@ -27,8 +27,11 @@
 <script setup>
 
 // 最新动态数据
-import {ref, onMounted} from "vue";
+import {ref, onMounted, onUnmounted} from "vue";
+import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+
+const router = useRouter();
 
 const dynamicData = ref([]);
 
@@ -47,7 +50,60 @@ const fetchDynamicData = async () => {
 // 页面加载时获取最新动态数据
 onMounted(() => {
   fetchDynamicData();
+  
+  // 监听全局事件，当有操作日志记录时刷新最新动态
+  console.log('Adding event listener for refreshDynamic');
+  window.addEventListener('refreshDynamic', fetchDynamicData);
+  
+  // 测试事件触发
+  setTimeout(() => {
+    console.log('Testing refreshDynamic event');
+    window.dispatchEvent(new CustomEvent('refreshDynamic'));
+  }, 2000);
 });
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  console.log('Removing event listener for refreshDynamic');
+  window.removeEventListener('refreshDynamic', fetchDynamicData);
+});
+
+// 导航到相应模块
+const navigateToModule = (link) => {
+  console.log('Navigating with link:', link);
+  if (!link) return;
+  
+  // 根据link内容跳转到不同模块
+  if (link.includes('project')) {
+    console.log('Navigating to project module');
+    // 跳转到项目集模块
+    router.push('/itemSet/itemList');
+  } else if (link.includes('approval')) {
+    console.log('Navigating to approval module');
+    // 跳转到审批模块
+    router.push('/workbench/approval');
+  } else if (link.includes('bug')) {
+    console.log('Navigating to bug module');
+    // 跳转到Bug模块
+    router.push('/test/bugList');
+  } else if (link.includes('task')) {
+    console.log('Navigating to task module');
+    // 跳转到任务模块
+    router.push('/task/taskList');
+  } else if (link.includes('user')) {
+    console.log('Navigating to user module');
+    // 跳转到用户模块
+    router.push('/admin/userManagement');
+  } else if (link.includes('product')) {
+    console.log('Navigating to product module');
+    // 跳转到产品模块
+    router.push('/productResearch/productList');
+  } else {
+    console.log('Navigating to default workbench');
+    // 默认跳转到工作台
+    router.push('/workbench');
+  }
+};
 
 // 根据action和link生成操作文本
 const getActionText = (action, link) => {

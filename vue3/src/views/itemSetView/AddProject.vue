@@ -92,6 +92,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import request from '@/utils/request.js';
+import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
 
@@ -126,6 +127,8 @@ const saveProject = async () => {
     const response = await request.post('/workbench/projects', projectData);
     if (response.data.code === 200) {
       console.log('项目创建成功');
+      // 记录操作日志
+      await recordOperationLog('创建了', '项目', null, projectForm.value.name);
       // 保存成功后返回
       goBack();
     }

@@ -93,6 +93,7 @@ import {ref, computed} from "vue";
 import {useRouter} from "vue-router";
 import request from "@/utils/request.js";
 import { ElMessageBox, ElMessage } from "element-plus";
+import { recordOperationLog } from "@/utils/operationLog.js";
 
 const tabs = ref([
   {name:'全部',type:'all'},
@@ -249,6 +250,10 @@ const handleClose = (project) => {
       const response = await request.put(`/workbench/projects/${project.id}/status?status=2`);
       if (response.data.code === 200) {
         console.log('关闭项目成功:', project.id);
+        // 记录操作日志
+        await recordOperationLog('关闭了', '项目', project.id, project.title);
+        // 触发全局事件，通知其他组件刷新最新动态
+        window.dispatchEvent(new CustomEvent('refreshDynamic'));
         // 更新本地数据
         project.states = '已关闭';
         ElMessage.success('项目已关闭');
@@ -280,6 +285,8 @@ const handleOpen = (project) => {
       const response = await request.put(`/workbench/projects/${project.id}/status?status=1`);
       if (response.data.code === 200) {
         console.log('打开项目成功:', project.id);
+        // 记录操作日志
+        await recordOperationLog('打开了', '项目', project.id, project.title);
         // 更新本地数据
         project.states = '进行中';
         ElMessage.success('项目已打开');
@@ -295,11 +302,20 @@ const handleOpen = (project) => {
 };
 
 const handleEdit = (id) => {
-  router.push('/itemSet/itemEdit');
+  router.push(`/itemSet/itemEdit?id=${id}`);
 };
 
-const handleSubmitCode = (project) => {
-  console.log('提交代码:', project);
+const handleSubmitCode = async (project) => {
+  try {
+    // 这里可以添加提交代码的逻辑
+    console.log('提交代码:', project);
+    // 记录操作日志
+    await recordOperationLog('提交了代码', '项目', project.id, project.title);
+    ElMessage.success('代码提交成功');
+  } catch (error) {
+    console.error('提交代码失败:', error);
+    ElMessage.error('提交代码失败');
+  }
 };
 
 const handleDelete = (project) => {
@@ -320,6 +336,8 @@ const handleDelete = (project) => {
       const response = await request.delete(`/workbench/projects/${project.id}`);
       if (response.data.code === 200) {
         console.log('删除项目成功:', project.id);
+        // 记录操作日志
+        await recordOperationLog('删除了', '项目', project.id, project.title);
         // 从本地数据中移除删除的项目
         projectData.value = projectData.value.filter(p => p.id !== project.id);
         ElMessage.success('项目已删除');

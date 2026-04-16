@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check localStorage</title>
+</head>
+<body>
+    <h1>Check localStorage</h1>
+    <div id="result"></div>
+    <script>
+        const user = localStorage.getItem('user');
+        const resultDiv = document.getElementById('result');
+        if (user) {
+            resultDiv.innerHTML = `<p>User found: ${user}</p>`;
+        } else {
+            resultDiv.innerHTML = '<p>No user in localStorage</p>';
+        }
+    </script>
+</body>
+</html>

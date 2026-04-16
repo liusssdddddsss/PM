@@ -168,7 +168,7 @@ const generateReport = async () => {
     const prompt = `请根据以下信息生成一份详细的工作汇报：\n\n汇报周期：${formData.value.reportPeriod}\n汇报时间：${formData.value.reportDate[0]} 至 ${formData.value.reportDate[1]}\n汇报内容：${formData.value.reportContent}\n项目名称：${formData.value.projectName}\n汇报类型：${formData.value.reportType}\n\n请生成一份结构清晰、内容正式的工作汇报，包括：\n1. 工作内容概述\n2. 完成的任务和成果\n3. 遇到的问题和解决方案\n4. 下一步计划\n5. 总结和建议\n\n汇报应该专业、全面，并且易于理解。`;
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.5-flash',
+      model: 'qwen3.5-plus',
       messages: [
         { role: 'user', content: prompt }
       ]
@@ -223,7 +223,7 @@ const sendMessage = async () => {
     }));
 
     const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.5-flash',
+      model: 'qwen3.5-plus',
       messages: messages
     }, {
       headers: {
