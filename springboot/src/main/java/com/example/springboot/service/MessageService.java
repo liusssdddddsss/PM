@@ -7,6 +7,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class MessageService {
@@ -70,6 +71,28 @@ public class MessageService {
         if (message != null) {
             message.setIsRead(1);
             entityManager.merge(message);
+        }
+    }
+    
+    // 根据接收者统计消息数量
+    public long countByReceiver(String receiver) {
+        Query query = entityManager.createQuery("SELECT COUNT(m) FROM Message m WHERE m.receiver = :receiver");
+        query.setParameter("receiver", receiver);
+        return (Long) query.getSingleResult();
+    }
+    
+    // 统计与团队成员相关的消息数量（发送者或接收者是团队成员）
+    public long countByTeamMembers(Set<String> teamMemberUsernames) {
+        if (teamMemberUsernames.isEmpty()) {
+            return 0;
+        }
+        try {
+            Query query = entityManager.createQuery("SELECT COUNT(m) FROM Message m WHERE m.sender IN :usernames OR m.receiver IN :usernames");
+            query.setParameter("usernames", teamMemberUsernames);
+            return (Long) query.getSingleResult();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
         }
     }
 }

@@ -56,7 +56,7 @@ const router = createRouter({
           meta:{
               tabs:[
                   {name:'仪表盘',route:'/productResearch/productDashboard'},
-                  {name:'产品列表',route:'/productResearch/productList'},
+                  // {name:'产品列表',route:'/productResearch/productList'},
                   {name:'产品看板',route:'/productResearch/productBorder'},
               ]
           },
@@ -110,12 +110,12 @@ const router = createRouter({
 
           ]},
       {path:'/feedbacks',component:()=>import('@/views/home/Home.vue'),
-          meta:{
-              tabs:[
-                  {name:'反馈',route:'/feedbacks/feedback'},
-                  {name:'工单',route:'/feedbacks/workOrder'},
-              ]
-          },
+          // meta:{
+          //     tabs:[
+          //         {name:'反馈',route:'/feedbacks/feedback'},
+          //         // {name:'工单',route:'/feedbacks/workOrder'},
+          //     ]
+          // },
           children:[
               {path:'feedback',component:()=>import('@/views/feedbacks/FeedBack.vue')},
               {path:'workOrder',component:()=>import('@/views/feedbacks/WorkOrder.vue')},

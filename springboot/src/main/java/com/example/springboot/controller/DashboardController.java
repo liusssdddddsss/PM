@@ -29,6 +29,8 @@ public class DashboardController {
     @Autowired
     private TaskService taskService;
 
+    @Autowired
+    private ProjectMemberService projectMemberService;
 
 
     @Autowired
@@ -434,9 +436,12 @@ public class DashboardController {
         }
     }
 
+    @Autowired
+    private IterationService iterationService;
+
     @Operation(summary = "获取产品总览数据", description = "返回产品总览数据")
     @GetMapping("/product-overview")
-    public Result getProductOverview() {
+    public Result getProductOverview(@RequestParam(required = false) String username) {
         try {
             // 从数据库获取产品总览数据
             Map<String, Object> overview = new HashMap<>();
@@ -445,7 +450,20 @@ public class DashboardController {
             int productCount = 0;
             Iterable<Product> products = productService.findAll();
             for (Product product : products) {
-                productCount++;
+                // 如果指定了用户名，只统计与该用户有关的产品
+                if (username != null) {
+                    if (product.getOwner_id() != null) {
+                        // 尝试通过owner_id查找用户
+                        Optional<User> userOptional = userService.findById(product.getOwner_id().toString());
+                        // 或者如果产品的owner_id与当前用户名匹配，也应该统计
+                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername()) || 
+                            product.getOwner_id().toString().equals(username)) {
+                            productCount++;
+                        }
+                    }
+                } else {
+                    productCount++;
+                }
             }
             overview.put("productCount", productCount);
             
@@ -453,27 +471,127 @@ public class DashboardController {
             int productLineCount = productCount;
             overview.put("productLineCount", productLineCount);
             
-            // 未完成计划数
-            int unfinishedPlanCount = 0;
+            // 项目总数
+            int projectCount = 0;
             List<Project> projects = (List<Project>) projectService.findAll();
             for (Project project : projects) {
-                if (project.getStatus() != null && project.getStatus() != 2) { // 假设2表示已完成
-                    unfinishedPlanCount++;
+                // 如果指定了用户名，只统计与该用户有关的项目
+                if (username != null) {
+                    // 使用managerId字段，假设managerId对应的用户就是负责人
+                    if (project.getManagerId() != null) {
+                        Optional<User> userOptional = userService.findById(project.getManagerId().toString());
+                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                            projectCount++;
+                        }
+                    }
+                } else {
+                    projectCount++;
                 }
             }
-            overview.put("unfinishedPlanCount", unfinishedPlanCount);
-            
-
+            overview.put("unclosedNeedCount", projectCount);
             
             // 激活Bug数
             int activeBugCount = 0;
             List<Bug> bugs = bugService.findall();
             for (Bug bug : bugs) {
-                if (bug.getStatus() != null && bug.getStatus() != 2) { // 假设2表示已解决
-                    activeBugCount++;
+                // 如果指定了用户名，只统计与该用户有关的Bug
+                if (username != null) {
+                    if (bug.getAssignee_id() != null && bug.getAssignee_id().toString().equals(username)) {
+                        if (bug.getStatus() != null && bug.getStatus() != 2) { // 假设2表示已解决
+                            activeBugCount++;
+                        }
+                    }
+                } else {
+                    if (bug.getStatus() != null && bug.getStatus() != 2) { // 假设2表示已解决
+                        activeBugCount++;
+                    }
                 }
             }
             overview.put("activeBugCount", activeBugCount);
+            
+            // 迭代项目总数
+            int iterationProjectCount = 0;
+            try {
+                List<Iteration> iterations = iterationService.findAll();
+                for (Iteration iteration : iterations) {
+                    // 如果指定了用户名，只统计与该用户有关的迭代
+                    if (username != null) {
+                        // 通过迭代的projectId找到对应的项目，再判断项目是否与当前用户有关
+                            if (iteration.getProjectId() != null) {
+                                for (Project project : projects) {
+                                    if (project.getId().intValue() == iteration.getProjectId() && project.getManagerId() != null) {
+                                        Optional<User> userOptional = userService.findById(project.getManagerId().toString());
+                                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                                            iterationProjectCount++;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                    } else {
+                        iterationProjectCount++;
+                    }
+                }
+            } catch (Exception e) {
+                // 如果迭代服务不可用，默认为0
+                iterationProjectCount = 0;
+            }
+            overview.put("iterationProjectCount", iterationProjectCount);
+            
+            // 未完成计划数（未完成的项目数加未完成的迭代数总和）
+            int unfinishedProjectCount = 0;
+            for (Project project : projects) {
+                // 如果指定了用户名，只统计与该用户有关的项目
+                if (username != null) {
+                    // 使用managerId字段
+                    if (project.getManagerId() != null) {
+                        Optional<User> userOptional = userService.findById(project.getManagerId().toString());
+                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                            if (project.getStatus() != null && project.getStatus() != 2) { // 假设2表示已完成
+                                unfinishedProjectCount++;
+                            }
+                        }
+                    }
+                } else {
+                    if (project.getStatus() != null && project.getStatus() != 2) { // 假设2表示已完成
+                        unfinishedProjectCount++;
+                    }
+                }
+            }
+            
+            int unfinishedIterationCount = 0;
+            try {
+                List<Iteration> iterations = iterationService.findAll();
+                for (Iteration iteration : iterations) {
+                    // 如果指定了用户名，只统计与该用户有关的迭代
+                    if (username != null) {
+                        // 通过迭代的projectId找到对应的项目，再判断项目是否与当前用户有关
+                        if (iteration.getProjectId() != null) {
+                            for (Project project : projects) {
+                                if (project.getId().intValue() == iteration.getProjectId() && project.getManagerId() != null) {
+                                    Optional<User> userOptional = userService.findById(project.getManagerId().toString());
+                                    if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                                        if (iteration.getStatus() != null && iteration.getStatus() != 2) { // 假设2表示已完成
+                                            unfinishedIterationCount++;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        if (iteration.getStatus() != null && iteration.getStatus() != 2) { // 假设2表示已完成
+                            unfinishedIterationCount++;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 如果迭代服务不可用，默认为0
+                unfinishedIterationCount = 0;
+            }
+            
+            int unfinishedPlanCount = unfinishedProjectCount + unfinishedIterationCount;
+            overview.put("unfinishedPlanCount", unfinishedPlanCount);
             
             return Result.success(overview);
         } catch (Exception e) {
@@ -484,7 +602,7 @@ public class DashboardController {
 
     @Operation(summary = "获取项目总览数据", description = "返回项目总览数据")
     @GetMapping("/project-overview")
-    public Result getProjectOverview() {
+    public Result getProjectOverview(@RequestParam(required = false) String username) {
         try {
             // 从数据库获取项目总览数据
             Map<String, Object> overview = new HashMap<>();
@@ -503,8 +621,34 @@ public class DashboardController {
             yearData.put("2023", 0);
             yearData.put("2024", 0);
             
+            // 获取用户参与的项目ID列表
+            Set<Long> userProjectIds = new HashSet<>();
+            if (username != null) {
+                var user = userService.findById(username);
+                if (user.isPresent()) {
+                    try {
+                        Long userId = Long.parseLong(username);
+                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                            if (member.getProjectId() != null) {
+                                userProjectIds.add(member.getProjectId());
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，返回空列表
+                    }
+                }
+            }
+            
             Iterable<Project> projects = projectService.findAll();
             for (Project project : projects) {
+                // 如果指定了用户名，只统计用户参与的项目
+                if (username != null) {
+                    if (!userProjectIds.contains(project.getId())) {
+                        continue;
+                    }
+                }
+                
                 xiangMuCount++;
                 
                 // 今年完成的项目
@@ -567,7 +711,7 @@ public class DashboardController {
             
             // 已完成发布数
             int completedReleaseCount = 0;
-            // 已完成需求数
+            // 已完成项目数
             int completedNeedCount = 0;
             // 已完成Bug数
             int completedBugCount = 0;
@@ -575,7 +719,7 @@ public class DashboardController {
             // 获取指定年份
             int targetYear = Integer.parseInt(year);
             
-            // 统计已完成的发布数
+            // 统计已完成的发布数和项目数
             Iterable<Project> projects = projectService.findAll();
             Calendar cal = Calendar.getInstance();
             for (Project project : projects) {
@@ -584,12 +728,11 @@ public class DashboardController {
                         cal.setTime(project.getEnd_date());
                         if (cal.get(Calendar.YEAR) == targetYear) {
                             completedReleaseCount++;
+                            completedNeedCount++;
                         }
                     }
                 }
             }
-            
-
             
             // 统计已完成的Bug数
             List<Bug> bugs = bugService.findall();
@@ -639,16 +782,69 @@ public class DashboardController {
 
     @Operation(summary = "获取未关闭的产品列表数据", description = "返回未关闭的产品列表数据")
     @GetMapping("/unclosed-products")
-    public Result getUnclosedProducts() {
+    public Result getUnclosedProducts(@RequestParam(required = false) String username) {
         try {
             // 从数据库获取未关闭的产品列表数据
             List<Map<String, Object>> products = new ArrayList<>();
+            
+            // 获取所有项目
+            List<Project> allProjects = (List<Project>) projectService.findAll();
+            
+            // 获取用户参与的项目ID列表
+            Set<Long> userProjectIds = new HashSet<>();
+            if (username != null) {
+                try {
+                    // 将用户名转换为Long类型
+                    Long userId = Long.parseLong(username);
+                    // 获取用户参与的项目成员记录
+                    List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                    for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                        if (member.getProjectId() != null) {
+                            userProjectIds.add(member.getProjectId());
+                        }
+                    }
+                } catch (Exception e) {
+                    // 如果获取项目成员失败，继续执行
+                }
+            }
             
             // 获取所有产品
             Iterable<Product> productList = productService.findAll();
             for (Product product : productList) {
                 // 只返回未关闭的产品（status != 2）
                 if (product.getStatus() == null || product.getStatus() != 2) {
+                    // 如果指定了用户名，只返回与该用户有关的产品
+                    if (username != null) {
+                        boolean isUserRelated = false;
+                        
+                        // 检查产品的owner_id是否与用户相关
+                        if (product.getOwner_id() != null) {
+                            // 尝试通过owner_id查找用户
+                            Optional<User> userOptional = userService.findById(product.getOwner_id().toString());
+                            // 或者如果产品的owner_id与当前用户名匹配，也应该显示
+                            if (userOptional.isPresent() && username.equals(userOptional.get().getUsername()) || 
+                                product.getOwner_id().toString().equals(username)) {
+                                isUserRelated = true;
+                            }
+                        }
+                        
+                        // 检查用户是否参与了该产品的任何项目
+                        if (!isUserRelated) {
+                            for (Project project : allProjects) {
+                                if (project.getProduct_id() != null && project.getProduct_id().equals(product.getId()) && 
+                                    userProjectIds.contains(project.getId())) {
+                                    isUserRelated = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // 如果产品与用户无关，跳过
+                        if (!isUserRelated) {
+                            continue;
+                        }
+                    }
+                    
                     Map<String, Object> productMap = new HashMap<>();
                     productMap.put("projectName", product.getName());
                     
@@ -665,11 +861,118 @@ public class DashboardController {
                         productMap.put("manager", "未知");
                     }
                     
-                    // 模拟数据（实际项目中应该从数据库中获取）
-                    productMap.put("activeNeeds", 0);
-                    productMap.put("completionRate", 0);
+                    // 计算该产品相关的项目数
+                    int productProjectCount = 0;
+                    for (Project project : allProjects) {
+                        // 过滤出与当前产品相关的项目
+                        if (project.getProduct_id() != null && project.getProduct_id().equals(product.getId())) {
+                            // 如果指定了用户名，只统计与该用户有关的项目
+                            if (username != null) {
+                                // 检查项目是否由用户管理或用户是项目成员
+                                boolean isProjectRelated = false;
+                                if (project.getManagerId() != null) {
+                                    Optional<User> userOptional = userService.findById(project.getManagerId().toString());
+                                    if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                                        isProjectRelated = true;
+                                    }
+                                }
+                                if (!isProjectRelated && userProjectIds.contains(project.getId())) {
+                                    isProjectRelated = true;
+                                }
+                                if (isProjectRelated) {
+                                    productProjectCount++;
+                                }
+                            } else {
+                                productProjectCount++;
+                            }
+                        }
+                    }
+                    productMap.put("activeNeeds", productProjectCount);
+                    
+                    // 计算该产品相关的迭代项目数
+                    int productIterationCount = 0;
+                    try {
+                        List<Iteration> iterations = iterationService.findAll();
+                        for (Iteration iteration : iterations) {
+                            // 过滤出与当前产品相关的迭代
+                            if (iteration.getProjectId() != null) {
+                                // 通过项目ID找到对应的项目，再判断项目是否属于当前产品
+                                for (Project project : allProjects) {
+                                    if (project.getId().intValue() == iteration.getProjectId() && 
+                                        project.getProduct_id() != null && 
+                                        project.getProduct_id().equals(product.getId())) {
+                                        // 如果指定了用户名，只统计与该用户有关的迭代
+                                        if (username != null) {
+                                            // 检查项目是否与用户相关
+                                            boolean isProjectRelated = false;
+                                            if (project.getManagerId() != null) {
+                                                Optional<User> userOptional = userService.findById(project.getManagerId().toString());
+                                                if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                                                    isProjectRelated = true;
+                                                }
+                                            }
+                                            if (!isProjectRelated && userProjectIds.contains(project.getId())) {
+                                                isProjectRelated = true;
+                                            }
+                                            if (isProjectRelated) {
+                                                productIterationCount++;
+                                            }
+                                        } else {
+                                            productIterationCount++;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        // 如果迭代服务不可用，默认为0
+                        productIterationCount = 0;
+                    }
+                    productMap.put("iterationCount", productIterationCount);
                     productMap.put("plan", "进行中");
-                    productMap.put("activeBugs", 0);
+                    
+                    // 计算该产品相关的Bug数
+                    int productBugCount = 0;
+                    List<Bug> bugs = bugService.findall();
+                    for (Bug bug : bugs) {
+                        // 过滤出与当前产品相关的Bug
+                        if (bug.getProject_id() != null) {
+                            // 查找Bug所属的项目，再判断项目是否属于当前产品
+                            for (Project project : allProjects) {
+                                if (project.getId().intValue() == bug.getProject_id() && 
+                                    project.getProduct_id() != null && 
+                                    project.getProduct_id().equals(product.getId())) {
+                                    // 如果指定了用户名，只统计与该用户有关的Bug
+                                    if (username != null) {
+                                        // 检查Bug是否指派给用户，或者项目是否与用户相关
+                                        boolean isBugRelated = false;
+                                        if (bug.getAssignee_id() != null && bug.getAssignee_id().toString().equals(username)) {
+                                            isBugRelated = true;
+                                        }
+                                        if (!isBugRelated) {
+                                            if (project.getManagerId() != null) {
+                                                Optional<User> userOptional = userService.findById(project.getManagerId().toString());
+                                                if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                                                    isBugRelated = true;
+                                                }
+                                            }
+                                            if (!isBugRelated && userProjectIds.contains(project.getId())) {
+                                                isBugRelated = true;
+                                            }
+                                        }
+                                        if (isBugRelated) {
+                                            productBugCount++;
+                                        }
+                                    } else {
+                                        productBugCount++;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    productMap.put("activeBugs", productBugCount);
                     productMap.put("release", "计划中");
                     
                     products.add(productMap);
@@ -680,6 +983,131 @@ public class DashboardController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取未关闭的产品列表数据失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取产品开发周期分布数据", description = "返回产品开发周期分布数据")
+    @GetMapping("/product-development-cycle")
+    public Result getProductDevelopmentCycle(@RequestParam(required = false) String username) {
+        try {
+            // 从数据库获取产品开发周期分布数据
+            Map<String, Object> cycleData = new HashMap<>();
+            
+            // 获取所有项目
+            List<Project> allProjects = (List<Project>) projectService.findAll();
+            
+            // 获取用户参与的项目ID列表
+            Set<Long> userProjectIds = new HashSet<>();
+            if (username != null) {
+                try {
+                    // 将用户名转换为Long类型
+                    Long userId = Long.parseLong(username);
+                    // 获取用户参与的项目成员记录
+                    List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                    for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                        if (member.getProjectId() != null) {
+                            userProjectIds.add(member.getProjectId());
+                        }
+                    }
+                } catch (Exception e) {
+                    // 如果获取项目成员失败，继续执行
+                }
+            }
+            
+            // 获取所有产品
+            Iterable<Product> productList = productService.findAll();
+            
+            // 计算不同开发周期的产品数量
+            int lessThan3Months = 0;
+            int between3And6Months = 0;
+            int between6And12Months = 0;
+            int moreThan12Months = 0;
+            
+            // 按开发周期分组的产品列表
+            Map<String, List<Map<String, Object>>> productsByCycle = new HashMap<>();
+            productsByCycle.put("3个月以内", new ArrayList<>());
+            productsByCycle.put("3-6个月", new ArrayList<>());
+            productsByCycle.put("6-12个月", new ArrayList<>());
+            productsByCycle.put("12个月以上", new ArrayList<>());
+            
+            // 计算当前日期
+            Date now = new Date();
+            
+            for (Product product : productList) {
+                // 检查产品是否与用户相关
+                boolean isUserRelated = false;
+                if (username != null) {
+                    // 检查产品的owner_id是否与用户相关
+                    if (product.getOwner_id() != null) {
+                        // 尝试通过owner_id查找用户
+                        Optional<User> userOptional = userService.findById(product.getOwner_id().toString());
+                        // 或者如果产品的owner_id与当前用户名匹配，也应该显示
+                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername()) || 
+                            product.getOwner_id().toString().equals(username)) {
+                            isUserRelated = true;
+                        }
+                    }
+                    
+                    // 检查用户是否参与了该产品的任何项目
+                    if (!isUserRelated) {
+                        for (Project project : allProjects) {
+                            if (project.getProduct_id() != null && project.getProduct_id().equals(product.getId()) && 
+                                userProjectIds.contains(project.getId())) {
+                                isUserRelated = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 如果产品与用户无关，跳过
+                    if (!isUserRelated) {
+                        continue;
+                    }
+                }
+                
+                // 计算产品开发周期（从创建日期到现在）
+                long months = 0;
+                if (product.getCreated_at() != null) {
+                    long diffInMillis = now.getTime() - product.getCreated_at().getTime();
+                    months = diffInMillis / (1000L * 60 * 60 * 24 * 30);
+                }
+                
+                // 构建产品信息
+                Map<String, Object> productInfo = new HashMap<>();
+                productInfo.put("id", product.getId());
+                productInfo.put("name", product.getName());
+                
+                // 根据开发周期分组
+                if (months < 3) {
+                    lessThan3Months++;
+                    productsByCycle.get("3个月以内").add(productInfo);
+                } else if (months >= 3 && months < 6) {
+                    between3And6Months++;
+                    productsByCycle.get("3-6个月").add(productInfo);
+                } else if (months >= 6 && months < 12) {
+                    between6And12Months++;
+                    productsByCycle.get("6-12个月").add(productInfo);
+                } else {
+                    moreThan12Months++;
+                    productsByCycle.get("12个月以上").add(productInfo);
+                }
+            }
+            
+            // 构建饼图数据
+            List<Map<String, Object>> pieData = new ArrayList<>();
+            pieData.add(Map.of("value", lessThan3Months, "name", "3个月以内"));
+            pieData.add(Map.of("value", between3And6Months, "name", "3-6个月"));
+            pieData.add(Map.of("value", between6And12Months, "name", "6-12个月"));
+            pieData.add(Map.of("value", moreThan12Months, "name", "12个月以上"));
+            
+            // 构建返回数据
+            cycleData.put("pieData", pieData);
+            cycleData.put("productsByCycle", productsByCycle);
+            
+            return Result.success(cycleData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取产品开发周期分布数据失败: " + e.getMessage());
         }
     }
 
@@ -894,23 +1322,147 @@ public class DashboardController {
             // 从数据库获取团队完成情况数据
             Map<String, Object> statistics = new HashMap<>();
             
-            // 昨天的数据
-            Map<String, Object> yesterday = new HashMap<>();
-            yesterday.put("task", 5); // 完成任务数量
-            yesterday.put("create", 3); // 创建需求数量
-            yesterday.put("tiChu", 2); // 提出Bug数量
-            yesterday.put("bug", 4); // 修改Bug数量
-            yesterday.put("clock", 40); // 总消耗工时
-            yesterday.put("averageClock", 8); // 平均消耗工时
+            // 获取今天和昨天的日期
+            Calendar cal = Calendar.getInstance();
+            Date todayDate = cal.getTime();
+            cal.add(Calendar.DATE, -1);
+            Date yesterdayDate = cal.getTime();
             
-            // 今天的数据
+            // 格式化日期为yyyy-MM-dd
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            String todayStr = sdf.format(todayDate);
+            String yesterdayStr = sdf.format(yesterdayDate);
+            
+            // 从数据库获取任务数据
+            List<Task> tasks = taskService.findall();
+            // 从数据库获取Bug数据
+            List<Bug> bugs = bugService.findall();
+            // 从数据库获取操作日志数据（用于统计创建需求数量）
+            List<OperationLog> operationLogs = operationLogService.findall();
+            
+            // 统计昨天的数据
+            Map<String, Object> yesterday = new HashMap<>();
+            int yesterdayTaskCount = 0; // 完成任务数量
+            int yesterdayCreateCount = 0; // 创建需求数量
+            int yesterdayTiChuCount = 0; // 提出Bug数量
+            int yesterdayBugCount = 0; // 修改Bug数量
+            int yesterdayClock = 0; // 总消耗工时
+            
+            // 统计今天的数据
             Map<String, Object> today = new HashMap<>();
-            today.put("task", 3); // 完成任务数量
-            today.put("create", 2); // 创建需求数量
-            today.put("tiChu", 1); // 提出Bug数量
-            today.put("bug", 2); // 修改Bug数量
-            today.put("clock", 24); // 总消耗工时
-            today.put("averageClock", 6); // 平均消耗工时
+            int todayTaskCount = 0; // 完成任务数量
+            int todayCreateCount = 0; // 创建需求数量
+            int todayTiChuCount = 0; // 提出Bug数量
+            int todayBugCount = 0; // 修改Bug数量
+            int todayClock = 0; // 总消耗工时
+            
+            // 统计任务数据
+            for (Task task : tasks) {
+                if (task.getActualHours() != null) {
+                    // 计算工时
+                    if (task.getCreatedAt() != null) {
+                        try {
+                            Date taskDate = sdf.parse(task.getCreatedAt());
+                            String taskDateStr = sdf.format(taskDate);
+                            if (taskDateStr.equals(yesterdayStr)) {
+                                yesterdayClock += task.getActualHours();
+                            } else if (taskDateStr.equals(todayStr)) {
+                                todayClock += task.getActualHours();
+                            }
+                        } catch (Exception e) {
+                            // 解析失败，跳过
+                        }
+                    }
+                    
+                    // 统计完成的任务
+                    if (task.getStatus() != null && task.getStatus() == 3) { // 假设3表示已完成
+                        if (task.getCreatedAt() != null) {
+                            try {
+                                Date taskDate = sdf.parse(task.getCreatedAt());
+                                String taskDateStr = sdf.format(taskDate);
+                                if (taskDateStr.equals(yesterdayStr)) {
+                                    yesterdayTaskCount++;
+                                } else if (taskDateStr.equals(todayStr)) {
+                                    todayTaskCount++;
+                                }
+                            } catch (Exception e) {
+                                // 解析失败，跳过
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 统计Bug数据
+            for (Bug bug : bugs) {
+                // 统计提出的Bug
+                if (bug.getCreated_at() != null) {
+                    String bugDate = sdf.format(bug.getCreated_at());
+                    if (bugDate.equals(yesterdayStr)) {
+                        yesterdayTiChuCount++;
+                    } else if (bugDate.equals(todayStr)) {
+                        todayTiChuCount++;
+                    }
+                }
+                
+                // 统计修改的Bug
+                if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
+                    if (bug.getResolved_at() != null) {
+                        try {
+                            Date resolvedDate = sdf.parse(bug.getResolved_at());
+                            String bugDate = sdf.format(resolvedDate);
+                            if (bugDate.equals(yesterdayStr)) {
+                                yesterdayBugCount++;
+                            } else if (bugDate.equals(todayStr)) {
+                                todayBugCount++;
+                            }
+                        } catch (Exception e) {
+                            // 解析失败，跳过
+                        }
+                    }
+                }
+            }
+            
+            // 统计创建需求数量（从操作日志中）
+            for (OperationLog log : operationLogs) {
+                if (log.getAction() != null && log.getAction().contains("创建需求")) {
+                    if (log.getCreated_at() != null) {
+                        String logDate = sdf.format(log.getCreated_at());
+                        if (logDate.equals(yesterdayStr)) {
+                            yesterdayCreateCount++;
+                        } else if (logDate.equals(todayStr)) {
+                            todayCreateCount++;
+                        }
+                    }
+                }
+            }
+            
+            // 计算平均消耗工时
+            int yesterdayAverageClock = 0;
+            if (yesterdayTaskCount > 0) {
+                yesterdayAverageClock = yesterdayClock / yesterdayTaskCount;
+            }
+            
+            int todayAverageClock = 0;
+            if (todayTaskCount > 0) {
+                todayAverageClock = todayClock / todayTaskCount;
+            }
+            
+            // 填充昨天的数据
+            yesterday.put("task", yesterdayTaskCount);
+            yesterday.put("create", yesterdayCreateCount);
+            yesterday.put("tiChu", yesterdayTiChuCount);
+            yesterday.put("bug", yesterdayBugCount);
+            yesterday.put("clock", yesterdayClock);
+            yesterday.put("averageClock", yesterdayAverageClock);
+            
+            // 填充今天的数据
+            today.put("task", todayTaskCount);
+            today.put("create", todayCreateCount);
+            today.put("tiChu", todayTiChuCount);
+            today.put("bug", todayBugCount);
+            today.put("clock", todayClock);
+            today.put("averageClock", todayAverageClock);
             
             statistics.put("yesterday", yesterday);
             statistics.put("today", today);
@@ -1059,7 +1611,7 @@ public class DashboardController {
 
     @Operation(summary = "获取任务完成总览", description = "返回任务完成总览数据")
     @GetMapping("/task-overview")
-    public Result getTaskOverview() {
+    public Result getTaskOverview(@RequestParam(required = false) String username) {
         try {
             // 从数据库获取任务完成总览数据
             Map<String, Object> overview = new HashMap<>();
@@ -1074,8 +1626,39 @@ public class DashboardController {
             int inProgress = 0; // 进行中
             int scheduled = 0; // 已排期
             
+            // 获取用户参与的项目ID列表
+            Set<Long> userProjectIds = new HashSet<>();
+            if (username != null) {
+                var user = userService.findById(username);
+                if (user.isPresent()) {
+                    try {
+                        Long userId = Long.parseLong(username);
+                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                            if (member.getProjectId() != null) {
+                                userProjectIds.add(member.getProjectId());
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，返回空列表
+                    }
+                }
+            }
+            
             List<Task> tasks = taskService.findall();
             for (Task task : tasks) {
+                // 如果指定了用户名，只统计与用户参与的项目相关的任务
+                if (username != null) {
+                    if (task.getProjectId() != null) {
+                        Long projectId = task.getProjectId().longValue();
+                        if (!userProjectIds.contains(projectId)) {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+                
                 taskAllCount++;
                 
                 if (task.getStatus() != null) {
@@ -1399,10 +1982,10 @@ public class DashboardController {
                 projectInfo.put("projectProgress", project.getProgress() != null ? project.getProgress() + "%" : "0%");
                 
                 // 项目经理
-                if (project.getManager_id() != null) {
+                if (project.getManagerId() != null) {
                     Iterable<User> users = userService.findAll();
                     for (User user : users) {
-                        if (user.getUsername() != null && user.getUsername().equals(project.getManager_id().toString())) {
+                        if (user.getUsername() != null && user.getUsername().equals(project.getManagerId().toString())) {
                             projectInfo.put("projectManager", user.getName() != null ? user.getName() : user.getUsername());
                             break;
                         }

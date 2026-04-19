@@ -13,7 +13,7 @@ public class TeamMember {
     private Integer teamId;
     @Column(name = "user_id")
     private Long userId;
-    @Column(name = "role_in_team")
+    @Column(name = "role_in_team", columnDefinition = "VARCHAR(50) NOT NULL")
     private String roleInTeam;
     @Column(name = "joined_at")
     private Date joinedAt;

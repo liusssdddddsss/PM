@@ -8,7 +8,7 @@
           <div class="header-actions">
             <button class="btn" @click="createTeam">创建团队</button>
             <button class="btn" @click="inviteMember">邀请成员</button>
-            <button class="btn" @click="exportReport">导出报告</button>
+<!--            <button class="btn" @click="exportReport">导出报告</button>-->
           </div>
         </div>
         <div class="overview-cards">
@@ -39,13 +39,13 @@
               <div class="overview-label">项目数量</div>
             </div>
           </div>
-          <div class="overview-card" style="cursor: pointer;" @click="goToTaskModule">
-            <div class="overview-icon task-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <div class="overview-card">
+            <div class="overview-icon message-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             </div>
             <div class="overview-content">
-              <div class="overview-value">{{ totalTasks }}</div>
-              <div class="overview-label">任务总数</div>
+              <div class="overview-value">{{ totalMessages }}</div>
+              <div class="overview-label">消息数</div>
             </div>
           </div>
         </div>
@@ -71,21 +71,17 @@
               <div class="team-info">
                 <h4 class="team-name">{{ team.name }}</h4>
                 <div class="team-stats">
-                  <div class="stat-item">
-                    <span class="stat-label">成员</span>
-                    <span class="stat-value">{{ team.members }}人</span>
+                    <div class="stat-item">
+                      <span class="stat-label">成员</span>
+                      <span class="stat-value">{{ team.memberDetails ? team.memberDetails.length : 0 }}人</span>
+                    </div>
                   </div>
-                  <div class="stat-item">
-                    <span class="stat-label">项目</span>
-                    <span class="stat-value">{{ team.projects }}个</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-label">任务</span>
-                    <span class="stat-value">{{ team.tasks }}个</span>
-                  </div>
-                </div>
               </div>
-              <button class="btn-small" @click.stop="switchTeam(team.name)">切换</button>
+              <div class="team-actions">
+                <button class="btn-small" @click.stop="switchTeam(team.name)">切换</button>
+                <br>
+                <button class="btn-small warn" @click.stop="disbandTeam(team)">解散</button>
+              </div>
             </div>
           </div>
         </div>
@@ -107,7 +103,7 @@
                 <td>{{ item.role }}</td>
                 <td>{{ item.responsibility }}</td>
                 <td>{{ item.projects }}</td>
-                <td><button class="btn-small" @click="editDivision(item)">编辑</button></td>
+                <td><button class="btn-small warn" @click="deleteDivision(item)">删除</button></td>
               </tr>
             </table>
           </div>
@@ -116,90 +112,27 @@
     </div>
 
     <div class="right">
-      <!-- 个人进度 -->
-      <el-card style="max-width: 98%;">
-        <h3>个人进度</h3>
-        <el-divider />
-        <div class="progress-container">
-          <div class="progress-scroll">
-            <div class="progress-item" v-for="(member, index) in progressData" :key="index">
-              <div class="member-info">
-                <span class="member-name">{{ member.name }}</span>
-                <span class="member-role">{{ member.role }}</span>
-                <span v-if="member.unreadMessages > 0" class="message-badge">消息: {{ member.unreadMessages }}</span>
-              </div>
-              <div class="progress-details">
-                <p>任务完成率: {{ member.completionRate }}%</p>
-                <p>当前任务: {{ member.currentTasks }}个</p>
-                <p>逾期任务: {{ member.overdueTasks }}个</p>
-              </div>
-              <div class="member-actions">
-                <button class="btn-small" @click="viewDetails(member)">查看详情</button>
-                <button class="btn-small warn" @click="remindMember(member)">催促</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </el-card>
+
 
       <!-- 团队公告和消息提示 -->
-      <el-card style="max-width: 98%; margin-top: 10px">
+      <el-card style="max-width: 98%;">
         
-        <!-- 标签页 -->
-        <div class="tab-container">
-          <div class="tabs">
-            <div 
-              class="tab" 
-              :class="{ active: activeTab === 'announcements' }"
-              @click="activeTab = 'announcements'"
-            >
-              团队公告
-            </div>
-            <div 
-              class="tab" 
-              :class="{ active: activeTab === 'messages' }"
-              @click="activeTab = 'messages'"
-            >
-              消息提示
+        <!-- 消息提示 -->
+        <div class="content-scroll">
+          <div v-if="messages.length > 0" class="message-list">
+            <div class="message-item" v-for="(message, index) in messages" :key="index">
+              <div class="message-content">
+                <p><strong>{{ message.sender }}</strong> <span class="message-time">{{ message.time }}</span></p>
+                <p class="message-text">{{ message.content }}</p>
+              </div>
             </div>
           </div>
-          
-          <!-- 标签内容 -->
-          <div class="tab-content">
-            <!-- 团队公告内容 -->
-            <div v-if="activeTab === 'announcements'" class="tab-pane">
-              <div class="content-scroll">
-                <div class="announcement-list">
-                  <div class="announcement-item" v-for="(announcement, index) in announcements" :key="index">
-                    <div class="announcement-header">
-                      <span class="announcement-title">{{ announcement.title }}</span>
-                      <span class="announcement-date">{{ announcement.date }}</span>
-                    </div>
-                    <p class="announcement-content">{{ announcement.content }}</p>
-                    <div class="announcement-author">发布人: {{ announcement.author }}</div>
-                  </div>
-                </div>
-              </div>
+          <div v-else class="empty-state">
+            <div class="empty-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             </div>
-            
-            <!-- 消息提示内容 -->
-            <div v-if="activeTab === 'messages'" class="tab-pane">
-              <div class="content-scroll">
-                <div class="message-list">
-                  <div class="message-item" v-for="(message, index) in messages" :key="index">
-                    <div class="message-content">
-                      <p><strong>{{ message.sender }}</strong> <span class="message-time">{{ message.time }}</span></p>
-                      <p>{{ message.content }}</p>
-                      <p v-if="!message.read"><strong>未读</strong></p>
-                      <div class="message-actions">
-                        <button class="btn-small" @click="replyMessage(message)">回复</button>
-                        <button class="btn-small" @click="markAsRead(message)">标记已读</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div class="empty-text">暂无消息</div>
+            <div class="empty-desc">您还没有收到任何消息</div>
           </div>
         </div>
       </el-card>
@@ -244,13 +177,27 @@
             </el-select>
           </el-form-item>
           <el-form-item label="用户名">
-            <el-input v-model="inviteMemberForm.username" placeholder="请输入用户名"></el-input>
+            <el-select
+              v-model="inviteMemberForm.username"
+              placeholder="请输入用户名搜索"
+              filterable
+              remote
+              :remote-method="searchUser"
+              :loading="loading"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="user in searchUsers"
+                :key="user.value"
+                :label="user.label"
+                :value="user.value"
+              ></el-option>
+            </el-select>
           </el-form-item>
           <el-form-item label="角色">
             <el-select v-model="inviteMemberForm.role" placeholder="请选择角色">
               <el-option label="项目经理" value="项目经理"></el-option>
-              <el-option label="前端开发" value="前端开发"></el-option>
-              <el-option label="后端开发" value="后端开发"></el-option>
+              <el-option label="开发" value="开发"></el-option>
               <el-option label="测试工程师" value="测试工程师"></el-option>
             </el-select>
           </el-form-item>
@@ -264,6 +211,8 @@
       </el-dialog>
 
 
+
+
     </div>
   </div>
 </template>
@@ -272,7 +221,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import request from '@/utils/request';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 // 初始化路由
 const router = useRouter();
@@ -283,11 +232,9 @@ const teams = ref([]);
 // 团队分工数据
 const divisionData = ref([]);
 
-// 个人进度数据
-const progressData = ref([]);
 
-// 标签页状态
-const activeTab = ref('announcements');
+
+
 
 // 当前选中的团队
 const currentTeam = ref('');
@@ -309,101 +256,101 @@ const inviteMemberForm = ref({
   role: ''
 });
 
+// 搜索用户相关
+const searchUsers = ref([]);
+const loading = ref(false);
+const queryString = ref('');
+
+// 搜索用户
+const searchUser = async (query) => {
+  if (query.length < 1) {
+    searchUsers.value = [];
+    return;
+  }
+  loading.value = true;
+  try {
+    const response = await request.get(`/admin/users/search?keyword=${query}`);
+    if (response.data.code === 200) {
+      searchUsers.value = response.data.data.map(user => ({
+        label: `${user.name} (${user.userId})`,
+        value: user.userId
+      }));
+    }
+  } catch (error) {
+    console.error('搜索用户失败:', error);
+    searchUsers.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+
+
 
 
 // 消息数据
-const messages = ref([
-  {
-    id: 1,
-    sender: '张三',
-    content: '智慧教室项目需求文档已更新，请查看',
-    time: '2023-05-28 14:30',
-    read: false
-  },
-  {
-    id: 2,
-    sender: '赵六',
-    content: '电子班牌测试报告已生成，请查看',
-    time: '2023-05-27 16:20',
-    read: true
-  },
-  {
-    id: 3,
-    sender: '李四',
-    content: '前端页面开发遇到问题，需要后端API支持',
-    time: '2023-05-26 10:15',
-    read: true
-  },
-  {
-    id: 4,
-    sender: '王五',
-    content: '数据库设计方案已完成，请审阅',
-    time: '2023-05-25 15:45',
-    read: false
-  }
-]);
+const messages = ref([]);
 
 // 团队公告数据（按团队分类）
 const teamAnnouncements = ref({
-  'xx产品团队': [
-    {
-      id: 1,
-      title: '团队周会通知',
-      content: '本周团队周会将于周五下午2点在会议室A举行，请所有团队成员准时参加。会议将讨论下周工作计划和项目进度。',
-      date: '2023-05-28',
-      author: '张三'
-    },
-    {
-      id: 2,
-      title: '系统升级通知',
-      content: '系统将于本周末进行升级维护，预计维护时间为周六上午9点至下午3点。期间系统将暂时不可用，请提前做好工作安排。',
-      date: '2023-05-25',
-      author: '李四'
-    }
-  ],
-  '研发团队': [
-    {
-      id: 1,
-      title: '技术分享会',
-      content: '下周三下午将举行前端技术分享会，主题为Vue3新特性，请团队成员积极参加。',
-      date: '2023-06-01',
-      author: '王五'
-    },
-    {
-      id: 2,
-      title: '代码规范更新',
-      content: '团队代码规范已更新，请所有成员按照新规范进行代码编写。',
-      date: '2023-05-20',
-      author: '赵六'
-    }
-  ],
-  '测试团队': [
-    {
-      id: 1,
-      title: '测试计划变更',
-      content: '下周测试计划有所调整，请查看最新的测试用例文档。',
-      date: '2023-05-30',
-      author: '孙七'
-    }
-  ]
+  // 'xx产品团队': [
+  //   {
+  //     id: 1,
+  //     title: '团队周会通知',
+  //     content: '本周团队周会将于周五下午2点在会议室A举行，请所有团队成员准时参加。会议将讨论下周工作计划和项目进度。',
+  //     date: '2023-05-28',
+  //     author: '张三'
+  //   },
+  //   {
+  //     id: 2,
+  //     title: '系统升级通知',
+  //     content: '系统将于本周末进行升级维护，预计维护时间为周六上午9点至下午3点。期间系统将暂时不可用，请提前做好工作安排。',
+  //     date: '2023-05-25',
+  //     author: '李四'
+  //   }
+  // ],
+  // '研发团队': [
+  //   {
+  //     id: 1,
+  //     title: '技术分享会',
+  //     content: '下周三下午将举行前端技术分享会，主题为Vue3新特性，请团队成员积极参加。',
+  //     date: '2023-06-01',
+  //     author: '王五'
+  //   },
+  //   {
+  //     id: 2,
+  //     title: '代码规范更新',
+  //     content: '团队代码规范已更新，请所有成员按照新规范进行代码编写。',
+  //     date: '2023-05-20',
+  //     author: '赵六'
+  //   }
+  // ],
+  // '测试团队': [
+  //   {
+  //     id: 1,
+  //     title: '测试计划变更',
+  //     content: '下周测试计划有所调整，请查看最新的测试用例文档。',
+  //     date: '2023-05-30',
+  //     author: '孙七'
+  //   }
+  // ]
 });
 
-// 当前团队的公告
-const announcements = ref([]);
+
 
 // 概览统计（从后端获取）
 const overview = ref({
   totalTeams: 0,
   totalMembers: 0,
   totalProjects: 0,
-  totalTasks: 0
+  totalMessages: 0
 });
 
 // 计算属性
 const totalTeams = computed(() => overview.value.totalTeams || 0);
 const totalMembers = computed(() => overview.value.totalMembers || 0);
 const totalProjects = computed(() => overview.value.totalProjects || 0);
-const totalTasks = computed(() => overview.value.totalTasks || 0);
+const totalMessages = computed(() => overview.value.totalMessages || 0);
 
 // 从后端获取团队概览和所属团队（仅限当前登录用户）
 const fetchTeamData = async () => {
@@ -420,7 +367,7 @@ const fetchTeamData = async () => {
 
     // 概览数据
     console.log('开始获取团队概览数据');
-    const overviewRes = await request.get(`/team/overview?username=${username}`);
+    const overviewRes = await request.get(`/teams/overview?username=${username}`);
     console.log('获取团队概览数据响应:', overviewRes);
     if (overviewRes.data.code === 200 && overviewRes.data.data) {
       overview.value = overviewRes.data.data;
@@ -431,7 +378,7 @@ const fetchTeamData = async () => {
 
     // 所属团队列表
     console.log('开始获取所属团队列表');
-    const teamsRes = await request.get(`/team/my-teams?username=${username}`);
+    const teamsRes = await request.get(`/teams/my-teams?username=${username}`);
     console.log('获取所属团队列表响应:', teamsRes);
     if (teamsRes.data.code === 200 && Array.isArray(teamsRes.data.data)) {
       teams.value = teamsRes.data.data;
@@ -443,14 +390,8 @@ const fetchTeamData = async () => {
         console.log('默认选中团队:', currentTeam.value);
       }
       
-      // 处理团队成员数据，构建团队分工和个人进度
-      processTeamMembers();
-      
-      // 初始化当前团队的公告和个人进度
-      if (currentTeam.value) {
-        updateTeamAnnouncements(currentTeam.value);
-        updateTeamProgress(currentTeam.value);
-      }
+      // 处理团队成员数据，构建团队分工
+      await processTeamMembers();
     } else {
       console.error('获取所属团队列表失败:', teamsRes.data.msg || '未知错误');
     }
@@ -459,8 +400,19 @@ const fetchTeamData = async () => {
   }
 };
 
+// 根据角色编号获取角色名称
+const getRoleName = (roleId) => {
+  const roleMap = {
+    '1': '超级管理员',
+    '2': '产品经理',
+    '3': '开发者',
+    '4': '测试者'
+  };
+  return roleMap[roleId] || '成员';
+};
+
 // 处理团队成员数据
-const processTeamMembers = () => {
+const processTeamMembers = async () => {
   const allMembers = new Map();
   
   // 收集所有成员信息
@@ -496,30 +448,26 @@ const processTeamMembers = () => {
     divisionData.value = Array.from(allMembers.values())
       .filter(member => member.teams.includes(currentTeam.value))
       .map(member => ({
+        userId: member.id,
+        username: member.username,
         member: member.name,
-        role: member.role || '成员',
-        responsibility: getResponsibilityByRole(member.role),
+        role: getRoleName(member.role),
+        responsibility: getResponsibilityByRole(getRoleName(member.role)),
         projects: member.projects.join('、')
       }));
   } else {
     // 显示所有团队的分工
     divisionData.value = Array.from(allMembers.values()).map(member => ({
+      userId: member.id,
+      username: member.username,
       member: member.name,
-      role: member.role || '成员',
-      responsibility: getResponsibilityByRole(member.role),
+      role: getRoleName(member.role),
+      responsibility: getResponsibilityByRole(getRoleName(member.role)),
       projects: member.projects.join('、')
     }));
   }
   
-  // 构建个人进度数据
-  progressData.value = Array.from(allMembers.values()).map(member => ({
-    name: member.name,
-    role: member.role || '成员',
-    completionRate: Math.floor(Math.random() * 100), // 模拟数据
-    currentTasks: Math.floor(Math.random() * 10), // 模拟数据
-    overdueTasks: Math.floor(Math.random() * 3), // 模拟数据
-    unreadMessages: Math.floor(Math.random() * 5) // 模拟数据
-  }));
+
 };
 
 // 根据角色获取职责描述
@@ -536,90 +484,242 @@ const getResponsibilityByRole = (role) => {
   return roleResponsibilities[role] || '参与项目开发和维护';
 };
 
-onMounted(() => {
-  fetchTeamData();
+// 从后端获取消息数据
+const fetchMessages = async () => {
+  try {
+    // 获取当前选中的团队
+    if (currentTeam.value) {
+      // 找到当前团队的ID
+      const teamObj = teams.value.find(t => t.name === currentTeam.value);
+      if (teamObj && teamObj.id) {
+        console.log('开始获取消息数据，团队ID:', teamObj.id);
+        const response = await request.get(`/teams/messages/by-team?teamId=${teamObj.id}`);
+        console.log('获取消息数据响应:', response);
+        if (response.data && response.data.code === 200) {
+          console.log('消息数据:', response.data.data);
+          // 确保数据是数组
+          if (Array.isArray(response.data.data)) {
+            // 格式化消息数据，确保时间格式正确
+            messages.value = response.data.data.map(msg => ({
+              id: msg.id || Math.random(),
+              sender: msg.sender || '系统',
+              content: msg.content || '',
+              time: msg.createdAt ? new Date(msg.createdAt).toLocaleString('zh-CN') : '',
+              read: msg.isRead === 1
+            }));
+            console.log('格式化后的消息数据:', messages.value);
+            
+            // 如果没有消息，添加默认的团队消息
+            if (messages.value.length === 0) {
+              messages.value = [
+                {
+                  id: Math.random(),
+                  sender: '系统',
+                  content: `欢迎加入${currentTeam.value}团队！这是您的团队消息中心，您将在这里收到团队相关的通知和消息。`,
+                  time: new Date().toLocaleString('zh-CN'),
+                  read: 1
+                }
+              ];
+            }
+          } else {
+            console.error('消息数据格式错误:', response.data.data);
+            // 添加默认的团队消息
+            messages.value = [
+              {
+                id: Math.random(),
+                sender: '系统',
+                content: `欢迎加入${currentTeam.value}团队！这是您的团队消息中心，您将在这里收到团队相关的通知和消息。`,
+                time: new Date().toLocaleString('zh-CN'),
+                read: 1
+              }
+            ];
+          }
+        } else {
+          console.error('获取消息失败:', response.data?.msg || '未知错误');
+          // 添加默认的团队消息
+          messages.value = [
+            {
+              id: Math.random(),
+              sender: '系统',
+              content: `欢迎加入${currentTeam.value}团队！这是您的团队消息中心，您将在这里收到团队相关的通知和消息。`,
+              time: new Date().toLocaleString('zh-CN'),
+              read: 1
+            }
+          ];
+        }
+      } else {
+        console.error('团队ID不存在');
+        messages.value = [];
+      }
+    } else {
+      console.error('未选择团队');
+      messages.value = [];
+    }
+  } catch (error) {
+    console.error('获取消息失败:', error);
+    // 添加默认的团队消息
+    if (currentTeam.value) {
+      messages.value = [
+        {
+          id: Math.random(),
+          sender: '系统',
+          content: `欢迎加入${currentTeam.value}团队！这是您的团队消息中心，您将在这里收到团队相关的通知和消息。`,
+          time: new Date().toLocaleString('zh-CN'),
+          read: 1
+        }
+      ];
+    } else {
+      messages.value = [];
+    }
+  }
+};
+
+onMounted(async () => {
+  await fetchTeamData();
+  // 确保默认显示第一个所属团队的消息列表
+  if (teams.value.length > 0 && currentTeam.value) {
+    await fetchMessages();
+  }
 });
 
 // 切换团队
-function switchTeam(team) {
+async function switchTeam(team) {
   console.log('切换到团队:', team);
   currentTeam.value = team;
   // 重新处理团队成员数据，只显示当前选中团队的分工
-  processTeamMembers();
-  // 更新当前团队的公告
-  updateTeamAnnouncements(team);
-  // 更新当前团队的个人进度
-  updateTeamProgress(team);
+  await processTeamMembers();
+  // 更新当前团队的消息
+  await fetchMessages();
 }
 
-// 更新团队公告
-function updateTeamAnnouncements(team) {
-  // 从团队公告数据中获取当前团队的公告
-  announcements.value = teamAnnouncements.value[team] || [];
-}
-
-// 更新团队个人进度
-function updateTeamProgress(team) {
-  // 从所有成员中筛选出当前团队的成员
-  const allMembers = new Map();
-  
-  teams.value.forEach(t => {
-    if (t.memberDetails && Array.isArray(t.memberDetails)) {
-      t.memberDetails.forEach(member => {
-        if (!allMembers.has(member.userId)) {
-          allMembers.set(member.userId, {
-            id: member.userId,
-            name: member.name,
-            role: member.role,
-            teams: [t.name]
-          });
-        } else {
-          const existingMember = allMembers.get(member.userId);
-          if (!existingMember.teams.includes(t.name)) {
-            existingMember.teams.push(t.name);
-          }
-        }
-      });
+// 解散团队
+async function disbandTeam(team) {
+  try {
+    // 弹出确认对话框
+    await ElMessageBox.confirm(
+      `确定要解散团队"${team.name}"吗？此操作将删除团队的所有数据，不可恢复。`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    
+    // 调用后端API
+    const response = await request.delete(`/teams/disband/${team.id}`);
+    if (response.data.code === 200) {
+      ElMessage.success('团队解散成功');
+      // 重新获取团队数据
+      await fetchTeamData();
+    } else {
+      ElMessage.error(response.data.msg || '团队解散失败');
     }
-  });
-  
-  // 只显示当前团队的成员进度
-  progressData.value = Array.from(allMembers.values())
-    .filter(member => member.teams.includes(team))
-    .map(member => ({
-      name: member.name,
-      role: member.role || '成员',
-      completionRate: Math.floor(Math.random() * 100), // 模拟数据
-      currentTasks: Math.floor(Math.random() * 10), // 模拟数据
-      overdueTasks: Math.floor(Math.random() * 3), // 模拟数据
-      unreadMessages: Math.floor(Math.random() * 5) // 模拟数据
-    }));
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('解散团队失败:', error);
+      ElMessage.error('团队解散失败');
+    }
+  }
 }
 
-// 编辑分工
-function editDivision(row) {
-  console.log('编辑分工:', row);
+// 删除团队成员
+async function deleteDivision(row) {
+  try {
+    // 弹出确认对话框
+    await ElMessageBox.confirm(
+      `确定要从团队中删除成员"${row.member}"吗？`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    
+    // 获取团队ID
+    const teamId = teams.value.find(t => t.name === currentTeam.value)?.id;
+    if (!teamId) {
+      ElMessage.error('团队ID不存在');
+      return;
+    }
+    
+    // 调用后端API
+    const response = await request.delete('/teams/remove-member', {
+      data: {
+        teamId: teamId,
+        userId: row.userId
+      }
+    });
+    if (response.data.code === 200) {
+      ElMessage.success('成员删除成功');
+      // 重新获取团队数据
+      await fetchTeamData();
+    } else {
+      ElMessage.error(response.data.msg || '成员删除失败');
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除成员失败:', error);
+      ElMessage.error('成员删除失败');
+    }
+  }
 }
 
-// 查看详情
-function viewDetails(member) {
-  console.log('查看详情:', member);
-}
 
-// 催促成员
-function remindMember(member) {
-  console.log('催促成员:', member);
-}
 
 // 回复消息
-function replyMessage(message) {
-  console.log('回复消息:', message);
+async function replyMessage(message) {
+  try {
+    // 获取当前用户信息
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      ElMessage.error('用户未登录');
+      return;
+    }
+    const user = JSON.parse(userStr);
+    
+    // 弹出回复对话框（这里简化处理，实际应用中应该使用el-dialog）
+    const replyContent = prompt('请输入回复内容:', '');
+    if (replyContent) {
+      // 创建回复消息
+      const response = await request.post('/teams/messages', {
+        sender: user.username,
+        receiver: message.sender,
+        content: replyContent,
+        teamId: null // 可以根据实际情况设置团队ID
+      });
+      if (response.data.code === 200) {
+        ElMessage.success('回复消息已发送');
+        // 重新获取消息数据
+        fetchMessages();
+      } else {
+        ElMessage.error(response.data.msg || '发送回复消息失败');
+      }
+    }
+  } catch (error) {
+    console.error('回复消息失败:', error);
+    ElMessage.error('发送回复消息失败');
+  }
 }
 
 // 标记已读
-function markAsRead(message) {
-  message.read = true;
-  console.log('标记已读:', message);
+async function markAsRead(message) {
+  try {
+    // 调用后端API
+    const response = await request.put('/teams/messages/read', {
+      messageId: message.id
+    });
+    if (response.data.code === 200) {
+      message.read = true;
+      ElMessage.success('标记消息为已读成功');
+    } else {
+      ElMessage.error(response.data.msg || '标记消息为已读失败');
+    }
+  } catch (error) {
+    console.error('标记消息为已读失败:', error);
+    ElMessage.error('标记消息为已读失败');
+  }
 }
 
 // 创建团队
@@ -636,10 +736,10 @@ async function submitCreateTeam() {
     if (userStr) {
       const user = JSON.parse(userStr);
       // 调用创建团队的API
-      const response = await request.post('/team/create', {
+      const response = await request.post('/teams/create', {
         name: createTeamForm.value.name,
         description: createTeamForm.value.description,
-        username: user.username
+        username: String(user.username)
       });
       if (response.data.code === 200) {
         // 提交成功后关闭弹窗
@@ -673,11 +773,27 @@ function inviteMember() {
 // 提交邀请成员表单
 async function submitInviteMember() {
   try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      ElMessage.error('用户未登录');
+      return;
+    }
+    const user = JSON.parse(userStr);
+    
+    // 找到当前选择的团队对象，获取团队ID
+    const selectedTeam = teams.value.find(team => team.name === inviteMemberForm.value.teamId);
+    if (!selectedTeam) {
+      ElMessage.error('团队不存在');
+      return;
+    }
+    
     // 调用邀请成员的API
-    const response = await request.post('/team/invite', {
-      teamId: inviteMemberForm.value.teamId,
-      username: inviteMemberForm.value.username,
-      role: inviteMemberForm.value.role
+    const response = await request.post('/teams/invite', {
+      teamId: selectedTeam.id.toString(),
+      username: String(inviteMemberForm.value.username),
+      role: inviteMemberForm.value.role,
+      operator: user.username
     });
     if (response.data.code === 200) {
       // 提交成功后关闭弹窗
@@ -789,6 +905,11 @@ function goToTaskModule() {
 .task-icon {
   background-color: #fff3e0;
   color: #ef6c00;
+}
+
+.message-icon {
+  background-color: #e3f2fd;
+  color: #1976d2;
 }
 
 .overview-content {
@@ -926,7 +1047,7 @@ function goToTaskModule() {
 
 .btn-small {
   padding: 6px 12px;
-  background-color: #007bff;
+  background-color: #238EFF;
   color: white;
   border: none;
   border-radius: 4px;
@@ -934,11 +1055,12 @@ function goToTaskModule() {
   font-size: 12px;
   font-weight: 500;
   transition: none;
+  margin-top: 5px;
 }
 
 .btn-small.warn {
-  background-color: #ffc107;
-  color: #212529;
+  background-color: #E3F2FD;
+  color: #1976D2;
 }
 
 /* 所属团队 */
@@ -951,16 +1073,17 @@ function goToTaskModule() {
 
 .team-card {
   width: 100%;
-  background-color: transparent;
+  background-color: #ffffff;
   border-radius: 8px;
-  padding: 5px;
+  padding: 15px;
   transition: all 0.3s ease;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   border: 1px solid #e9ecef;
-  box-shadow: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  min-height: 60px;
 }
 
 .team-card.active {
@@ -1072,7 +1195,6 @@ function goToTaskModule() {
   color: #6c757d;
   font-size: 12px;
   margin-right: 0;
-  background-color: #e3f2fd;
   padding: 4px 12px;
   border-radius: 16px;
 }
@@ -1110,10 +1232,38 @@ function goToTaskModule() {
   gap: 12px;
 }
 
+/* 空状态提示 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  color: #adb5bd;
+}
+
+.empty-text {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #495057;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: #6c757d;
+}
+
 /* 标签页样式 */
 .tab-container {
   width: 100%;
-  height: 480px;
+  height: 640px;
 }
 
 .tabs {
@@ -1197,15 +1347,18 @@ function goToTaskModule() {
   color: #495057;
 }
 
+.message-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #343a40;
+  margin: 12px 0;
+  white-space: pre-line;
+}
+
 .message-time {
   color: #6c757d;
   font-size: 11px;
-}
-
-.message-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  margin-left: 8px;
 }
 
 /* 响应式设计 */

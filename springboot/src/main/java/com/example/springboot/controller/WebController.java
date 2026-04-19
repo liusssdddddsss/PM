@@ -24,8 +24,15 @@ public class WebController {
     
     // 处理前端路由路径，转发到index.html
     // 只处理前端路由，不拦截API请求
-    @GetMapping({"/workbench/**", "/itemSet/**", "/products/**", "/tasks/**", "/iterations/**", "/teams/**", "/test/**", "/feedback/**", "/AI/**"})
-    public ResponseEntity<byte[]> handleFrontendRoutes() throws IOException {
+    @GetMapping({"/workbench", "/workbench/**", "/itemSet", "/itemSet/**", "/products", "/products/**", "/tasks", "/tasks/**", "/iterations", "/iterations/**", "/teams", "/teams/**", "/test", "/test/**", "/feedback", "/feedback/**", "/AI", "/AI/**"})
+    public ResponseEntity<byte[]> handleFrontendRoutes(HttpServletRequest request) throws IOException {
+        // 检查是否是API请求（包含/api/或特定的API路径）
+        String requestPath = request.getRequestURI();
+        if (requestPath.contains("/api/") || requestPath.contains("/teams/overview") || requestPath.contains("/teams/my-teams") || requestPath.contains("/teams/messages") || requestPath.contains("/teams/create") || requestPath.contains("/teams/invite") || requestPath.contains("/teams/division/edit") || requestPath.contains("/teams/tasks") || requestPath.contains("/teams/statistics") || requestPath.contains("/teams/personal-tasks") || requestPath.contains("/teams/disband") || requestPath.contains("/teams/remove-member") || requestPath.contains("/dashboard/") || requestPath.startsWith("/workbench/tasks")) {
+            // 如果是API请求，不处理，让其他控制器处理
+            throw new IllegalStateException("API request");
+        }
+        
         ClassPathResource resource = new ClassPathResource("static/index.html");
         byte[] content = Files.readAllBytes(resource.getFile().toPath());
         HttpHeaders headers = new HttpHeaders();

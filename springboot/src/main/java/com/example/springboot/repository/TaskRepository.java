@@ -17,5 +17,11 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
 
     // 根据状态查询任务列表
     List<Task> findByStatus(Integer status);
+    
+    // 根据负责人ID查询任务列表
+    List<Task> findByAssigneeId(Integer assigneeId);
+    
+    // 根据创建者ID查询任务列表
+    List<Task> findByCreatorId(Integer creatorId);
 
 }

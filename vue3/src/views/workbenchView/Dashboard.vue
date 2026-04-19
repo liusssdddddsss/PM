@@ -830,10 +830,10 @@ const handleProjectClick = async (projectName) => {
 };
 
 // 处理测试统计项目点击事件
-const handleTestProjectClick = async (projectName) => {
-  console.log('点击了测试统计项目:', projectName);
+const handleTestProjectClick = async (project) => {
+  console.log('点击了测试统计项目:', project);
   // 调用后端API获取项目的测试统计数据
-  await fetchTestStatistics(projectName);
+  await fetchTestStatistics(project.name);
 };
 
 // 处理未完成项目列表的项目点击事件
@@ -909,7 +909,14 @@ const fetchTeamStatistics = async () => {
 // 从后端获取产品总览数据
 const fetchProductOverview = async () => {
   try {
-    const response = await request.get('/dashboard/product-overview');
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    let params = {};
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      params = { username: user.username };
+    }
+    const response = await request.get('/dashboard/product-overview', { params });
     if (response.data.code === 200) {
       const data = response.data.data;
       projectCount.value = data.productCount || 0;
@@ -967,7 +974,14 @@ const fetchProductStatistics = async (productName = '') => {
 // 从后端获取项目总览数据
 const fetchProjectOverview = async () => {
   try {
-    const response = await request.get('/dashboard/project-overview');
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    let params = {};
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      params = { username: user.username };
+    }
+    const response = await request.get('/dashboard/project-overview', { params });
     if (response.data.code === 200) {
       const data = response.data.data;
       xiangMuCount.value = data.xiangMuCount || 0;
@@ -986,7 +1000,14 @@ const fetchProjectOverview = async () => {
 // 从后端获取任务完成总览数据
 const fetchTaskOverview = async () => {
   try {
-    const response = await request.get('/dashboard/task-overview');
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    let params = {};
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      params = { username: user.username };
+    }
+    const response = await request.get('/dashboard/task-overview', { params });
     if (response.data.code === 200) {
       const data = response.data.data;
       taskAllCount.value = data.taskAllCount || 0;
@@ -1046,6 +1067,21 @@ const fetchTestStatistics = async (projectName = '') => {
 .right{
   flex: 1;
   //background-color: orange;
+}
+
+/*最新动态样式*/
+.dynamic {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dynamic h3 {
+  margin: 0 0 10px 0;
+  padding: 0;
+}
+
+.dynamic .el-divider {
+  margin: 10px 0;
 }
 /*左上个人信息和任务状态*/
 .message{
@@ -1807,7 +1843,7 @@ p{
 /*右边*/
 /*最新动态样式*/
 .dynamic{
-  height: 373px;
+  height: 610px;
 }
 
 /*团队完成情况样式*/

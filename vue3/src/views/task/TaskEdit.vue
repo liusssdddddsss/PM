@@ -1,6 +1,6 @@
 <template>
   <div class="task-edit">
-    <h3>数据大屏-实训教学资源大数据</h3>
+    <h3>{{ taskForm.name || '编辑任务' }}</h3>
     <div class="form-container">
       <div class="form-content">
         <div class="left-section">
@@ -37,26 +37,6 @@
               </el-upload>
             </el-form-item>
 
-            <el-form-item label="历史记录">
-              <div class="history-list">
-                <div class="history-item">
-                  <span class="history-number">1</span>
-                  <span class="history-date">2023-08-30 09:12:12</span>
-                  <span class="history-action">由张三创建</span>
-                </div>
-                <div class="history-item">
-                  <span class="history-number">2</span>
-                  <span class="history-date">2023-08-30 09:12:12</span>
-                  <span class="history-action">由李四修改</span>
-                </div>
-                <div class="history-item">
-                  <span class="history-number">3</span>
-                  <span class="history-date">2023-09-30 09:12:11</span>
-                  <span class="history-action">由王五完成</span>
-                </div>
-              </div>
-            </el-form-item>
-
             <div class="form-buttons">
               <el-button type="primary" @click="saveTask">保存</el-button>
               <el-button @click="goBack">返回</el-button>
@@ -75,27 +55,11 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="父级任务">
-              <el-select v-model="taskForm.parentTask" placeholder="请选择">
-                <el-option label="任务名称1" value="task1" />
-                <el-option label="任务名称2" value="task2" />
-                <el-option label="任务名称3" value="task3" />
-              </el-select>
-            </el-form-item>
-
             <el-form-item label="指派给">
               <el-select v-model="taskForm.assignedTo" placeholder="请选择">
                 <el-option label="张三" value="zhangsan" />
                 <el-option label="李四" value="lisi" />
                 <el-option label="王五" value="wangwu" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="任务类型">
-              <el-select v-model="taskForm.taskType" placeholder="请选择">
-                <el-option label="开发" value="development" />
-                <el-option label="测试" value="testing" />
-                <el-option label="设计" value="design" />
               </el-select>
             </el-form-item>
 
@@ -115,10 +79,6 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="优先级">
-              <el-input-number v-model="taskForm.priorityValue" :min="0" :max="100" />
-            </el-form-item>
-
             <el-form-item label="开始日期">
               <el-date-picker
                   v-model="taskForm.startDate"
@@ -136,18 +96,6 @@
                   style="width: 100%"
               />
             </el-form-item>
-
-            <el-form-item label="完成时长">
-              <el-input v-model="taskForm.duration" placeholder="请输入" />
-            </el-form-item>
-
-            <el-form-item label="负责人">
-              <el-select v-model="taskForm.leader" placeholder="请选择">
-                <el-option label="张三" value="zhangsan" />
-                <el-option label="李四" value="lisi" />
-                <el-option label="王五" value="wangwu" />
-              </el-select>
-            </el-form-item>
           </el-form>
         </div>
       </div>
@@ -156,26 +104,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import request from '@/utils/request.js';
 
 const router = useRouter();
+const route = useRoute();
 
 // 任务表单数据
 const taskForm = ref({
   name: '数据大屏-实训教学资源大数据',
   description: '',
   project: 'project1',
-  parentTask: 'task2',
   assignedTo: 'zhangsan',
-  taskType: 'development',
   status: 'inProgress',
   priority: 'high',
-  priorityValue: 25,
   startDate: '',
-  endDate: '',
-  duration: '',
-  leader: ''
+  endDate: ''
 });
 
 // 文件列表
@@ -184,6 +129,80 @@ const fileList = ref([]);
 // 处理文件选择
 const handleFileChange = (file, fileList) => {
   console.log('文件变化:', file, fileList);
+};
+
+// 获取任务详细数据
+const getTaskDetails = async () => {
+  try {
+    // 从URL参数中获取任务ID
+    const taskId = route.query.id;
+    console.log('获取任务ID:', taskId);
+    if (taskId) {
+      // 调用后端API获取任务详细数据
+      console.log('调用API获取任务详情:', `/workbench/tasks/${taskId}`);
+      const response = await request.get(`/workbench/tasks/${taskId}`);
+      console.log('API响应:', response);
+      // 检查响应结构
+      if (response && response.data) {
+        if (response.data.code === 200) {
+          const taskData = response.data.data;
+          console.log('任务详情数据:', taskData);
+          if (taskData) {
+            // 填充表单数据
+            taskForm.value = {
+              name: taskData.name || taskData.title || '',
+              description: taskData.description || '',
+              project: taskData.project_id || '',
+              assignedTo: taskData.assignee_id || '',
+              status: getStatusValue(taskData.status),
+              priority: getPriorityValue(taskData.priority),
+              startDate: taskData.start_date || '',
+              endDate: taskData.due_date || ''
+            };
+            console.log('表单数据:', taskForm.value);
+          } else {
+            console.error('任务数据为空');
+          }
+        } else {
+          console.error('获取任务详情失败:', response.data.msg);
+        }
+      } else {
+        console.error('API响应格式错误');
+      }
+    }
+  } catch (error) {
+    console.error('获取任务详细数据失败:', error);
+  }
+};
+
+// 将状态数字转换为对应的值
+const getStatusValue = (status) => {
+  switch (status) {
+    case 1:
+      return 'pending';
+    case 2:
+      return 'inProgress';
+    case 3:
+      return 'completed';
+    case 4:
+      return 'completed';
+    default:
+      return 'pending';
+  }
+};
+
+// 将优先级数字转换为对应的值
+const getPriorityValue = (priority) => {
+  switch (priority) {
+    case 1:
+      return 'high';
+    case 2:
+      return 'medium';
+    case 3:
+      return 'low';
+    default:
+      return 'medium';
+  }
 };
 
 // 保存任务
@@ -198,6 +217,11 @@ const saveTask = () => {
 const goBack = () => {
   router.push('/workbench/tasks');
 };
+
+// 组件挂载时获取任务详细数据
+onMounted(() => {
+  getTaskDetails();
+});
 </script>
 
 <style scoped>

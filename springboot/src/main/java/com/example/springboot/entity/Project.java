@@ -11,7 +11,8 @@ public class Project {
     private Long id;
     private String name;
     private Long product_id;
-    private Long manager_id;
+    @Column(name = "manager_id")
+    private Long managerId;
     private Long creator_id;
     private Date start_date;
     private Date end_date;
@@ -45,12 +46,12 @@ public class Project {
         this.product_id = product_id;
     }
 
-    public Long getManager_id() {
-        return manager_id;
+    public Long getManagerId() {
+        return managerId;
     }
 
-    public void setManager_id(Long manager_id) {
-        this.manager_id = manager_id;
+    public void setManagerId(Long managerId) {
+        this.managerId = managerId;
     }
 
     public Long getCreator_id() {

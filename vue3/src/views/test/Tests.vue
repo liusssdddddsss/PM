@@ -232,6 +232,25 @@ const fetchTestStatistics = async () => {
     }
   } catch (error) {
     console.error('获取测试统计数据失败:', error);
+    // 后端服务不可用时，使用默认数据
+    bugStats.value = {
+      youXiaoBug: 10,
+      bugRepair: 5,
+      noClose: 5,
+      detail: [
+        {name: '昨天新增', count: 3, percentage: 100},
+        {name: '昨天解决', count: 2, percentage: 67},
+        {name: '今日新增', count: 2, percentage: 67},
+        {name: '昨天关闭', count: 0, percentage: 0},
+        {name: '今日关闭', count: 1, percentage: 33}
+      ]
+    };
+    unclosedTestCases.value = ['测试单1', '测试单2', '测试单3'];
+    pendingTestCases.value = [
+      { name: '测试单1', priority: '一般', product: '测试产品', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] },
+      { name: '测试单2', priority: '严重', product: '测试产品', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }
+    ];
+    testList.value = ['模块1', '模块2', '模块3'];
   }
 };
 
@@ -249,6 +268,12 @@ const fetchBugs = async () => {
     }
   } catch (error) {
     console.error('获取Bug列表失败:', error);
+    // 后端服务不可用时，使用默认数据
+    assignedBugs.value = [
+      { name: 'Bug 1', priority: '严重', status: '解决中' },
+      { name: 'Bug 2', priority: '一般', status: '已解决' },
+      { name: 'Bug 3', priority: '一般', status: '解决中' }
+    ];
   }
 };
 
@@ -266,6 +291,11 @@ const fetchUserTestTasks = async () => {
     }
   } catch (error) {
     console.error('获取用户测试任务失败:', error);
+    // 后端服务不可用时，使用默认数据
+    assignedTestCases.value = [
+      { name: '测试用例1', priority: '严重', status: '进行中', project: '测试项目1' },
+      { name: '测试用例2', priority: '一般', status: '待测试', project: '测试项目2' }
+    ];
   }
 };
 

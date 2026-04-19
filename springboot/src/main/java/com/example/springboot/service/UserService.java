@@ -5,6 +5,7 @@ import com.example.springboot.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -18,6 +19,10 @@ public class UserService {
 
     public User findByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public List<User> searchUsers(String keyword) {
+        return userRepository.findByUsernameContainingOrNameContaining(keyword);
     }
 
     public User save(User user) {

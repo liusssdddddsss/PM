@@ -16,12 +16,14 @@ com\example\springboot\repository\IterationRepository.class
 com\example\springboot\controller\AdminUserController.class
 com\example\springboot\controller\AdminDashboardController.class
 com\example\springboot\controller\OptionLogController.class
+com\example\springboot\service\MessageService.class
 com\example\springboot\repository\ProductRepository.class
 com\example\springboot\controller\WebController.class
 com\example\springboot\service\TestSuiteService.class
 com\example\springboot\controller\AdminFeedbackController.class
 com\example\springboot\controller\WorkbenchController.class
 com\example\springboot\entity\Project.class
+com\example\springboot\entity\Message.class
 com\example\springboot\repository\OptionLogRepository.class
 com\example\springboot\repository\LoginLogRepository.class
 com\example\springboot\entity\Product.class
@@ -33,6 +35,7 @@ com\example\springboot\controller\EncryptionTestController.class
 com\example\springboot\repository\TaskRepository.class
 com\example\springboot\repository\TestSuiteRepository.class
 com\example\springboot\entity\User.class
+com\example\springboot\service\AIAnalysisService.class
 com\example\springboot\repository\ProjectMemberRepository.class
 com\example\springboot\service\ProductService.class
 com\example\springboot\controller\DashboardController.class
@@ -51,6 +54,7 @@ com\example\springboot\controller\AdminController$LoginRequest.class
 com\example\springboot\common\CorsConfig.class
 com\example\springboot\entity\Bug.class
 com\example\springboot\controller\AdminUserController$AdminUserStatusRequest.class
+com\example\springboot\controller\AIAnalysisController.class
 com\example\springboot\service\TaskService.class
 com\example\springboot\service\OptionLogService.class
 com\example\springboot\service\ProjectService.class

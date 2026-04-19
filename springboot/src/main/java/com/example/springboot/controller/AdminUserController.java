@@ -209,6 +209,54 @@ public class AdminUserController {
         }
     }
 
+    // 搜索用户
+    @GetMapping("/search")
+    public Result searchUsers(@RequestParam String keyword) {
+        try {
+            var users = userRepository.findByUsernameContainingOrNameContaining(keyword);
+            var result = new java.util.ArrayList<java.util.Map<String, Object>>();
+            for (User u : users) {
+                // 跳过管理员用户
+                if (u.getIs_admin() != null && u.getIs_admin() == 1) {
+                    continue;
+                }
+                var row = new java.util.HashMap<String, Object>();
+                row.put("userId", u.getUsername());
+                row.put("name", u.getName());
+                // 解密敏感信息
+                String decryptedEmail = u.getEmail();
+                try {
+                    if (decryptedEmail != null) {
+                        decryptedEmail = AESUtil.decrypt(decryptedEmail);
+                    }
+                } catch (Exception e) {
+                    // 解密失败，保持原值
+                }
+                row.put("email", decryptedEmail);
+                row.put("department", u.getDepartment());
+                // 处理性别字段，将存储的字符转换为前端显示的文本
+                String sexText = "";
+                if (u.getSex() != null) {
+                    if (u.getSex() == 'M') {
+                        sexText = "男";
+                    } else if (u.getSex() == 'F') {
+                        sexText = "女";
+                    } else {
+                        sexText = String.valueOf(u.getSex());
+                    }
+                }
+                row.put("sex", sexText);
+                row.put("status", mapStatus(u.getStatus()));
+                row.put("position", mapPosition(u.getIs_admin(), u.getRole_id()));
+                result.add(row);
+            }
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("搜索用户失败: " + e.getMessage());
+        }
+    }
+
     private static Integer mapStatusValue(String status) {
         // 前端: 启用/禁用
         if (status == null) return 1;

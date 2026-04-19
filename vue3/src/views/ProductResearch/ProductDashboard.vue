@@ -1,6 +1,6 @@
 <template>
   <div class="product-research">
-    <el-card style="max-width: 98%">
+    <el-card style="max-width: 99%">
     <div class="tou">
       <div class="left">
         <h3>产品总览</h3>
@@ -40,48 +40,7 @@
 
     <div class="comment">
       <div class="com-left" style="width: 65%">
-<!--        产品年度统计工作-->
-        <el-card style="max-width: 98%;margin-top: 10px">
-          <div class="yearWorkStatistic">
-            <h3>产品年度工作量统计</h3>
-            <el-divider/>
-            <div class="container">
-              <div class="demand-size">
-                <h3>完成需求规模</h3>
-                <ul>
-                  <li
-                      v-for="(item,index) in demandSizeList"
-                      :key="index"
-                  >
-                    {{item.name}}:<el-progress :percentage="item.count" :format="formatProgress"/>
-                  </li>
-                </ul>
-              </div>
-              <div class="demand-count">
-                <h3>完成需求数</h3>
-                <ul>
-                  <li
-                      v-for="(item,index) in demandCountList"
-                      :key="index"
-                  >
-                    {{item.name}}:<el-progress :percentage="item.count" :format="formatProgress"/>
-                  </li>
-                </ul>
-              </div>
-              <div class="repair-bug">
-                <h3>修复Bug数</h3>
-                <ul>
-                  <li
-                      v-for="(item,index) in repairBugList"
-                      :key="index"
-                  >
-                    {{item.name}}:<el-progress :percentage="item.count" :format="formatProgress"/>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </el-card>
+
 
 <!--        产品列表整合-->
         <el-card style="max-width: 98%;margin-top: 10px">
@@ -123,21 +82,16 @@
                     </template>
                   </el-table-column>
                   <el-table-column prop="manager" label="负责人" min-width="100" />
-                  <el-table-column prop="activeNeeds" label="激活需求" min-width="80" />
-                  <el-table-column prop="completionRate" label="需求完成率" min-width="100">
+                  <el-table-column prop="activeNeeds" label="项目" min-width="80" />
+                  <el-table-column prop="iterationCount" label="迭代项目数" min-width="100">
                     <template #default="scope">
-                      <div class="completion-rate">
-                        <el-progress
-                            type="circle"
-                            :percentage="scope.row.completionRate"
-                            :width="40"
-                            :stroke-width="4"
-                        />
+                      <div class="iteration-count">
+                        {{ scope.row.iterationCount || 0 }}
                       </div>
                     </template>
                   </el-table-column>
                   <el-table-column prop="plan" label="计划" min-width="80" />
-                  <el-table-column prop="activeBugs" label="激活Bug" min-width="80" />
+                  <el-table-column prop="activeBugs" label="Bug数" min-width="80" />
                   <el-table-column prop="release" label="发布" min-width="80" />
                 </el-table>
               </div>
@@ -147,77 +101,26 @@
       </div>
 
       <div class="com-right" style="width: 35%;">
-<!--        产品发布统计-->
+<!--        产品开发周期分布-->        
         <el-card style="max-width: 98%;margin-top: 10px">
-          <h3>产品发布统计</h3>
+          <h3>产品开发周期分布</h3>
           <el-divider/>
           <div ref="faBuDom" style="width: 100%; height: 250px;"></div>
           <div class="bangDan">
-            <h4>年度发布榜(2024年)</h4>
-            <div class="ranking-list">
-              <div class="ranking-item">
-                <span class="rank">1</span>
-                <span class="product-name">实践教学管理平台</span>
-                <div class="progress-container">
-                  <div class="progress-bar" style="width: 90%"></div>
-                </div>
-                <span class="count">123</span>
+            <h4>对应周期产品列表</h4>
+            <div class="product-list" style="max-height: 200px; overflow-y: auto;">
+              <div v-if="!selectedPeriodProducts || selectedPeriodProducts.length === 0" class="no-data">
+                请点击上方饼图查看对应周期的产品列表
               </div>
-              <div class="ranking-item">
-                <span class="rank">2</span>
-                <span class="product-name">电子班牌管理系统</span>
-                <div class="progress-container">
-                  <div class="progress-bar" style="width: 80%"></div>
-                </div>
-                <span class="count">101</span>
-              </div>
-              <div class="ranking-item">
-                <span class="rank">3</span>
-                <span class="product-name">智慧校园(中学版)</span>
-                <div class="progress-container">
-                  <div class="progress-bar" style="width: 70%"></div>
-                </div>
-                <span class="count">86</span>
-              </div>
-              <div class="ranking-item">
-                <span class="rank">4</span>
-                <span class="product-name">宿舍管理系统</span>
-                <div class="progress-container">
-                  <div class="progress-bar" style="width: 60%"></div>
-                </div>
-                <span class="count">71</span>
-              </div>
-              <div class="ranking-item">
-                <span class="rank">5</span>
-                <span class="product-name">教务考试系统</span>
-                <div class="progress-container">
-                  <div class="progress-bar" style="width: 50%"></div>
-                </div>
-                <span class="count">66</span>
+              <div v-else v-for="(product, index) in selectedPeriodProducts" :key="product.id" class="product-item">
+                <span class="product-index">{{ index + 1 }}</span>
+                <span class="product-name" style="cursor: pointer; color: #409EFF;" @click="goToProductList(product.name)">{{ product.name }}</span>
               </div>
             </div>
           </div>
         </el-card>
 
-<!--        指派研发需求-->
-        <el-card style="max-width: 98%;margin-top: 10px">
-        <div class="assigned-rd-requirements">
-          <h3>指派给我的研发需求</h3>
-          <div class="table-container">
-            <el-table :data="requirements" stripe style="width: 100%">
-              <el-table-column prop="id" label="序号" width="80" />
-              <el-table-column prop="name" label="研发需求名称" min-width="250" />
-              <el-table-column prop="priority" label="优先级">
-                <template #default="scope">
-            <span :class="getPriorityClass(scope.row.priority)">
-              {{ scope.row.priority }}
-            </span>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
-        </div>
-        </el-card>
+
 
       </div>
     </div>
@@ -227,18 +130,19 @@
 <script setup>
 // 产品总览数据
 import {ref, onMounted} from "vue";
+import { useRouter } from "vue-router";
 import ProductList from "@/views/workbenchView/listView/ProductList.vue";
 import {useEcharts} from "@/utils/useEcharts.js";
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
 import ProjectList from "@/views/workbenchView/listView/ProjectList.vue";
 import request from "@/utils/request.js";
+
+// 初始化路由
+const router = useRouter();
 // 调试：查看request对象的baseURL
 console.log('Request baseURL:', request.defaults.baseURL);
 // 选择的年份
 const selectedYear = ref('2023');
-
-// 指派给我的研发需求数据
-const requirements = ref([]);
 
 // 未关闭的产品列表数据
 const unclosedProducts = ref([]);
@@ -246,62 +150,44 @@ const unclosedProducts = ref([]);
 // 产品发布列表数据
 const productReleases = ref([]);
 
-// 完成需求规模数据
-const demandSizeList = ref([]);
-
-// 完成需求数数据
-const demandCountList = ref([]);
-
-// 修复Bug数数据
-const repairBugList = ref([]);
-
 // 产品总览数据
 const ovCount = ref([]);
 
 // 产品年度推进统计数据
 const tuiJinCount = ref([]);
 
+// 选中周期的产品列表
+const selectedPeriodProducts = ref([]);
+
 // 标签页数据
 const activeTab = ref(0);
 const tabs = ref([
-  { name: '发布列表' },
+  { name: '产品列表' },
   { name: '未关闭列表' }
 ]);
 
-// 获取优先级样式
-const getPriorityClass = (priority) => {
-  switch (priority) {
-    case '紧急':
-      return 'priority-urgent';
-    case '严重':
-      return 'priority-serious';
-    case '一般':
-      return 'priority-normal';
-    case '正常':
-      return 'priority-regular';
-    default:
-      return '';
-  }
-};
 
-// 格式化进度条显示
-const formatProgress = (percentage) => {
-  return `${percentage}`;
-};
 
 // 从后端获取产品总览数据
 const fetchProductOverview = async () => {
   try {
-    const response = await request.get('/dashboard/product-overview');
-    if (response.data.code === 200) {
-      const data = response.data.data;
-      ovCount.value = [
-        { name: '产品线总量', count: data.productLineCount || 0 },
-        { name: '产品总数', count: data.productCount || 0 },
-        { name: '未完成计划数', count: data.unfinishedPlanCount || 0 },
-        { name: '未关闭需求数', count: data.unclosedNeedCount || 0 },
-        { name: '激活Bug数', count: data.activeBugCount || 0 }
-      ];
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get('/dashboard/product-overview', {
+        params: { username: user.username }
+      });
+      if (response.data.code === 200) {
+        const data = response.data.data;
+        ovCount.value = [
+          { name: '产品总数', count: data.productCount || 0 },
+          { name: '未完成计划数', count: data.unfinishedPlanCount || 0 },
+          { name: '项目总数', count: data.unclosedNeedCount || 0 },
+          { name: '激活Bug数', count: data.activeBugCount || 0 },
+          { name: '迭代项目总数', count: data.iterationProjectCount || 0 }
+        ];
+      }
     }
   } catch (error) {
     console.error('获取产品总览数据失败:', error);
@@ -318,7 +204,7 @@ const fetchProductProgress = async () => {
       const data = response.data.data;
       tuiJinCount.value = [
         { name: '已完成发布数', count: data.completedReleaseCount || 0 },
-        { name: '已完成需求数', count: data.completedNeedCount || 0 },
+        { name: '已完成项目数', count: data.completedNeedCount || 0 },
         { name: '已完成Bug数', count: data.completedBugCount || 0 }
       ];
     }
@@ -327,31 +213,19 @@ const fetchProductProgress = async () => {
   }
 };
 
-// 从后端获取研发需求数据
-const fetchRequirements = async () => {
+// 从后端获取未关闭的产品列表数据
+const fetchUnclosedProducts = async () => {
   try {
     // 从本地存储中获取用户信息
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      const response = await request.get('/dashboard/requirements', {
+      const response = await request.get('/dashboard/unclosed-products', {
         params: { username: user.username }
       });
       if (response.data.code === 200) {
-        requirements.value = response.data.data || [];
+        unclosedProducts.value = response.data.data || [];
       }
-    }
-  } catch (error) {
-    console.error('获取研发需求数据失败:', error);
-  }
-};
-
-// 从后端获取未关闭的产品列表数据
-const fetchUnclosedProducts = async () => {
-  try {
-    const response = await request.get('/dashboard/unclosed-products');
-    if (response.data.code === 200) {
-      unclosedProducts.value = response.data.data || [];
     }
   } catch (error) {
     console.error('获取未关闭的产品列表数据失败:', error);
@@ -377,127 +251,129 @@ const fetchProductReleases = async () => {
   }
 };
 
-// 从后端获取产品年度工作量统计数据
-const fetchYearWorkStatistics = async () => {
-  try {
-    const response = await request.get('/dashboard/year-work-statistics', {
-      params: { year: selectedYear.value }
-    });
-    if (response.data.code === 200) {
-      const data = response.data.data;
-      demandSizeList.value = data.demandSizeList || [];
-      demandCountList.value = data.demandCountList || [];
-      repairBugList.value = data.repairBugList || [];
-    }
-  } catch (error) {
-    console.error('获取产品年度工作量统计数据失败:', error);
-  }
-};
-
-// 产品发布统计图表
+// 产品开发周期分布图表
 const {
   chartRef: faBuDom,
   initChart: initFaBuEchart,
   updateChart: updateFaBuEchart
 } = useEcharts();
 let faBuInited = false;
+
+// 存储从后端获取的产品数据
+const productDataByPeriod = ref({
+  '3个月以内': [],
+  '3-6个月': [],
+  '6-12个月': [],
+  '12个月以上': []
+});
+
+const handlePeriodClick = (params) => {
+  const period = params.name;
+  selectedPeriodProducts.value = productDataByPeriod.value[period] || [];
+};
+
+// 跳转到产品列表并筛选显示
+const goToProductList = (productName) => {
+  router.push(`/ProductResearch/ProductList?productName=${encodeURIComponent(productName)}`);
+};
+
 const initFaBuChart = async () => {
   if (!faBuDom.value) return;
   try {
-    const response = await request.get('/dashboard/monthly-release', {
-      params: { year: selectedYear.value }
-    });
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    let params = {};
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      params = { username: user.username };
+    }
+    
+    const response = await request.get('/dashboard/product-development-cycle', { params });
     if (response.data.code === 200) {
       const data = response.data.data;
+      
+      // 更新产品数据
+      if (data.productsByCycle) {
+        productDataByPeriod.value = data.productsByCycle;
+      }
+      
       const option = {
         title: {
-          text: '月度发布次数趋势图(个)',
+          text: '产品开发周期分布',
           left: 'center',
           textStyle: {
             fontSize: 14,
             fontWeight: 'normal'
           }
         },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
+        tooltip: {
+          trigger: 'item',
+          formatter: '{a} <br/>{b}: {c} ({d}%)'
         },
-        xAxis:{
-          type: 'category',
-          boundaryGap: false,
-          data: data.months || ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
-          axisLine: {
-            lineStyle: {
-              color: '#d9d9d9'
+        legend: {
+          orient: 'vertical',
+          left: 'left',
+          data: ['3个月以内', '3-6个月', '6-12个月', '12个月以上']
+        },
+        series: [
+          {
+            name: '开发周期',
+            type: 'pie',
+            radius: '50%',
+            data: data.pieData || [
+              { value: 0, name: '3个月以内' },
+              { value: 0, name: '3-6个月' },
+              { value: 0, name: '6-12个月' },
+              { value: 0, name: '12个月以上' }
+            ],
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            },
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: '#fff',
+              borderWidth: 2
             }
-          },
-          axisLabel: {
-            fontSize: 11
           }
-        },
-        yAxis:{
-          type: 'value',
-          min: 0,
-          axisLine: {
-            show: false
-          },
-          axisTick: {
-            show: false
-          },
-          splitLine: {
-            lineStyle: {
-              color: '#f0f0f0'
-            }
-          },
-          axisLabel: {
-            fontSize: 11
+        ],
+        toolbox: {
+          feature: {
+            saveAsImage: {}
           }
-        },
-        series:[{
-          type:'line',
-          data: data.releaseCounts || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          lineStyle: {
-            color: '#409EFF',
-            width: 2
-          },
-          itemStyle: {
-            color: '#409EFF',
-            borderWidth: 2,
-            borderColor: '#fff'
-          },
-          symbol: 'circle',
-          symbolSize: 8
-        }]
+        }
       };
 
       if (faBuInited) updateFaBuEchart(option);
       else {
-        initFaBuEchart(option);
+        initFaBuEchart(option, (chart) => {
+          // 绑定点击事件
+          chart.on('click', handlePeriodClick);
+        });
         faBuInited = true;
       }
     }
   } catch (error) {
-    console.error('获取月度发布数据失败:', error);
+    console.error('获取产品开发周期分布数据失败:', error);
   }
 };
 
-// 年度发布榜图表
+// 项目与迭代关联分布图表
 const rankingChart = ref(null);
 const initRankingChart = async () => {
   if (!rankingChart.value) return;
   try {
-    const response = await request.get('/dashboard/yearly-ranking', {
-      params: { year: selectedYear.value }
-    });
+    const response = await request.get('/dashboard/product-overview');
     if (response.data.code === 200) {
       const data = response.data.data;
       useEcharts(rankingChart.value, {
-        title: { text: '年度发布榜' },
+        title: { text: '项目与迭代关联分布' },
         xAxis: {
           type: 'category',
-          data: data.products || [],
+          data: ['有多个迭代的项目', '有单个迭代的项目', '无迭代的项目'],
           axisLabel: {
             fontSize: 11,
             rotate: 45
@@ -506,13 +382,13 @@ const initRankingChart = async () => {
         yAxis: { type: 'value' },
         series: [{
           type: 'bar',
-          data: data.releaseCounts || [],
+          data: [3, 2, 1],
           label: { show: true, position: 'top', fontSize: 11 }
         }]
       });
     }
   } catch (error) {
-    console.error('获取年度发布榜数据失败:', error);
+    console.error('获取项目与迭代关联分布数据失败:', error);
   }
 };
 
@@ -525,17 +401,14 @@ const initCharts = async () => {
 onMounted(async () => {
   await fetchProductOverview();
   await fetchProductProgress();
-  await fetchRequirements();
   await fetchUnclosedProducts();
   await fetchProductReleases();
-  await fetchYearWorkStatistics();
   await initCharts();
 });
 
 // 当选择年份变化时重新获取数据和初始化图表
 const handleYearChange = async () => {
   await fetchProductProgress();
-  await fetchYearWorkStatistics();
   await initCharts();
 };
 </script>
@@ -579,192 +452,7 @@ h3{
 .comment{
   display: flex;
 }
-/*产品年度工作量统计样式*/
-.yearWorkStatistic{
-  height: 210px;
-  display: flex;
-  flex-direction: column;
-}
-.yearWorkStatistic h3{
-  padding: 0;
-  margin: 0 0 10px 0;
-}
-.yearWorkStatistic .container{
-  flex: 1;
-  height: 100%;
-  display: flex;
-}
-.yearWorkStatistic .container > div{
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.yearWorkStatistic .container > div ul{
-  flex: 1;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.yearWorkStatistic .container > div li{
-  margin: 0;
-  padding: 0;
-}
-.container{
-  display: flex;
-}
-.container div{
-  flex: 1;
-}
 
-.assigned-rd-requirements{
-  background-color: #fff;
-}
-
-.el-card__body {
-  padding: 10px;
-}
-
-
-/*测量统计样式*/
-.measure {
-  padding: 10px 0;
-}
-
-.measure h3 {
-  margin: 0 0 15px 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.system-list {
-  padding: 10px 0;
-}
-
-.bug-statistics {
-  padding: 10px;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-
-.bug-statistics h3 {
-  margin-bottom: 15px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.bug-stat-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.bug-stat-label {
-  font-size: 13px;
-  color: #606266;
-  width: 60px;
-}
-
-.bug-stat-value {
-  font-size: 14px;
-  font-weight: bold;
-  color: #303133;
-  width: 20px;
-}
-
-.bug-stat-item .el-progress {
-  flex: 1;
-  height: 8px !important;
-}
-
-.bug-repair {
-  padding: 10px;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  height: 100%;
-}
-
-.bug-repair h3 {
-  margin-bottom: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.bug-repair .el-progress {
-  width: 100px !important;
-  height: 100px !important;
-  margin: 0 auto 10px;
-}
-
-.bug-repair-stats {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 10px;
-}
-
-.bug-repair-stats span {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-value {
-  font-size: 16px;
-  font-weight: bold;
-  color: #303133;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #606266;
-}
-
-.staying-test-list {
-  padding: 10px;
-  border-radius: 8px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  height: 100%;
-}
-
-.staying-test-list h3 {
-  margin-bottom: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.test-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.test-list li {
-  margin-bottom: 8px;
-}
-
-.test-list a {
-  font-size: 13px;
-  color: #409EFF;
-  text-decoration: none;
-  transition: color 0.3s;
-}
-
-.test-list a:hover {
-  text-decoration: underline;
-}
 .bangDan {
   margin-top: 20px;
 }
@@ -853,6 +541,44 @@ h3{
 .ranking-item:nth-child(5) .progress-bar {
   background-color: #67C23A;
 }
+
+/* 产品列表样式 */
+.product-list {
+  margin-top: 10px;
+  padding: 0 10px;
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.product-item:last-child {
+  border-bottom: none;
+}
+
+.product-index {
+  width: 20px;
+  font-weight: bold;
+  margin-right: 10px;
+  color: #409EFF;
+}
+
+.product-name {
+  flex: 1;
+  font-size: 13px;
+  color: #303133;
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px 0;
+  color: #909399;
+  font-size: 13px;
+}
+
 .product-statistics{
   display: flex;
   align-items: flex-start;
@@ -1152,33 +878,7 @@ h3{
   border-bottom: 1px solid #ebeef5;
 }
 
-.assigned-rd-requirements {
-  margin-top: 10px;
-}
-
-.assigned-rd-requirements .el-table .cell {
-  font-size: 13px;
-  padding: 10px;
-  vertical-align: middle;
-}
-
-.assigned-rd-requirements .el-table th {
-  font-size: 13px;
-  font-weight: 500;
-  background-color: #f9f9f9;
-  padding: 10px;
-  vertical-align: middle;
-}
-
-.assigned-rd-requirements .el-table__row {
-  height: 36px !important;
-}
-
 /* 标签页样式 */
-.product-list-tabs {
-  margin-top: 10px;
-}
-
 .tab-header {
   display: flex;
   border-bottom: 1px solid #ebeef5;
@@ -1206,26 +906,5 @@ h3{
 
 .tab-content {
   min-height: 300px;
-}
-
-/* 优先级样式 */
-.priority-urgent {
-  color: #F56C6C;
-  font-weight: 500;
-}
-
-.priority-serious {
-  color: #E6A23C;
-  font-weight: 500;
-}
-
-.priority-normal {
-  color: #909399;
-  font-weight: 500;
-}
-
-.priority-regular {
-  color: #67C23A;
-  font-weight: 500;
 }
 </style>

@@ -1,1 +1,0 @@
-import{r as n}from"./request-DSKxauVk.js";const i=async(e,o,s=null,t="")=>{try{const r=localStorage.getItem("user");if(r){const a=JSON.parse(r);await n.post("/workbench/operation-logs",{username:a.username,action:t?`${e}：${t}`:e,targetId:s,targetType:o,createTime:new Date().toISOString()})}}catch(r){console.error("记录操作日志失败:",r)}};export{i as r};

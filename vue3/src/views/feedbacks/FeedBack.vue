@@ -2,12 +2,12 @@
   <div class="feedback-container">
     <div class="feedback-header">
       <div class="header-left">
-        <span class="product-selector">全部产品</span>
+        <span class="product-selector">反馈列表</span>
       </div>
       <div class="header-right">
-        <el-button type="primary" plain>反馈</el-button>
-        <el-button type="primary" plain>工单</el-button>
-        <el-button type="primary" round>创建反馈</el-button>
+<!--        <el-button type="primary" plain>反馈</el-button>-->
+<!--        <el-button type="primary" plain>工单</el-button>-->
+<!--        <el-button type="primary" round>创建反馈</el-button>-->
       </div>
     </div>
 
@@ -28,8 +28,9 @@
               prefix-icon="el-icon-search"
               style="width: 200px;margin-bottom: 5px"
           />
-          <el-button type="primary" size="small">导出</el-button>
-          <el-button type="primary" size="small">导入</el-button>
+<!--          <el-button type="primary" size="small">导出</el-button>-->
+<!--          <el-button type="primary" size="small">导入</el-button>-->
+          <el-button type="primary" round>创建反馈</el-button>
         </div>
       </div>
       <FeedbackList :activeTab="activeTab" :searchQuery="searchQuery" @update:total="updateTotal"/>

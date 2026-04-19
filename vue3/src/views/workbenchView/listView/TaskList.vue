@@ -43,10 +43,11 @@
         <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
         <el-table-column label="操作" width="240">
             <template #default="scope">
-              <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-              <span class="action-text edit-action" @click="goToProductEdit">编辑</span>
+              <span v-if="scope.row.status !== '已关闭'" class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+              <span v-else class="action-text open-action" @click="handleOpen(scope.row)">打开</span>
+              <span v-if="scope.row.status !== '已关闭'" class="action-text edit-action" @click="goToProductEdit(scope.row.id)">编辑</span>
               <span class="action-text submit-action" @click="handleSubmitCode(scope.row)">提交代码</span>
-              <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+              <span class="action-text delete-action" @click="handleDelete(scope.row)">删除</span>
             </template>
           </el-table-column>
       </el-table>
@@ -170,8 +171,9 @@ import { ref, onMounted, computed, defineProps, watch } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
 import { recordOperationLog } from "@/utils/operationLog.js";
+import { ElMessageBox, ElMessage } from "element-plus";
 
-// 接收父组件传递的搜索词和活动标签
+// 接收父组件传递的搜索词、活动标签和状态
 const props = defineProps({
   searchQuery: {
     type: String,
@@ -180,12 +182,20 @@ const props = defineProps({
   activeTab: {
     type: String,
     default: 'all'
+  },
+  status: {
+    type: Number,
+    default: null
+  },
+  productName: {
+    type: String,
+    default: ''
   }
 });
 
 const router = useRouter();
-const goToProductEdit = () =>{
-  router.push('/productResearch/productEdit');
+const goToProductEdit = (id) =>{
+  router.push(`/task/taskEdit?id=${id}`);
 }
 
 // 任务数据
@@ -201,9 +211,25 @@ watch(() => props.activeTab, () => {
   fetchTasks();
 });
 
-// 根据搜索词和标签过滤任务列表
+// 监听 status 变化，重新计算过滤后的任务列表
+watch(() => props.status, () => {
+  // 状态变化时，过滤列表会自动重新计算，因为 filteredTaskList 是计算属性
+});
+
+// 根据搜索词、标签、状态和产品名称过滤任务列表
 const filteredTaskList = computed(() => {
   let filtered = taskList.value;
+  
+  // 根据状态过滤
+  if (props.status !== null) {
+    if (props.status === 0) {
+      // 未关闭的任务（状态不是已关闭）
+      filtered = filtered.filter(task => task.status !== '已关闭');
+    } else if (props.status === 2) {
+      // 已关闭的任务
+      filtered = filtered.filter(task => task.status === '已关闭');
+    }
+  }
   
   // 根据标签过滤
   if (props.activeTab !== 'all') {
@@ -232,6 +258,14 @@ const filteredTaskList = computed(() => {
     filtered = filtered.filter(task => 
       task.name.toLowerCase().includes(query) ||
       task.projectName.toLowerCase().includes(query)
+    );
+  }
+  
+  // 根据产品名称过滤
+  if (props.productName) {
+    const productName = props.productName.toLowerCase();
+    filtered = filtered.filter(task => 
+      task.projectName.toLowerCase().includes(productName)
     );
   }
   
@@ -373,8 +407,35 @@ const getStatusClass = (status) => {
 
 // 处理操作
 const handleClose = (task) => {
-  currentTask.value = task;
-  dialogVisible.value = true;
+  ElMessageBox.confirm(
+    '确定要关闭这个任务吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+  .then(async () => {
+    try {
+      // 尝试从数据库关闭任务
+      const response = await request.put(`/workbench/tasks/${task.id}/status?status=4`);
+      if (response.data.code === 200) {
+        console.log('关闭任务成功:', task.id);
+        // 记录操作日志
+        await recordOperationLog('关闭了', '任务', task.id, task.name);
+        // 更新本地数据
+        task.status = '已关闭';
+        ElMessage.success('任务已关闭');
+      }
+    } catch (error) {
+      console.error('关闭任务失败:', error);
+      ElMessage.error('关闭任务失败');
+    }
+  })
+  .catch(() => {
+    // 取消关闭
+  });
 };
 
 // 处理项目名称点击事件
@@ -388,23 +449,71 @@ const handleEdit = (id) => {
   router.push('/task/taskEdit');
 };
 
-const handleDelete = async (id) => {
-  try {
-    // 查找任务名称
-    const task = taskList.value.find(t => t.id === id);
-    const taskName = task ? task.name : '未知任务';
-    
-    const response = await request.delete(`/workbench/tasks/${id}`);
-    if (response.code === 200) {
-      console.log('删除任务成功:', id);
-      // 记录操作日志
-      await recordOperationLog('删除任务', 'task', id, taskName);
-      // 重新获取任务列表
-      await fetchTasks();
+// 打开任务
+const handleOpen = (task) => {
+  ElMessageBox.confirm(
+    '确定要打开这个任务吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info'
     }
-  } catch (error) {
-    console.error('删除任务失败:', error);
-  }
+  )
+  .then(async () => {
+    try {
+      // 尝试从数据库打开任务
+      const response = await request.put(`/workbench/tasks/${task.id}/status?status=1`);
+      if (response.data.code === 200) {
+        console.log('打开任务成功:', task.id);
+        // 记录操作日志
+        await recordOperationLog('打开了', '任务', task.id, task.name);
+        // 更新本地数据
+        task.status = '待开始';
+        ElMessage.success('任务已打开');
+      }
+    } catch (error) {
+      console.error('打开任务失败:', error);
+      ElMessage.error('打开任务失败');
+    }
+  })
+  .catch(() => {
+    // 取消打开
+  });
+};
+
+const handleDelete = (task) => {
+  ElMessageBox.confirm(
+    '确定要删除这个任务吗？此操作不可恢复。',
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'danger'
+    }
+  )
+  .then(async () => {
+    try {
+      // 尝试从数据库删除任务
+      console.log('删除任务ID:', task.id);
+      // 调用后端API删除任务
+      const response = await request.delete(`/workbench/tasks/${task.id}`);
+      if (response.data.code === 200) {
+        console.log('删除任务成功:', task.id);
+        // 记录操作日志
+        await recordOperationLog('删除了', '任务', task.id, task.name);
+        // 从本地数据中移除删除的任务
+        taskList.value = taskList.value.filter(t => t.id !== task.id);
+        ElMessage.success('任务已删除');
+      }
+    } catch (error) {
+      console.error('删除任务失败:', error);
+      ElMessage.error('删除任务失败');
+    }
+  })
+  .catch(() => {
+    // 取消删除
+  });
 };
 
 // 确认关闭任务
@@ -419,15 +528,30 @@ const confirmClose = async () => {
 
 // 处理代码提交
 const handleSubmitCode = (task) => {
-  currentTask.value = task;
-  // 重置代码提交表单
-  codeForm.value = {
-    repositoryUrl: '',
-    branch: '',
-    commitMessage: '',
-    files: []
-  };
-  codeDialogVisible.value = true;
+  ElMessageBox.confirm(
+    '确定要提交代码吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info'
+    }
+  )
+  .then(async () => {
+    try {
+      // 这里可以添加代码提交的逻辑
+      console.log('提交代码:', task);
+      // 记录操作日志
+      await recordOperationLog('提交了代码', '任务', task.id, task.name);
+      ElMessage.success('代码提交成功');
+    } catch (error) {
+      console.error('提交代码失败:', error);
+      ElMessage.error('提交代码失败');
+    }
+  })
+  .catch(() => {
+    // 取消提交
+  });
 };
 
 // 处理文件选择

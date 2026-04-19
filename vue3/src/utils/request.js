@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const request = axios.create({
-    baseURL: 'http://localhost:8080',//后台接口基础地址
+    baseURL: 'http://localhost:8080',//直接指向后端服务地址
     timeout: 30000,//后台接口超时时间
 })
 //request拦截器

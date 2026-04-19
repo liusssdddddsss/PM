@@ -3,9 +3,9 @@
     <ul class="project-list">
       <li 
         v-for="(project, index) in projectList" 
-        :key="index"
+        :key="project.id"
         :class="{ active: index === activeIndex }"
-        @click="handleProjectClick(index, project.name)"
+        @click="handleProjectClick(index, project)"
       >
         {{ project.name }}
       </li>
@@ -32,6 +32,7 @@ const fetchProjects = async () => {
     console.log('获取项目列表响应:', response);
     if (response.data.code === 200) {
       projectList.value = response.data.data.map(project => ({
+        id: project.id,
         name: project.title
       }));
       console.log('转换后的项目列表数据:', projectList.value);
@@ -41,10 +42,10 @@ const fetchProjects = async () => {
   }
 };
 
-const handleProjectClick = (index, projectName) => {
+const handleProjectClick = (index, project) => {
   activeIndex.value = index;
-  // 向父组件发送事件
-  emit('project-click', projectName);
+  // 向父组件发送事件，传递项目对象（包含id和name）
+  emit('project-click', project);
 };
 
 // 页面加载时获取项目列表

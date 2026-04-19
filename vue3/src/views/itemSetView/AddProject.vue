@@ -1,6 +1,7 @@
 <template>
   <div class="add-project">
     <h3>添加项目</h3>
+    <el-divider/>
     <div class="form-container">
       <el-form :model="projectForm" label-width="120px">
         <el-row :gutter="20">
@@ -145,21 +146,16 @@ const goBack = () => {
 
 <style scoped>
 .add-project {
-  padding: 10px;
-  min-height: 100vh;
   background-color: #fff;
+  padding: 20px;
+  min-height: 100vh;
 }
-
+.el-divider{
+  margin-top: 10px;
+}
 .form-container {
   background-color: #fff;
   padding: 20px;
-}
-
-h3 {
-  margin-bottom: 20px;
-  color: #303133;
-  font-size: 18px;
-  font-weight: bold;
 }
 
 .form-buttons {

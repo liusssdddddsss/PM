@@ -12,6 +12,13 @@ spring:
     url: jdbc:mysql://localhost:3306/pm?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     password: emo1231
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 20000
   jpa:
     hibernate:
       naming:
@@ -23,7 +30,7 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         hbm2ddl.auto: update
         javax.persistence.validation.mode: none
-        hibernate.foreign_key_checks: false
+        hibernate.foreign_key_checks: true
   mvc:
     encoding:
       charset: UTF-8

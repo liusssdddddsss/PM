@@ -140,6 +140,30 @@ const getActionText = (action, link) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 自定义滚动条样式 */
+.dynamic-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dynamic-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.dynamic-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.dynamic-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 .dynamic-item {
   display: flex;
