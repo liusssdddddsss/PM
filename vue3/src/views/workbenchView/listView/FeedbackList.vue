@@ -262,10 +262,12 @@ const handleEdit = (id) => {
 const handleDelete = async (id) => {
   try {
     const response = await request.delete(`/api/feedback/delete/${id}`);
-    if (response.code === 200) {
+    if (response.data.code === 200) {
       console.log('删除反馈成功:', id);
       // 重新获取反馈列表
       await fetchFeedbacks();
+    } else {
+      console.error('删除反馈失败:', response.data.message);
     }
   } catch (error) {
     console.error('删除反馈失败:', error);
@@ -273,11 +275,24 @@ const handleDelete = async (id) => {
 };
 
 // 确认关闭反馈
-const confirmClose = () => {
-  console.log('确认关闭反馈:', currentFeedback.value.id);
-  console.log('关闭表单:', closeForm.value);
-  dialogVisible.value = false;
-  // 这里可以添加关闭反馈的逻辑
+const confirmClose = async () => {
+  try {
+    const response = await request.post(`/api/feedback/close/${currentFeedback.value.id}`, {
+      expectedCompleteTime: closeForm.value.expectedCompleteTime,
+      actualCompleteTime: closeForm.value.actualCompleteTime,
+      remark: closeForm.value.remark
+    });
+    if (response.data.code === 200) {
+      console.log('关闭反馈成功:', currentFeedback.value.id);
+      dialogVisible.value = false;
+      // 重新获取反馈列表
+      await fetchFeedbacks();
+    } else {
+      console.error('关闭反馈失败:', response.data.message);
+    }
+  } catch (error) {
+    console.error('关闭反馈失败:', error);
+  }
 };
 </script>
 

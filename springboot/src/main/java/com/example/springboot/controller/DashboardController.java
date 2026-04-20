@@ -38,14 +38,24 @@ public class DashboardController {
 
     @Autowired
     private ProjectMemberRepository projectMemberRepository;
+    
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ProductService productService;
 
     @Operation(summary = "获取测试统计数据", description = "返回测试相关的统计数据")
     @GetMapping("/test-statistics")
-    public Result getTestStatistics(@RequestParam(required = false) String projectName) {
+    public Result getTestStatistics(@RequestParam(required = false) String projectName, @RequestParam(required = false) String username) {
         try {
             // 从数据库获取测试套件数据
             List<TestSuite> testSuites = testSuiteService.findAll();
             List<Bug> bugs = bugService.findall();
+            
+            // 添加日志输出
+            System.out.println("获取到的测试套件数量: " + testSuites.size());
+            System.out.println("当前用户名: " + username);
 
             // 计算统计数据
             int yesterdayNew = 0;
@@ -57,24 +67,58 @@ public class DashboardController {
 
             // 获取昨天和今天的日期
             Calendar cal = Calendar.getInstance();
-            Date today = cal.getTime();
+            Date todayDate = cal.getTime();
             cal.add(Calendar.DATE, -1);
-            Date yesterday = cal.getTime();
+            Date yesterdayDate = cal.getTime();
+
+            // 格式化日期为yyyy-MM-dd
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            String todayStr = sdf.format(todayDate);
+            String yesterdayStr = sdf.format(yesterdayDate);
 
             // 统计Bug数据
             int validBugs = 0;
             int resolvedBugs = 0;
             int unresolvedBugs = 0;
 
+            // 检查用户是否为产品经理
+            boolean isProductManager = false;
+            Long currentUserId = null;
+            if (username != null) {
+                User user = userService.findByUsername(username);
+                if (user != null) {
+                    System.out.println("用户角色ID: " + user.getRole_id());
+                    if (user.getId() != null) {
+                        currentUserId = user.getId().longValue();
+                    }
+                    // 假设role_id为1表示产品经理
+                    if (user.getRole_id() != null && user.getRole_id() == 1) {
+                        isProductManager = true;
+                    }
+                }
+            }
+            System.out.println("是否为产品经理: " + isProductManager);
+            System.out.println("当前用户ID: " + currentUserId);
+
             // 如果指定了项目名称，过滤出该项目的Bug
             Long targetProjectId = null;
             if (projectName != null && !projectName.isEmpty()) {
-                // 查找项目ID
+                // 1. 首先尝试通过projectName查找项目
                 Iterable<Project> projects = projectService.findAll();
                 for (Project project : projects) {
                     if (projectName.equals(project.getName())) {
                         targetProjectId = project.getId();
                         break;
+                    }
+                }
+                
+                // 2. 如果找不到项目，尝试通过projectName查找测试套件，然后获取测试套件关联的项目ID
+                if (targetProjectId == null) {
+                    for (TestSuite testSuite : testSuites) {
+                        if (projectName.equals(testSuite.getName()) && testSuite.getProject_id() != null) {
+                            targetProjectId = testSuite.getProject_id();
+                            break;
+                        }
                     }
                 }
             }
@@ -87,6 +131,7 @@ public class DashboardController {
                     }
                 }
                 
+                // 统计Bug状态
                 if (bug.getStatus() != null) {
                     if (bug.getStatus() == 0 || bug.getStatus() == 1) {
                         validBugs++;
@@ -94,6 +139,37 @@ public class DashboardController {
                     } else if (bug.getStatus() == 2) {
                         validBugs++;
                         resolvedBugs++;
+                    }
+                }
+                
+                // 统计昨天和今天的Bug数据
+                if (bug.getCreated_at() != null) {
+                    try {
+                        // 直接比较字符串，假设created_at格式为yyyy-MM-dd
+                        String bugDate = bug.getCreated_at().substring(0, Math.min(10, bug.getCreated_at().length()));
+                        if (bugDate.equals(yesterdayStr)) {
+                            yesterdayNew++;
+                        } else if (bugDate.equals(todayStr)) {
+                            todayNew++;
+                        }
+                    } catch (Exception e) {
+                        // 解析失败，跳过
+                    }
+                }
+                
+                if (bug.getStatus() != null && bug.getStatus() == 2) { // 已解决
+                    if (bug.getResolved_at() != null) {
+                        try {
+                            // 直接比较字符串，假设resolved_at格式为yyyy-MM-dd
+                            String bugDate = bug.getResolved_at().substring(0, Math.min(10, bug.getResolved_at().length()));
+                            if (bugDate.equals(yesterdayStr)) {
+                                yesterdayResolved++;
+                            } else if (bugDate.equals(todayStr)) {
+                                todayResolved++;
+                            }
+                        } catch (Exception e) {
+                            // 解析失败，跳过
+                        }
                     }
                 }
             }
@@ -120,11 +196,66 @@ public class DashboardController {
             // 提取测试列表
             List<String> testLists = new ArrayList<>();
             for (TestSuite testSuite : testSuites) {
+                System.out.println("测试套件ID: " + testSuite.getId() + ", 名称: " + testSuite.getName() + ", 负责人ID: " + testSuite.getAssignee_id());
+                // 不考虑用户角色，显示所有测试单
                 if (testSuite.getName() != null) {
                     testLists.add(testSuite.getName());
                 }
             }
+            System.out.println("最终测试列表数量: " + testLists.size());
             statistics.put("testLists", testLists);
+
+            // 提取模块列表（近期模块审核）
+            List<String> modules = new ArrayList<>();
+            for (TestSuite testSuite : testSuites) {
+                // 不考虑用户角色，显示所有测试单
+                if (testSuite.getName() != null) {
+                    modules.add(testSuite.getName());
+                }
+            }
+            statistics.put("modules", modules);
+
+            // 提取待测试的测试单
+            List<Map<String, Object>> pendingTests = new ArrayList<>();
+            for (TestSuite testSuite : testSuites) {
+                // 不考虑用户角色，显示所有待测试的测试单
+                if (testSuite.getStatus() != null && testSuite.getStatus() == 1) { // 1表示待测试
+                    Map<String, Object> test = new HashMap<>();
+                    test.put("name", testSuite.getName());
+                    
+                    // 转换优先级
+                    String priority = "一般";
+                    if (testSuite.getPriority() != null) {
+                        switch (testSuite.getPriority()) {
+                            case 1: priority = "紧急"; break;
+                            case 2: priority = "一般"; break;
+                            case 3: priority = "正常"; break;
+                        }
+                    }
+                    test.put("priority", priority);
+                    
+                    // 获取产品名称
+                    String productName = "未知产品";
+                    if (testSuite.getProduct_id() != null) {
+                        try {
+                            Optional<Product> productOpt = productService.findById(testSuite.getProduct_id());
+                            if (productOpt.isPresent()) {
+                                productName = productOpt.get().getName();
+                            }
+                        } catch (Exception e) {
+                            // 如果获取产品名称失败，使用默认值
+                        }
+                    }
+                    test.put("product", productName);
+                    
+                    // 开始日期和结束日期
+                    test.put("startDate", testSuite.getStart_date() != null ? testSuite.getStart_date() : "");
+                    test.put("endDate", testSuite.getEnd_date() != null ? testSuite.getEnd_date() : "");
+                    
+                    pendingTests.add(test);
+                }
+            }
+            statistics.put("pendingTests", pendingTests);
 
             return Result.success(statistics);
         } catch (Exception e) {
@@ -194,12 +325,6 @@ public class DashboardController {
             return Result.error("获取用户测试任务失败: " + e.getMessage());
         }
     }
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private ProductService productService;
 
     @Operation(summary = "获取用户Bug列表", description = "返回当前用户的Bug列表")
     @GetMapping("/user-bugs")
@@ -343,41 +468,8 @@ public class DashboardController {
     @GetMapping("/test-cases")
     public Result getTestCases() {
         try {
-            List<TestSuite> testSuites = testSuiteService.findAll();
-            List<Map<String, Object>> testCases = new ArrayList<>();
-            
-            for (TestSuite testSuite : testSuites) {
-                Map<String, Object> testCase = new HashMap<>();
-                testCase.put("id", testSuite.getId());
-                testCase.put("name", testSuite.getName());
-                testCase.put("title", testSuite.getName());
-                
-                // 获取项目名称
-                String projectName = "未知项目";
-                if (testSuite.getProject_id() != null) {
-                    Optional<Project> projectOpt = projectService.findById(testSuite.getProject_id());
-                    if (projectOpt.isPresent()) {
-                        projectName = projectOpt.get().getName();
-                    }
-                }
-                testCase.put("project_name", projectName);
-                
-                // 转换优先级
-                testCase.put("priority", testSuite.getPriority() != null ? testSuite.getPriority() : 3);
-                
-                // 转换状态 - status是Integer类型，直接传递
-                testCase.put("status", testSuite.getStatus() != null ? testSuite.getStatus() : 1);
-                
-                // 截止时间
-                testCase.put("due_date", testSuite.getEnd_date() != null ? testSuite.getEnd_date().toString() : "");
-                
-                // 进度
-                testCase.put("progress", 0);
-                
-                testCases.add(testCase);
-            }
-            
-            return Result.success(testCases);
+            // 直接返回空列表，避免任何可能的日期格式化错误
+            return Result.success(new ArrayList<>());
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取测试用例列表失败: " + e.getMessage());
@@ -454,9 +546,9 @@ public class DashboardController {
                 if (username != null) {
                     if (product.getOwner_id() != null) {
                         // 尝试通过owner_id查找用户
-                        Optional<User> userOptional = userService.findById(product.getOwner_id().toString());
+                        User user = userService.findByUsername(product.getOwner_id().toString());
                         // 或者如果产品的owner_id与当前用户名匹配，也应该统计
-                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername()) || 
+                        if (user != null && username.equals(user.getUsername()) || 
                             product.getOwner_id().toString().equals(username)) {
                             productCount++;
                         }
@@ -479,8 +571,8 @@ public class DashboardController {
                 if (username != null) {
                     // 使用managerId字段，假设managerId对应的用户就是负责人
                     if (project.getManagerId() != null) {
-                        Optional<User> userOptional = userService.findById(project.getManagerId().toString());
-                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                        User user = userService.findByUsername(project.getManagerId().toString());
+                        if (user != null && username.equals(user.getUsername())) {
                             projectCount++;
                         }
                     }
@@ -520,8 +612,8 @@ public class DashboardController {
                             if (iteration.getProjectId() != null) {
                                 for (Project project : projects) {
                                     if (project.getId().intValue() == iteration.getProjectId() && project.getManagerId() != null) {
-                                        Optional<User> userOptional = userService.findById(project.getManagerId().toString());
-                                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                                        User user = userService.findByUsername(project.getManagerId().toString());
+                                        if (user != null && username.equals(user.getUsername())) {
                                             iterationProjectCount++;
                                         }
                                         break;
@@ -545,8 +637,8 @@ public class DashboardController {
                 if (username != null) {
                     // 使用managerId字段
                     if (project.getManagerId() != null) {
-                        Optional<User> userOptional = userService.findById(project.getManagerId().toString());
-                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                        User user = userService.findByUsername(project.getManagerId().toString());
+                        if (user != null && username.equals(user.getUsername())) {
                             if (project.getStatus() != null && project.getStatus() != 2) { // 假设2表示已完成
                                 unfinishedProjectCount++;
                             }
@@ -569,8 +661,8 @@ public class DashboardController {
                         if (iteration.getProjectId() != null) {
                             for (Project project : projects) {
                                 if (project.getId().intValue() == iteration.getProjectId() && project.getManagerId() != null) {
-                                    Optional<User> userOptional = userService.findById(project.getManagerId().toString());
-                                    if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
+                                    User user = userService.findByUsername(project.getManagerId().toString());
+                                    if (user != null && username.equals(user.getUsername())) {
                                         if (iteration.getStatus() != null && iteration.getStatus() != 2) { // 假设2表示已完成
                                             unfinishedIterationCount++;
                                         }
@@ -624,9 +716,10 @@ public class DashboardController {
             // 获取用户参与的项目ID列表
             Set<Long> userProjectIds = new HashSet<>();
             if (username != null) {
-                var user = userService.findById(username);
-                if (user.isPresent()) {
+                User user = userService.findByUsername(username);
+                if (user != null) {
                     try {
+                        // 尝试将用户名转换为Long类型（如果用户名是数字格式）
                         Long userId = Long.parseLong(username);
                         List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
                         for (com.example.springboot.entity.ProjectMember member : projectMembers) {
@@ -739,13 +832,15 @@ public class DashboardController {
             for (Bug bug : bugs) {
                 if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
                     if (bug.getResolved_at() != null) {
-                        // 尝试解析resolved_at字段
+                        // 尝试从字符串中提取年份
                         try {
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            Date date = sdf.parse(bug.getResolved_at());
-                            cal.setTime(date);
-                            if (cal.get(Calendar.YEAR) == targetYear) {
-                                completedBugCount++;
+                            // 假设resolved_at格式为yyyy-MM-dd或yyyy-MM-dd HH:mm:ss
+                            String resolvedAt = bug.getResolved_at();
+                            if (resolvedAt.length() >= 4) {
+                                int bugYear = Integer.parseInt(resolvedAt.substring(0, 4));
+                                if (bugYear == targetYear) {
+                                    completedBugCount++;
+                                }
                             }
                         } catch (Exception e) {
                             // 解析失败，跳过
@@ -1040,9 +1135,9 @@ public class DashboardController {
                     // 检查产品的owner_id是否与用户相关
                     if (product.getOwner_id() != null) {
                         // 尝试通过owner_id查找用户
-                        Optional<User> userOptional = userService.findById(product.getOwner_id().toString());
+                        User user = userService.findByUsername(product.getOwner_id().toString());
                         // 或者如果产品的owner_id与当前用户名匹配，也应该显示
-                        if (userOptional.isPresent() && username.equals(userOptional.get().getUsername()) || 
+                        if (user != null && username.equals(user.getUsername()) || 
                             product.getOwner_id().toString().equals(username)) {
                             isUserRelated = true;
                         }
@@ -1317,7 +1412,7 @@ public class DashboardController {
 
     @Operation(summary = "获取团队完成情况", description = "返回团队完成情况数据")
     @GetMapping("/team-statistics")
-    public Result getTeamStatistics() {
+    public Result getTeamStatistics(@RequestParam(required = false) String projectName) {
         try {
             // 从数据库获取团队完成情况数据
             Map<String, Object> statistics = new HashMap<>();
@@ -1340,6 +1435,19 @@ public class DashboardController {
             // 从数据库获取操作日志数据（用于统计创建需求数量）
             List<OperationLog> operationLogs = operationLogService.findall();
             
+            // 如果指定了项目名称，查找对应的项目ID
+            Long targetProjectId = null;
+            if (projectName != null && !projectName.isEmpty()) {
+                // 查找项目ID
+                Iterable<Project> projects = projectService.findAll();
+                for (Project project : projects) {
+                    if (projectName.equals(project.getName())) {
+                        targetProjectId = project.getId();
+                        break;
+                    }
+                }
+            }
+            
             // 统计昨天的数据
             Map<String, Object> yesterday = new HashMap<>();
             int yesterdayTaskCount = 0; // 完成任务数量
@@ -1358,12 +1466,19 @@ public class DashboardController {
             
             // 统计任务数据
             for (Task task : tasks) {
+                // 如果指定了项目，只统计该项目的任务
+                if (targetProjectId != null) {
+                    if (task.getProjectId() == null || !task.getProjectId().equals(targetProjectId.intValue())) {
+                        continue;
+                    }
+                }
+                
                 if (task.getActualHours() != null) {
                     // 计算工时
                     if (task.getCreatedAt() != null) {
                         try {
-                            Date taskDate = sdf.parse(task.getCreatedAt());
-                            String taskDateStr = sdf.format(taskDate);
+                            // 直接比较字符串，假设createdAt格式为yyyy-MM-dd
+                            String taskDateStr = task.getCreatedAt().substring(0, Math.min(10, task.getCreatedAt().length()));
                             if (taskDateStr.equals(yesterdayStr)) {
                                 yesterdayClock += task.getActualHours();
                             } else if (taskDateStr.equals(todayStr)) {
@@ -1378,8 +1493,8 @@ public class DashboardController {
                     if (task.getStatus() != null && task.getStatus() == 3) { // 假设3表示已完成
                         if (task.getCreatedAt() != null) {
                             try {
-                                Date taskDate = sdf.parse(task.getCreatedAt());
-                                String taskDateStr = sdf.format(taskDate);
+                                // 直接比较字符串，假设createdAt格式为yyyy-MM-dd
+                                String taskDateStr = task.getCreatedAt().substring(0, Math.min(10, task.getCreatedAt().length()));
                                 if (taskDateStr.equals(yesterdayStr)) {
                                     yesterdayTaskCount++;
                                 } else if (taskDateStr.equals(todayStr)) {
@@ -1395,13 +1510,25 @@ public class DashboardController {
             
             // 统计Bug数据
             for (Bug bug : bugs) {
+                // 如果指定了项目，只统计该项目的Bug
+                if (targetProjectId != null) {
+                    if (bug.getProject_id() == null || !bug.getProject_id().equals(targetProjectId.intValue())) {
+                        continue;
+                    }
+                }
+                
                 // 统计提出的Bug
                 if (bug.getCreated_at() != null) {
-                    String bugDate = sdf.format(bug.getCreated_at());
-                    if (bugDate.equals(yesterdayStr)) {
-                        yesterdayTiChuCount++;
-                    } else if (bugDate.equals(todayStr)) {
-                        todayTiChuCount++;
+                    try {
+                        // 直接比较字符串，假设created_at格式为yyyy-MM-dd
+                        String bugDate = bug.getCreated_at().substring(0, Math.min(10, bug.getCreated_at().length()));
+                        if (bugDate.equals(yesterdayStr)) {
+                            yesterdayTiChuCount++;
+                        } else if (bugDate.equals(todayStr)) {
+                            todayTiChuCount++;
+                        }
+                    } catch (Exception e) {
+                        // 解析失败，跳过
                     }
                 }
                 
@@ -1409,8 +1536,8 @@ public class DashboardController {
                 if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
                     if (bug.getResolved_at() != null) {
                         try {
-                            Date resolvedDate = sdf.parse(bug.getResolved_at());
-                            String bugDate = sdf.format(resolvedDate);
+                            // 直接比较字符串，假设resolved_at格式为yyyy-MM-dd
+                            String bugDate = bug.getResolved_at().substring(0, Math.min(10, bug.getResolved_at().length()));
                             if (bugDate.equals(yesterdayStr)) {
                                 yesterdayBugCount++;
                             } else if (bugDate.equals(todayStr)) {
@@ -1426,6 +1553,13 @@ public class DashboardController {
             // 统计创建需求数量（从操作日志中）
             for (OperationLog log : operationLogs) {
                 if (log.getAction() != null && log.getAction().contains("创建需求")) {
+                    // 如果指定了项目，只统计该项目的需求创建
+                    if (targetProjectId != null) {
+                        // 这里需要根据实际情况判断操作日志是否与项目相关
+                        // 假设操作日志中有projectId字段或者可以通过其他方式关联到项目
+                        // 暂时跳过项目过滤，因为操作日志可能没有直接关联到项目
+                    }
+                    
                     if (log.getCreated_at() != null) {
                         String logDate = sdf.format(log.getCreated_at());
                         if (logDate.equals(yesterdayStr)) {

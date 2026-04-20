@@ -33,7 +33,7 @@
       <div class="project-table-container">
         <div class="table-container">
           <el-table
-              :data="filteredData"
+              :data="paginatedData"
               style="width: 100%"
               class="ProjectTable"
               :row-style="{height: '45px'}"
@@ -83,6 +83,19 @@
           </el-table>
         </div>
       </div>
+      
+      <div class="pagination">
+        <span>共 {{ total }} 项</span>
+        <el-pagination
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total"
+            :page-size="pageSize"
+            :current-page="currentPage"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            style="margin-right: 10px"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -116,6 +129,9 @@ const goToAddProject = () => {
 
 // 项目数据
 const projectData = ref([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(20);
 
 // 从后端获取项目数据
 const fetchProjects = async () => {
@@ -134,6 +150,7 @@ const fetchProjects = async () => {
       
       // 获取任务列表以计算工时
       await fetchTasksForHours();
+      total.value = projectData.value.length;
     }
   } catch (error) {
     console.error('获取项目列表失败:', error);
@@ -218,6 +235,24 @@ const filteredData = computed(() => {
   
   return result;
 });
+
+// 分页后的项目列表
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredData.value.slice(start, end);
+});
+
+// 处理分页大小变化
+const handleSizeChange = (size) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+};
+
+// 处理页码变化
+const handleCurrentChange = (current) => {
+  currentPage.value = current;
+};
 
 // 获取状态标签的类名
 const getStatusClass = (status) => {
@@ -472,5 +507,12 @@ const handleDelete = (project) => {
 .el-table--border td {
   border: none !important;
   vertical-align: middle;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

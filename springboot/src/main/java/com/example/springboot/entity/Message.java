@@ -27,6 +27,9 @@ public class Message {
     
     @Column(name = "created_at")
     private Date createdAt;
+    
+    @Column(name = "type")
+    private String type;
 
     public Integer getId() {
         return id;
@@ -82,5 +85,13 @@ public class Message {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

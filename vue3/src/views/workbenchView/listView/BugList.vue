@@ -2,7 +2,7 @@
   <div class="task-table-container">
     <div class="table-container">
       <el-table
-          :data="tableData"
+          :data="paginatedTableData"
           style="width: 100%"
           class="TaskTable"
           :row-style="{height: '45px'}"
@@ -32,11 +32,24 @@
     <el-table-column prop="finishTime" label="完成时间" width="180"></el-table-column>
       </el-table>
     </div>
+    
+    <div class="pagination">
+      <span>共 {{ total }} 项</span>
+      <el-pagination
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-size="pageSize"
+          :current-page="currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          style="margin-right: 10px"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
 
@@ -52,6 +65,9 @@ const handleTitleClick = (title) => {
 
 //ddl列表
 const tableData = ref([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(20);
 
 // 从后端获取Bug列表数据
 onMounted(() => {
@@ -77,6 +93,7 @@ const fetchBugs = async () => {
           finishTime: item.due_date
         }));
         console.log('转换后的Bug列表数据:', tableData.value);
+        total.value = tableData.value.length;
       }
     }
   } catch (error) {
@@ -139,6 +156,24 @@ const getStatusClass = (state) => {
     default:
       return '';
   }
+};
+
+// 分页后的Bug列表
+const paginatedTableData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return tableData.value.slice(start, end);
+});
+
+// 处理分页大小变化
+const handleSizeChange = (size) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+};
+
+// 处理页码变化
+const handleCurrentChange = (current) => {
+  currentPage.value = current;
 };
 </script>
 
@@ -213,5 +248,12 @@ const getStatusClass = (state) => {
 .el-table--border td {
   border: none !important;
   vertical-align: middle;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

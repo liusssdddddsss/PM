@@ -1,50 +1,25 @@
 <template>
   <div class="feedback-edit">
-    <h3>编辑反馈</h3>
+    <h3>{{ isEdit ? '编辑反馈' : '创建反馈' }}</h3>
     <div class="form-container">
       <el-form :model="feedbackForm" label-width="120px">
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="24">
             <el-form-item label="所属产品" required>
-              <el-select v-model="feedbackForm.product" placeholder="请选择">
-                <el-option label="禅道开源版" value="zentao" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="所属模块">
-              <el-select v-model="feedbackForm.module" placeholder="请选择">
-                <el-option label="/" value="/" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="类型">
-              <el-select v-model="feedbackForm.type" placeholder="请选择">
-                <el-option label="功能建议" value="功能建议" />
-                <el-option label="缺陷" value="缺陷" />
-                <el-option label="其他" value="其他" />
-              </el-select>
+              <el-autocomplete
+                v-model="feedbackForm.product"
+                :fetch-suggestions="querySearch"
+                placeholder="请输入产品名称"
+                style="width: 100%"
+                :trigger-on-focus="false"
+                @select="handleSelect"
+              />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-form-item label="标题" required>
-          <div style="display: flex; align-items: center; width: 100%">
-            <el-input v-model="feedbackForm.title" placeholder="请输入" style="flex: 1; margin-right: 10px" />
-            <el-checkbox v-model="feedbackForm.isPublic" style="margin-right: 10px">公开</el-checkbox>
-            <span style="margin-right: 5px">优先级</span>
-            <el-select v-model="feedbackForm.priority" style="width: 80px">
-              <el-option label="1" value="1" />
-              <el-option label="2" value="2" />
-              <el-option label="3" value="3" />
-              <el-option label="4" value="4" />
-              <el-option label="5" value="5" />
-            </el-select>
-          </div>
+          <el-input v-model="feedbackForm.title" placeholder="请输入" style="width: 80%" />
         </el-form-item>
 
         <el-form-item label="描述">
@@ -64,19 +39,6 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="来源公司">
-              <el-input v-model="feedbackForm.company" placeholder="请输入" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="通知邮箱">
-              <el-input v-model="feedbackForm.email" placeholder="请输入" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
             <el-form-item label="抄送给">
               <el-select v-model="feedbackForm.cc" placeholder="请选择">
                 <el-option label="张三" value="zhangsan" />
@@ -86,10 +48,6 @@
             </el-form-item>
           </el-col>
         </el-row>
-
-        <el-form-item label="关键词">
-          <el-input v-model="feedbackForm.keywords" placeholder="请输入" />
-        </el-form-item>
 
         <el-form-item label="附件">
           <el-upload
@@ -106,10 +64,6 @@
               <div class="el-upload__tip">可点击添加或拖拽上传,不超过 100.0MB</div>
             </template>
           </el-upload>
-        </el-form-item>
-
-        <el-form-item label="通知">
-          <el-checkbox v-model="feedbackForm.notification">接收邮件通知</el-checkbox>
         </el-form-item>
 
         <el-form-item>
@@ -131,25 +85,36 @@ import request from "@/utils/request.js";
 const router = useRouter();
 const route = useRoute();
 
+// 判断是编辑还是创建
+const isEdit = ref(!!route.params.id);
+
 // 反馈表单数据
 const feedbackForm = ref({
   product: '',
-  module: '',
-  type: '',
+  productId: '',
   title: '',
-  isPublic: false,
-  priority: 3,
   description: '',
   reporter: '',
-  company: '',
-  email: '',
-  cc: '',
-  keywords: '',
-  notification: true
+  cc: ''
 });
 
 // 文件列表
 const fileList = ref([]);
+
+// 产品列表
+const products = ref([]);
+
+// 加载产品列表
+const loadProducts = async () => {
+  try {
+    const response = await request.get('/api/products');
+    if (response.data.code === 200) {
+      products.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('获取产品列表失败:', error);
+  }
+};
 
 // 处理文件预览
 const handlePreview = (file) => {
@@ -161,29 +126,42 @@ const handleRemove = (file, fileList) => {
   console.log(file, fileList);
 };
 
+// 产品搜索
+const querySearch = (queryString, callback) => {
+  const results = queryString ? products.value.filter(item => 
+    item.name.toLowerCase().includes(queryString.toLowerCase())
+  ) : products.value;
+  callback(results.map(item => ({ value: item.name, id: item.id })));
+};
+
+// 处理产品选择
+const handleSelect = (item) => {
+  feedbackForm.value.productId = item.id;
+};
+
 // 加载反馈详情
 const loadFeedbackDetail = async () => {
   const id = route.params.id;
   if (id) {
     try {
+      // 先加载产品列表
+      await loadProducts();
+      
       const response = await request.get(`/api/feedback/detail/${id}`);
-      if (response.code === 200) {
-        const data = response.data;
+      if (response.data.code === 200) {
+        const data = response.data.data;
+        // 根据productId找到产品名称
+        const product = products.value.find(p => p.id === data.productId);
         feedbackForm.value = {
-          product: 'zentao', // 假设默认产品
-          module: '/', // 假设默认模块
-          type: data.type || '',
+          product: product ? product.name : '',
+          productId: data.productId || '',
           title: data.title || '',
-          isPublic: false, // 默认不公开
-          priority: data.priority || 3,
           description: data.description || '',
-          reporter: '', // 需要从用户信息中获取
-          company: '',
-          email: '',
-          cc: '',
-          keywords: '',
-          notification: true
+          reporter: data.creatorName || '', // 反馈者就是创建人
+          cc: data.assigneeName || '' // 抄送者就是被指派的人
         };
+      } else {
+        console.error('获取反馈详情失败:', response.data.message);
       }
     } catch (error) {
       console.error('获取反馈详情失败:', error);
@@ -192,20 +170,37 @@ const loadFeedbackDetail = async () => {
 };
 
 // 保存反馈
-const saveFeedback = () => {
-  // 这里可以添加保存逻辑
-  console.log('保存反馈:', feedbackForm.value);
-  // 保存成功后返回
-  goBack();
+const saveFeedback = async () => {
+  try {
+    const id = route.params.id;
+    let response;
+    if (id) {
+      // 更新反馈
+      response = await request.put(`/api/feedback/update/${id}`, feedbackForm.value);
+    } else {
+      // 创建反馈
+      response = await request.post('/api/feedback/create', feedbackForm.value);
+    }
+    if (response.data.code === 200) {
+      console.log('保存反馈成功');
+      // 保存成功后返回
+      goBack();
+    } else {
+      console.error('保存反馈失败:', response.data.message);
+    }
+  } catch (error) {
+    console.error('保存反馈失败:', error);
+  }
 };
 
 // 返回上一页
 const goBack = () => {
-  router.push('/feedbacks');
+  router.push('/feedbacks/feedback');
 };
 
-// 页面加载时获取反馈详情
+// 页面加载时获取反馈详情和产品列表
 onMounted(() => {
+  loadProducts();
   loadFeedbackDetail();
 });
 </script>

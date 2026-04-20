@@ -25,6 +25,10 @@ public class Feedback {
     private Date updatedAt; // 最后操作时间
     @Column(name = "related_objects")
     private Integer relatedObjects; // 关联对象数量
+    private String reporter; // 反馈者
+    private String cc; // 抄送给
+    @Column(name = "product_id")
+    private Long productId; // 所属产品ID
 
     public Long getId() {
         return id;
@@ -120,5 +124,29 @@ public class Feedback {
 
     public void setRelatedObjects(Integer relatedObjects) {
         this.relatedObjects = relatedObjects;
+    }
+
+    public String getReporter() {
+        return reporter;
+    }
+
+    public void setReporter(String reporter) {
+        this.reporter = reporter;
+    }
+
+    public String getCc() {
+        return cc;
+    }
+
+    public void setCc(String cc) {
+        this.cc = cc;
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 }

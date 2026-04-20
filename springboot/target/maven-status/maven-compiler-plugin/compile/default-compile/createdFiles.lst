@@ -46,6 +46,7 @@ com\example\springboot\repository\TeamRepository.class
 com\example\springboot\service\FeedbackService.class
 com\example\springboot\repository\AdminRepository.class
 com\example\springboot\controller\AdminController.class
+com\example\springboot\controller\ProductController.class
 com\example\springboot\service\TeamService.class
 com\example\springboot\util\BCryptUtil.class
 com\example\springboot\controller\IterationController.class

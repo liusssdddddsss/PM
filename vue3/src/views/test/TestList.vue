@@ -68,11 +68,11 @@ const fetchTestCaseStats = async () => {
       let finishCount = 0;
       
       for (let tc of testCases) {
-        if (tc.status === 0) {
+        if (tc.status === 1) {
           stayingTestCount++;
-        } else if (tc.status === 1) {
-          testingCount++;
         } else if (tc.status === 2) {
+          testingCount++;
+        } else if (tc.status === 3) {
           finishCount++;
         }
       }

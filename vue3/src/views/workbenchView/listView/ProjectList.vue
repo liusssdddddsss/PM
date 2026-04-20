@@ -20,9 +20,7 @@ import request from "@/utils/request.js";
 const emit = defineEmits(['project-click']);
 const activeIndex = ref(0);
 
-const projectList = ref([
-
-]);
+const projectList = ref([]);
 
 // 从后端获取项目列表数据
 const fetchProjects = async () => {

@@ -100,6 +100,9 @@ public class FeedbackService {
         private java.util.Date createdAt;
         private java.util.Date updatedAt;
         private Integer relatedObjects;
+        private String reporter;
+        private String cc;
+        private Long productId;
 
         public FeedbackWithAssigneeName(Feedback feedback) {
             this.id = feedback.getId();
@@ -114,6 +117,9 @@ public class FeedbackService {
             this.createdAt = feedback.getCreatedAt();
             this.updatedAt = feedback.getUpdatedAt();
             this.relatedObjects = feedback.getRelatedObjects();
+            this.reporter = feedback.getReporter();
+            this.cc = feedback.getCc();
+            this.productId = feedback.getProductId();
             this.assigneeName = "未指派";
             this.creatorName = "未知";
             this.teamId = null;
@@ -153,5 +159,11 @@ public class FeedbackService {
         public void setUpdatedAt(java.util.Date updatedAt) { this.updatedAt = updatedAt; }
         public Integer getRelatedObjects() { return relatedObjects; }
         public void setRelatedObjects(Integer relatedObjects) { this.relatedObjects = relatedObjects; }
+        public String getReporter() { return reporter; }
+        public void setReporter(String reporter) { this.reporter = reporter; }
+        public String getCc() { return cc; }
+        public void setCc(String cc) { this.cc = cc; }
+        public Long getProductId() { return productId; }
+        public void setProductId(Long productId) { this.productId = productId; }
     }
 }

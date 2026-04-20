@@ -2,7 +2,7 @@
   <div class="task-table-container">
     <div class="table-container">
       <el-table
-          :data="filteredTaskList"
+          :data="paginatedTaskList"
           style="width: 100%"
           class="TaskTable"
           :row-style="{height: '45px'}"
@@ -164,6 +164,19 @@
       </template>
     </el-dialog>
   </div>
+  
+  <div class="pagination">
+    <span>共 {{ total }} 项</span>
+    <el-pagination
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :page-size="pageSize"
+        :current-page="currentPage"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        style="margin-right: 10px"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -200,6 +213,9 @@ const goToProductEdit = (id) =>{
 
 // 任务数据
 const taskList = ref([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(20);
 
 // 从后端获取任务列表数据
 onMounted(() => {
@@ -272,6 +288,26 @@ const filteredTaskList = computed(() => {
   return filtered;
 });
 
+// 分页后的任务列表
+const paginatedTaskList = computed(() => {
+  // 更新总数量为过滤后的任务数量
+  total.value = filteredTaskList.value.length;
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredTaskList.value.slice(start, end);
+});
+
+// 处理分页大小变化
+const handleSizeChange = (size) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+};
+
+// 处理页码变化
+const handleCurrentChange = (current) => {
+  currentPage.value = current;
+};
+
 const fetchTasks = async () => {
   try {
     // 从本地存储中获取用户信息
@@ -304,6 +340,7 @@ const fetchTasks = async () => {
           }));
           console.log('转换后的任务列表数据:', taskList.value);
           console.log('转换后的任务列表数据长度:', taskList.value.length);
+          total.value = taskList.value.length;
         } else {
           taskList.value = [];
           console.log('任务列表数据为空或不是数组');
@@ -595,7 +632,7 @@ const confirmSubmitCode = async () => {
   border-radius: 0;
   box-shadow: none;
   overflow-x: auto;
-  max-height: 400px;
+  max-height: 800px;
   overflow-y: auto;
 }
 
@@ -734,5 +771,13 @@ const confirmSubmitCode = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

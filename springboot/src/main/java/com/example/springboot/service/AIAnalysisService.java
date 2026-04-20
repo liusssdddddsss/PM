@@ -18,8 +18,10 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class AIAnalysisService {
 
     @Autowired
@@ -308,6 +310,7 @@ public class AIAnalysisService {
         message.setTeamId(null); // 可以根据项目所属团队设置
         message.setIsRead(0); // 未读
         message.setCreatedAt(new Date());
+        message.setType("risk"); // 设置消息类型为风险预警
 
         // 构建消息内容
         StringBuilder content = new StringBuilder();

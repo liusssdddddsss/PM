@@ -14,7 +14,7 @@
 <!--          </p>-->
           <div class="state">
             <div class="label">              <div class="user-avatar" @click="triggerFileInput">                <img :src="userAvatar" alt="头像" class="avatar">                <input type="file" ref="fileInput" accept="image/*" @change="handleFileChange" style="display: none;">              </div>              <p>                {{name}}，上午好              </p>            </div>
-            <div class="tasks">              <div class="approve">                <p class="tasks-shu">                  {{projectCount}}                </p>                <span>产品总数</span>              </div>              <div class="task">                <p class="tasks-shu">                  {{xiangMuCount}}                </p>                <span>项目总数</span>              </div>              <div class="bugs">                <p class="tasks-shu">                  {{taskAllCount}}                </p>                <span>任务总数</span>              </div>              <div class="needs">                <p class="tasks-shu">                  {{bugState}}                </p>                <span>Bug数</span>              </div>              <div class="users">                <p class="tasks-shu">                  {{approveState}}                </p>                <span>待审批数</span>              </div>            </div>
+            <div class="tasks">              <div class="approve" @click="navigateToModule('products')">                <p class="tasks-shu">                  {{projectCount}}                </p>                <span>产品总数</span>              </div>              <div class="task" @click="navigateToModule('projects')">                <p class="tasks-shu">                  {{xiangMuCount}}                </p>                <span>项目总数</span>              </div>              <div class="bugs" @click="navigateToModule('tasks')">                <p class="tasks-shu">                  {{taskAllCount}}                </p>                <span>任务总数</span>              </div>              <div class="needs" @click="navigateToModule('bugs')">                <p class="tasks-shu">                  {{bugState}}                </p>                <span>Bug数</span>              </div>              <div class="users">                <p class="tasks-shu">                  {{approveState}}                </p>                <span>待审批数</span>              </div>            </div>
           </div>
         </div>
       </el-card>
@@ -220,74 +220,7 @@
         </div>
       </el-dialog>
 
-      <!-- 团队完成情况弹窗 -->
-      <el-dialog
-        v-model="teamDialogVisible"
-        title="团队完成情况"
-        width="70%"
-        :close-on-click-modal="false"
-      >
-        <div class="team-dialog-content">
-          <div class="stats-grid">
-            <div class="icon">
-              <div class="kuai">
-                <div class="icon-container blue">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                </div>
-                <div>
-                  <div>完成任务数量</div>
-                  昨日 <span class="number">{{yesterday.task}}</span> | 今日 <span class="number blue">{{today.task}}</span>
-                </div>
-              </div>
-              <div class="kuai">
-                <div class="icon-container green">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </div>
-                <div>
-                  <div>创建需求数量</div>
-                  昨日 <span class="number">{{yesterday.create}}</span> | 今日 <span class="number blue">{{today.create}}</span>
-                </div>
-              </div>
-              <div class="kuai">
-                <div class="icon-container orange">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 10C21.523 14.728 18.391 19 14 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3.985"></path><path d="M19 17v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"></path><path d="M12 3v4"></path><path d="M9 5h6"></path></svg>
-                </div>
-                <div>
-                  <div>提出Bug数量</div>
-                  昨日 <span class="number">{{yesterday.tiChu}}</span> | 今日 <span class="number blue">{{today.tiChu}}</span>
-                </div>
-              </div>
-              <div class="kuai">
-                <div class="icon-container red">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 10C21.523 14.728 18.391 19 14 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3.985"></path><path d="M19 17v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1"></path><path d="M12 3v4"></path><path d="M9 5h6"></path></svg>
-                </div>
-                <div>
-                  <div>修改Bug数量</div>
-                  昨日 <span class="number">{{yesterday.bug}}</span> | 今日 <span class="number blue">{{today.bug}}</span>
-                </div>
-              </div>
-              <div class="kuai">
-                <div class="icon-container light-blue">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                </div>
-                <div>
-                  <div>总消耗工时/h</div>
-                  昨日 <span class="number">{{yesterday.clock}}</span> | 今日 <span class="number blue">{{today.clock}}</span>
-                </div>
-              </div>
-              <div class="kuai">
-                <div class="icon-container purple">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                </div>
-                <div>
-                  <div>平均消耗工时/h</div>
-                  昨日 <span class="number">{{yesterday.averageClock}}</span> | 今日 <span class="number blue">{{today.averageClock}}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </el-dialog>
+
     </div>
 
 
@@ -550,9 +483,6 @@ onMounted(async () => {
   // 从后端获取项目列表
   await fetchProjects();
   
-  // 从后端获取团队完成情况数据
-  await fetchTeamStatistics();
-  
   // 从后端获取产品总览数据
   await fetchProductOverview();
   // 从后端获取单个项目统计详情
@@ -660,23 +590,7 @@ const getAvatarUrl = (avatarPath) => {
   return `http://localhost:8080${avatarPath}`;
 };
 
-// 团队完成情况
-const yesterday=ref({
-  task:0,
-  create:0,
-  tiChu:0,
-  bug:0,
-  clock:0,
-  averageClock:0
-});
-const today=ref({
-  task:0,
-  create:0,
-  tiChu:0,
-  bug:0,
-  clock:0,
-  averageClock:0
-});
+
 
 // 产品总览
 const projectCount=ref(0);
@@ -794,8 +708,7 @@ const activeProductIndex = ref(-1); // -1表示全部产品
 // 控制统计弹窗显示
 const dialogVisible = ref(false);
 
-// 控制团队完成情况弹窗显示
-const teamDialogVisible = ref(false);
+
 
 // 控制项目详情弹窗显示
 const projectDetailDialogVisible = ref(false);
@@ -839,8 +752,8 @@ const handleTestProjectClick = async (project) => {
 // 处理未完成项目列表的项目点击事件
 const handleUnfinishedProjectClick = async (projectName) => {
   console.log('点击了未完成项目:', projectName);
-  // 显示团队完成情况弹窗
-  teamDialogVisible.value = true;
+  // 跳转到项目列表页面，并传递项目名称作为筛选条件
+  router.push(`/itemSet/itemList?projectName=${encodeURIComponent(projectName)}`);
 };
 
 // 处理项目卡片点击事件，显示项目详情弹窗
@@ -892,19 +805,28 @@ const goToProjectModule = () => {
   router.push(`/itemSet/itemList?projectName=${encodeURIComponent(currentProjectDetail.value.projectName)}`);
 };
 
-// 从后端获取团队完成情况数据
-const fetchTeamStatistics = async () => {
-  try {
-    const response = await request.get('/dashboard/team-statistics');
-    if (response.data.code === 200) {
-      const data = response.data.data;
-      yesterday.value = data.yesterday || yesterday.value;
-      today.value = data.today || today.value;
-    }
-  } catch (error) {
-    console.error('获取团队完成情况失败:', error);
+// 导航到对应模块页面
+const navigateToModule = (module) => {
+  console.log('跳转到模块:', module);
+  switch (module) {
+    case 'products':
+      router.push('/productResearch/productList');
+      break;
+    case 'projects':
+      router.push('/itemSet/itemList');
+      break;
+    case 'tasks':
+      router.push('/task/taskList');
+      break;
+    case 'bugs':
+      router.push('/test/bugList');
+      break;
+    default:
+      break;
   }
 };
+
+
 
 // 从后端获取产品总览数据
 const fetchProductOverview = async () => {
@@ -1358,90 +1280,7 @@ p{
   width: 100%;
 }
 
-/* 团队完成情况弹窗布局 */
-.team-dialog-content {
-  width: 100%;
-}
 
-.stats-grid {
-  width: 100%;
-}
-
-.icon {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  box-sizing: border-box;
-  padding: 0 10px;
-}
-
-.kuai {
-  width: 100%;
-  min-height: 80px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-
-.icon-container {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  flex-shrink: 0;
-}
-
-.icon-container.blue {
-  background-color: #409EFF;
-}
-
-.icon-container.green {
-  background-color: #67C23A;
-}
-
-.icon-container.orange {
-  background-color: #E6A23C;
-}
-
-.icon-container.red {
-  background-color: #F56C6C;
-}
-
-.icon-container.light-blue {
-  background-color: #90C9FF;
-}
-
-.icon-container.purple {
-  background-color: #C084FC;
-}
-
-.kuai div:last-child {
-  flex: 1;
-}
-
-.kuai div:last-child div:first-child {
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 4px;
-}
-
-.number {
-  font-size: 14px;
-  font-weight: bold;
-  color: #303133;
-}
-
-.number.blue {
-  color: #409EFF;
-}
 
 /* 项目详情弹窗样式 */
 .project-detail-content {
@@ -1846,68 +1685,8 @@ p{
   height: 610px;
 }
 
-/*团队完成情况样式*/
-.icon{
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-}
-.kuai{
-  width: 100%;
-  min-height: 80px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-.icon-container {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  flex-shrink: 0;
-}
-.icon-container.blue {
-  background-color: #409EFF;
-}
-.icon-container.green {
-  background-color: #67C23A;
-}
-.icon-container.orange {
-  background-color: #E6A23C;
-}
-.icon-container.red {
-  background-color: #F56C6C;
-}
-.icon-container.light-blue {
-  background-color: #90C9FF;
-}
-.icon-container.purple {
-  background-color: #C084FC;
-}
-.kuai div:last-child {
-  flex: 1;
-}
-.kuai div:last-child div:first-child {
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 4px;
-}
-.number {
-  font-size: 14px;
-  font-weight: bold;
-  color: #303133;
-}
-.number.blue {
-  color: #409EFF;
-}
+
+
 
 /*产品、项目通用总览样式*/
 .project-overview div{

@@ -30,7 +30,7 @@
           />
 <!--          <el-button type="primary" size="small">导出</el-button>-->
 <!--          <el-button type="primary" size="small">导入</el-button>-->
-          <el-button type="primary" round>创建反馈</el-button>
+          <el-button type="primary" round @click="createFeedback">创建反馈</el-button>
         </div>
       </div>
       <FeedbackList :activeTab="activeTab" :searchQuery="searchQuery" @update:total="updateTotal"/>
@@ -116,6 +116,11 @@ const handleSizeChange = (size) => {
 // 处理页码变化
 const handleCurrentChange = (current) => {
   console.log('当前页码:', current);
+};
+
+// 创建反馈
+const createFeedback = () => {
+  router.push('/feedbacks/edit');
 };
 </script>
 

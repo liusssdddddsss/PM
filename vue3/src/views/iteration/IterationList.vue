@@ -29,7 +29,7 @@
     </div>
     <div class="list">
       <el-table
-          :data="filteredData"
+          :data="paginatedData"
           style="width: 100%"
           class="IterationTable"
           :row-style="{height: '45px'}"
@@ -69,12 +69,26 @@
         </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="scope">
-            <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-            <span class="action-text edit-action" @click="goToIterationEdit">编辑</span>
+            <span v-if="scope.row.status !== 2" class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+            <span v-else class="action-text open-action" @click="handleOpen(scope.row)">打开</span>
+            <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
             <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
           </template>
         </el-table-column>
       </el-table>
+    </div>
+    
+    <div class="pagination">
+      <span>共 {{ total }} 项</span>
+      <el-pagination
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-size="pageSize"
+          :current-page="currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          style="margin-right: 10px"
+      />
     </div>
   </div>
 </template>
@@ -94,6 +108,9 @@ const tabs = ref([
 const activeTab=ref('all');
 const searchQuery=ref('');
 const iterations = ref([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(20);
 
 const router =useRouter();
 const goToIterationEdit = () =>{
@@ -105,9 +122,29 @@ const goToAddIteration = () => {
   router.push('/iteration/iterationEdit');
 };
 
+// 项目列表
+const projects = ref([]);
+
+// 获取项目列表
+const fetchProjects = async () => {
+  try {
+    const response = await request.get('/workbench/projects', {
+      params: { username: '202201' }
+    });
+    if (response.data.code === 200) {
+      projects.value = response.data.data;
+    }
+  } catch (error) {
+    console.error('获取项目列表失败:', error);
+  }
+};
+
 // 获取迭代数据
 const fetchIterations = async () => {
   try {
+    // 先获取项目列表
+    await fetchProjects();
+    
     const response = await request.get('/iteration/list');
     if (response.data.code === 200) {
       // 更新迭代列表
@@ -115,16 +152,23 @@ const fetchIterations = async () => {
       
       // 为每个迭代设置项目名称和进度（如果不存在）
       iterations.value.forEach(iteration => {
-        // 如果没有项目名称，设置一个默认值
-        if (!iteration.projectName) {
-          const projectNames = ['智慧教室_智慧云盘', '实践教学管理平台', '电子班牌管理系统', '智慧校园(中学版)', '宿舍管理系统'];
-          iteration.projectName = projectNames[Math.floor(Math.random() * projectNames.length)];
+        // 根据 projectId 获取项目名称
+        if (iteration.projectId) {
+          const project = projects.value.find(p => p.id === iteration.projectId);
+          if (project) {
+            iteration.projectName = project.projectName;
+          } else {
+            iteration.projectName = '未知项目';
+          }
+        } else {
+          iteration.projectName = '未指定项目';
         }
         // 如果没有进度，设置为0
         if (iteration.progress === undefined || iteration.progress === null) {
           iteration.progress = 0;
         }
       });
+      total.value = iterations.value.length;
     }
   } catch (error) {
     console.error('获取迭代列表失败:', error);
@@ -160,6 +204,24 @@ const filteredData = computed(() => {
   
   return result;
 });
+
+// 分页后的迭代列表
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredData.value.slice(start, end);
+});
+
+// 处理分页大小变化
+const handleSizeChange = (size) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+};
+
+// 处理页码变化
+const handleCurrentChange = (current) => {
+  currentPage.value = current;
+};
 
 // 获取状态文本
 const getStatusText = (status) => {
@@ -211,6 +273,36 @@ const handleClose = async (iteration) => {
     }
   } catch (error) {
     console.error('关闭迭代失败:', error);
+    console.error('错误详情:', error.response);
+  }
+};
+
+// 处理打开迭代
+const handleOpen = async (iteration) => {
+  try {
+    console.log('打开迭代:', iteration);
+    // 确保id是数字类型
+    const iterationId = parseInt(iteration.id);
+    console.log('迭代ID:', iterationId);
+    
+    // 发送请求打开迭代，包含所有必要字段
+    const response = await request.put(`/iteration/update`, {
+      id: iterationId,
+      name: iteration.name,
+      description: iteration.description,
+      projectId: iteration.projectId,
+      startDate: iteration.startDate,
+      endDate: iteration.endDate,
+      status: 1 // 1表示进行中
+    });
+    console.log('打开迭代响应:', response);
+    if (response.data.code === 200) {
+      console.log('打开迭代成功:', iterationId);
+      // 重新获取迭代列表
+      await fetchIterations();
+    }
+  } catch (error) {
+    console.error('打开迭代失败:', error);
     console.error('错误详情:', error.response);
   }
 };
@@ -336,6 +428,10 @@ const handleDelete = async (id) => {
   color: #409EFF;
 }
 
+.open-action {
+  color: #67C23A;
+}
+
 .edit-action {
   color: #E6A23C;
 }
@@ -389,5 +485,12 @@ const handleDelete = async (id) => {
 .el-progress__text {
   font-size: 10px !important;
   margin: 0;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

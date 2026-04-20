@@ -205,12 +205,79 @@ const getPriorityValue = (priority) => {
   }
 };
 
+// 将前端状态值转换为后端数字
+const getStatusNumber = (status) => {
+  switch (status) {
+    case 'pending':
+      return 1;
+    case 'inProgress':
+      return 2;
+    case 'completed':
+      return 3;
+    default:
+      return 1;
+  }
+};
+
+// 将前端优先级值转换为后端数字
+const getPriorityNumber = (priority) => {
+  switch (priority) {
+    case 'high':
+      return 1;
+    case 'medium':
+      return 2;
+    case 'low':
+      return 3;
+    default:
+      return 2;
+  }
+};
+
 // 保存任务
-const saveTask = () => {
-  // 这里可以添加保存逻辑
-  console.log('保存任务:', taskForm.value);
-  // 保存成功后返回
-  goBack();
+const saveTask = async () => {
+  try {
+    console.log('保存任务:', taskForm.value);
+    
+    // 从URL参数中获取任务ID
+    const taskId = route.query.id;
+    if (!taskId) {
+      console.error('任务ID不存在');
+      return;
+    }
+    
+    // 构建任务数据
+    const taskData = {
+      id: parseInt(taskId),
+      title: taskForm.value.name,
+      description: taskForm.value.description,
+      projectId: taskForm.value.project === 'project1' ? 1 : 
+                 taskForm.value.project === 'project2' ? 2 : 
+                 taskForm.value.project === 'project3' ? 3 : null,
+      assigneeId: taskForm.value.assignedTo === 'zhangsan' ? 202201 : 
+                 taskForm.value.assignedTo === 'lisi' ? 202202 : 
+                 taskForm.value.assignedTo === 'wangwu' ? 202203 : null,
+      status: getStatusNumber(taskForm.value.status),
+      priority: getPriorityNumber(taskForm.value.priority),
+      startDate: taskForm.value.startDate,
+      dueDate: taskForm.value.endDate
+    };
+    
+    console.log('发送任务数据:', taskData);
+    
+    // 调用后端API更新任务
+    const response = await request.put(`/workbench/tasks/${taskId}`, taskData);
+    console.log('更新任务响应:', response);
+    
+    if (response.data.code === 200) {
+      console.log('更新任务成功');
+      // 保存成功后返回
+      goBack();
+    } else {
+      console.error('更新任务失败:', response.data.msg);
+    }
+  } catch (error) {
+    console.error('保存任务失败:', error);
+  }
 };
 
 // 返回上一页

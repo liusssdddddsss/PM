@@ -2,7 +2,7 @@
   <div class="task-table-container">
     <div class="table-container">
       <el-table
-          :data="testCaseList"
+          :data="paginatedTestCaseList"
           style="width: 100%"
           class="TaskTable"
           :row-style="{height: '45px'}"
@@ -40,8 +40,12 @@
             <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
           </template>
         </el-table-column>
-        <el-table-column prop="workTime" label="工时" width="80"></el-table-column>
-        <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
+        <el-table-column label="创建时间" width="120">
+          <template #default="scope">
+            {{ formatDate(scope.row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="assignee" label="负责人" width="100"></el-table-column>
         <el-table-column label="操作" width="240">
             <template #default="scope">
               <!-- 已关闭状态 -->
@@ -281,12 +285,12 @@
           </div>
         </div>
         <div class="detail-item">
-          <label>工时：</label>
-          <span>{{ detailTestCase.workTime }}</span>
+          <label>创建时间：</label>
+          <span>{{ formatDate(detailTestCase.createdAt) || '无' }}</span>
         </div>
         <div class="detail-item">
-          <label>剩余工时：</label>
-          <span>{{ detailTestCase.remainingTime }}</span>
+          <label>负责人：</label>
+          <span>{{ detailTestCase.assignee || '无' }}</span>
         </div>
         <div class="detail-item">
           <label>测试描述：</label>
@@ -318,6 +322,19 @@
         </span>
       </template>
     </el-dialog>
+    
+    <div class="pagination">
+      <span>共 {{ total }} 项</span>
+      <el-pagination
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-size="pageSize"
+          :current-page="currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          style="margin-right: 10px"
+      />
+    </div>
   </div>
 </template>
 
@@ -341,6 +358,9 @@ const router = useRouter();
 
 // 原始测试用例数据
 const allTestCaseList = ref([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(20);
 
 // 根据activeTab和searchQuery筛选显示的数据
 const testCaseList = computed(() => {
@@ -368,6 +388,24 @@ const testCaseList = computed(() => {
   return filteredList;
 });
 
+// 分页后的测试用例列表
+const paginatedTestCaseList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return testCaseList.value.slice(start, end);
+});
+
+// 处理分页大小变化
+const handleSizeChange = (size) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+};
+
+// 处理页码变化
+const handleCurrentChange = (current) => {
+  currentPage.value = current;
+};
+
 // 从后端获取测试用例列表数据
 onMounted(() => {
   fetchTestCases();
@@ -387,11 +425,12 @@ const fetchTestCases = async () => {
           status: getStatusText(item.status),
           deadline: item.due_date,
           progress: item.progress || 0,
-          workTime: '-',
-          remainingTime: '-',
+          createdAt: item.created_at || '',
+          assignee: item.assignee || '',
           description: ''
         }));
       console.log('转换后的测试用例列表数据:', allTestCaseList.value);
+      total.value = allTestCaseList.value.length;
     }
   } catch (error) {
     console.error('获取测试用例列表失败:', error);
@@ -415,8 +454,6 @@ const getPriorityText = (priority) => {
 // 获取状态文本
 const getStatusText = (status) => {
   switch (status) {
-    case 0:
-      return '待测试';
     case 1:
       return '待测试';
     case 2:
@@ -458,6 +495,18 @@ const getStatusClass = (status) => {
   }
 };
 
+// 格式化日期
+const formatDate = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+};
+
 // 测试成果提交对话框
 const testDialogVisible = ref(false);
 const currentTestCase = ref({ name: '' });
@@ -496,8 +545,8 @@ const detailTestCase = ref({
   status: '',
   deadline: '',
   progress: 0,
-  workTime: '-',
-  remainingTime: '-',
+  createdAt: '',
+  assignee: '',
   description: ''
 });
 
@@ -886,5 +935,12 @@ const confirmDelete = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

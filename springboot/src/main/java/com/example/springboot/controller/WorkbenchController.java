@@ -581,6 +581,117 @@ public class WorkbenchController {
             return Result.error("删除项目失败: " + e.getMessage());
         }
     }
+    
+    @Operation(summary = "创建任务", description = "创建新任务")
+    @PostMapping("/tasks")
+    public Result createTask(@RequestBody Task task) {
+        try {
+            System.out.println("创建任务请求: " + task);
+            Task savedTask = taskService.save(task);
+            System.out.println("创建任务成功: " + savedTask);
+            return Result.success("创建任务成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("创建任务失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "更新任务", description = "更新任务信息")
+    @PutMapping("/tasks/{id}")
+    public Result updateTask(@PathVariable Integer id, @RequestBody Task task) {
+        try {
+            System.out.println("更新任务请求, ID: " + id + ", 数据: " + task);
+            // 先查找任务是否存在
+            List<Task> tasks = taskService.findall();
+            Task existingTask = null;
+            for (Task t : tasks) {
+                if (t.getId().equals(id)) {
+                    existingTask = t;
+                    break;
+                }
+            }
+            
+            if (existingTask == null) {
+                return Result.error("任务不存在");
+            }
+            
+            // 更新任务信息
+            existingTask.setTitle(task.getTitle());
+            existingTask.setDescription(task.getDescription());
+            existingTask.setProjectId(task.getProjectId());
+            existingTask.setAssigneeId(task.getAssigneeId());
+            existingTask.setStatus(task.getStatus());
+            existingTask.setPriority(task.getPriority());
+            existingTask.setStartDate(task.getStartDate());
+            existingTask.setDueDate(task.getDueDate());
+            
+            Task updatedTask = taskService.save(existingTask);
+            System.out.println("更新任务成功: " + updatedTask);
+            return Result.success("更新任务成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新任务失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "删除任务", description = "根据ID删除任务")
+    @DeleteMapping("/tasks/{id}")
+    public Result deleteTask(@PathVariable Integer id) {
+        try {
+            System.out.println("删除任务请求, ID: " + id);
+            // 先查找任务是否存在
+            List<Task> tasks = taskService.findall();
+            Task existingTask = null;
+            for (Task t : tasks) {
+                if (t.getId().equals(id)) {
+                    existingTask = t;
+                    break;
+                }
+            }
+            
+            if (existingTask == null) {
+                return Result.error("任务不存在");
+            }
+            
+            // 删除任务
+            taskService.deleteById(id);
+            System.out.println("删除任务成功: " + id);
+            return Result.success("删除任务成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除任务失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "更新任务状态", description = "更新任务状态")
+    @PutMapping("/tasks/{id}/status")
+    public Result updateTaskStatus(@PathVariable Integer id, @RequestParam Integer status) {
+        try {
+            System.out.println("更新任务状态请求, ID: " + id + ", 状态: " + status);
+            // 先查找任务是否存在
+            List<Task> tasks = taskService.findall();
+            Task existingTask = null;
+            for (Task t : tasks) {
+                if (t.getId().equals(id)) {
+                    existingTask = t;
+                    break;
+                }
+            }
+            
+            if (existingTask == null) {
+                return Result.error("任务不存在");
+            }
+            
+            // 更新任务状态
+            existingTask.setStatus(status);
+            Task updatedTask = taskService.save(existingTask);
+            System.out.println("更新任务状态成功: " + updatedTask);
+            return Result.success("更新任务状态成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新任务状态失败: " + e.getMessage());
+        }
+    }
 
     @Operation(summary = "获取项目详情", description = "根据ID获取项目详情")
     @GetMapping("/projects/{id}")

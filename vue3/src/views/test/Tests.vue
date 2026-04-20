@@ -10,8 +10,13 @@
             <div class="list-name">
               <h3>近期模块审核</h3>
               <div class="list-content">
-                <ul>
-                  <li v-for="item in testList">
+                <ul class="project-list">
+                  <li 
+                    v-for="(item, index) in testList" 
+                    :key="index"
+                    :class="{ 'active': selectedModule === item }"
+                    @click="selectModule(item)"
+                  >
                     {{item}}
                   </li>
                 </ul>
@@ -26,7 +31,7 @@
                   <div class="bug-circle-container">
                     <div class="progress-circle">
                       <div class="circle">
-                        <span class="progress-text">50%</span>
+                        <span class="progress-text">{{bugStats.percentage}}%</span>
                       </div>
                     </div>
                     <div class="bug-details">
@@ -39,12 +44,10 @@
 
                 <div class="bug-stats">
                   <h3>Bug统计</h3>
-                  <div class="stat-row" v-for="(item, index) in bugStats.detail" :key="index">
-                    <span class="stat-label">{{item.name}}</span>
-                    <div class="stat-bar">
-                      <div class="bar-fill" :style="{width: item.percentage + '%'}"></div>
-                    </div>
-                    <span class="stat-value">{{item.count}}</span>
+                  <div class="bug-stat-item" v-for="(item, index) in bugStats.detail" :key="index">
+                    <div class="bug-stat-label">{{item.name}}</div>
+                    <div class="bug-stat-value">{{item.count}}</div>
+                    <el-progress :percentage="item.percentage" />
                   </div>
                 </div>
               </div>
@@ -155,11 +158,15 @@ import request from "@/utils/request.js";
 // 近期模块审核
 const testList = ref([]);
 
+// 选中的模块
+const selectedModule = ref('');
+
 // bug统计
 const bugStats = ref({
   youXiaoBug: 0,
   bugRepair: 0,
   noClose: 0,
+  percentage: 0,
   detail: [
     {name: '昨天新增', count: 0, percentage: 0},
     {name: '昨天解决', count: 0, percentage: 0},
@@ -194,49 +201,79 @@ const assignedBugs = ref([]);
 // 指派给我的用例列表
 const assignedTestCases = ref([]);
 
+// 选择模块
+const selectModule = async (moduleName) => {
+  selectedModule.value = moduleName;
+  // 根据选中的模块获取对应的Bug统计数据
+  await fetchModuleBugStats(moduleName);
+};
+
 // 获取测试统计数据
-const fetchTestStatistics = async () => {
+const fetchTestStatistics = async (projectName = '') => {
   try {
-    const response = await request.get('/dashboard/test-statistics');
-    if (response.data.code === 200 && response.data.data) {
+    const userStr = localStorage.getItem('user');
+    const username = userStr ? JSON.parse(userStr).username : '';
+    
+    let url = '/dashboard/test-statistics';
+    let params = {};
+    if (projectName) {
+      params.projectName = projectName;
+    }
+    if (username) {
+      params.username = username;
+    }
+    
+    const response = await request.get(url, { params });
+    if (response.data.code === 200) {
       const data = response.data.data;
+      
+      // 计算修复率
+      const totalBugs = data.validBugs || 0;
+      const fixedBugs = data.fixedBugs || 0;
+      const percentage = totalBugs > 0 ? Math.round((fixedBugs / totalBugs) * 100) : 0;
       
       // 更新Bug统计数据
       bugStats.value = {
-        youXiaoBug: data.validBugs || 0,
-        bugRepair: data.fixedBugs || 0,
+        youXiaoBug: totalBugs,
+        bugRepair: fixedBugs,
         noClose: data.unclosedBugs || 0,
+        percentage: percentage,
         detail: [
           {name: '昨天新增', count: data.yesterdayNew || 0, percentage: 100},
           {name: '昨天解决', count: data.yesterdaySolved || 0, percentage: data.yesterdayNew > 0 ? (data.yesterdaySolved * 100) / data.yesterdayNew : 0},
           {name: '今日新增', count: data.todayNew || 0, percentage: data.yesterdayNew > 0 ? (data.todayNew * 100) / data.yesterdayNew : 0},
-          {name: '昨天关闭', count: 0, percentage: 0},
-          {name: '今日关闭', count: data.todaySolved || 0, percentage: data.yesterdayNew > 0 ? (data.todaySolved * 100) / data.yesterdayNew : 0}
+          {name: '昨天关闭', count: data.yesterdayClosed || 0, percentage: data.yesterdayNew > 0 ? (data.yesterdayClosed * 100) / data.yesterdayNew : 0},
+          {name: '今日关闭', count: data.todayClosed || 0, percentage: data.yesterdayNew > 0 ? (data.todayClosed * 100) / data.yesterdayNew : 0}
         ]
       };
       
       // 更新未关闭的测试单
       unclosedTestCases.value = data.testLists || [];
       
-      // 更新待测试的测试单（这里使用测试列表数据，实际应该从测试单表中获取）
-      pendingTestCases.value = data.testLists ? data.testLists.map((item, index) => ({
-        name: item,
-        priority: index % 2 === 0 ? '一般' : '严重',
-        product: '测试产品',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0]
-      })) : [];
+      // 更新待测试的测试单
+      pendingTestCases.value = data.pendingTests || [];
       
       // 更新近期模块审核列表
-      testList.value = data.testLists || [];
+      testList.value = data.modules || [];
+      
+      // 默认选中第一个模块
+      if (testList.value.length > 0 && !selectedModule.value) {
+        selectedModule.value = testList.value[0];
+        await fetchModuleBugStats(selectedModule.value);
+      }
     }
   } catch (error) {
     console.error('获取测试统计数据失败:', error);
     // 后端服务不可用时，使用默认数据
+    const totalBugs = 10;
+    const fixedBugs = 5;
+    const percentage = Math.round((fixedBugs / totalBugs) * 100);
+    
     bugStats.value = {
-      youXiaoBug: 10,
-      bugRepair: 5,
+      youXiaoBug: totalBugs,
+      bugRepair: fixedBugs,
       noClose: 5,
+      percentage: percentage,
       detail: [
         {name: '昨天新增', count: 3, percentage: 100},
         {name: '昨天解决', count: 2, percentage: 67},
@@ -250,7 +287,141 @@ const fetchTestStatistics = async () => {
       { name: '测试单1', priority: '一般', product: '测试产品', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] },
       { name: '测试单2', priority: '严重', product: '测试产品', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }
     ];
-    testList.value = ['模块1', '模块2', '模块3'];
+    testList.value = ['家长端功能测试', '班牌系统回归测试', '数据大屏验收测试', '教务考试系统压力测试', '终端教师端咨询评分标准'];
+    
+    // 默认选中第一个模块
+    if (testList.value.length > 0 && !selectedModule.value) {
+      selectedModule.value = testList.value[0];
+      await fetchModuleBugStats(selectedModule.value);
+    }
+  }
+};
+
+// 根据模块获取Bug统计数据
+const fetchModuleBugStats = async (moduleName) => {
+  try {
+    const userStr = localStorage.getItem('user');
+    const username = userStr ? JSON.parse(userStr).username : '';
+    
+    const response = await request.get('/dashboard/test-statistics', {
+      params: { 
+        projectName: moduleName,
+        username: username
+      }
+    });
+    if (response.data.code === 200) {
+      const data = response.data.data;
+      
+      // 计算修复率
+      const totalBugs = data.validBugs || 0;
+      const fixedBugs = data.fixedBugs || 0;
+      const percentage = totalBugs > 0 ? Math.round((fixedBugs / totalBugs) * 100) : 0;
+      
+      // 更新Bug统计数据
+      bugStats.value = {
+        youXiaoBug: totalBugs,
+        bugRepair: fixedBugs,
+        noClose: data.unclosedBugs || 0,
+        percentage: percentage,
+        detail: [
+          {name: '昨天新增', count: data.yesterdayNew || 0, percentage: 100},
+          {name: '昨天解决', count: data.yesterdaySolved || 0, percentage: data.yesterdayNew > 0 ? (data.yesterdaySolved * 100) / data.yesterdayNew : 0},
+          {name: '今日新增', count: data.todayNew || 0, percentage: data.yesterdayNew > 0 ? (data.todayNew * 100) / data.yesterdayNew : 0},
+          {name: '昨天关闭', count: data.yesterdayClosed || 0, percentage: data.yesterdayNew > 0 ? (data.yesterdayClosed * 100) / data.yesterdayNew : 0},
+          {name: '今日关闭', count: data.todayClosed || 0, percentage: data.yesterdayNew > 0 ? (data.todayClosed * 100) / data.yesterdayNew : 0}
+        ]
+      };
+    }
+  } catch (error) {
+    console.error('获取模块Bug统计数据失败:', error);
+    // 后端服务不可用时，使用模拟数据
+    const mockData = {
+      '家长端功能测试': {
+        validBugs: 7,
+        fixedBugs: 2,
+        unclosedBugs: 5,
+        yesterdayNew: 3,
+        yesterdaySolved: 1,
+        todayNew: 2,
+        todaySolved: 0,
+        yesterdayClosed: 0,
+        todayClosed: 0
+      },
+      '班牌系统回归测试': {
+        validBugs: 12,
+        fixedBugs: 8,
+        unclosedBugs: 4,
+        yesterdayNew: 5,
+        yesterdaySolved: 3,
+        todayNew: 1,
+        todaySolved: 2,
+        yesterdayClosed: 0,
+        todayClosed: 0
+      },
+      '数据大屏验收测试': {
+        validBugs: 5,
+        fixedBugs: 3,
+        unclosedBugs: 2,
+        yesterdayNew: 2,
+        yesterdaySolved: 2,
+        todayNew: 0,
+        todaySolved: 1,
+        yesterdayClosed: 0,
+        todayClosed: 0
+      },
+      '教务考试系统压力测试': {
+        validBugs: 15,
+        fixedBugs: 5,
+        unclosedBugs: 10,
+        yesterdayNew: 8,
+        yesterdaySolved: 2,
+        todayNew: 3,
+        todaySolved: 1,
+        yesterdayClosed: 0,
+        todayClosed: 0
+      },
+      '终端教师端咨询评分标准': {
+        validBugs: 3,
+        fixedBugs: 1,
+        unclosedBugs: 2,
+        yesterdayNew: 1,
+        yesterdaySolved: 0,
+        todayNew: 1,
+        todaySolved: 0,
+        yesterdayClosed: 0,
+        todayClosed: 0
+      }
+    };
+    
+    const moduleData = mockData[moduleName] || {
+      validBugs: 0,
+      fixedBugs: 0,
+      unclosedBugs: 0,
+      yesterdayNew: 0,
+      yesterdaySolved: 0,
+      todayNew: 0,
+      todaySolved: 0,
+      yesterdayClosed: 0,
+      todayClosed: 0
+    };
+    
+    const totalBugs = moduleData.validBugs;
+    const fixedBugs = moduleData.fixedBugs;
+    const percentage = totalBugs > 0 ? Math.round((fixedBugs / totalBugs) * 100) : 0;
+    
+    bugStats.value = {
+      youXiaoBug: totalBugs,
+      bugRepair: fixedBugs,
+      noClose: moduleData.unclosedBugs,
+      percentage: percentage,
+      detail: [
+        {name: '昨天新增', count: moduleData.yesterdayNew, percentage: 100},
+        {name: '昨天解决', count: moduleData.yesterdaySolved, percentage: moduleData.yesterdayNew > 0 ? (moduleData.yesterdaySolved * 100) / moduleData.yesterdayNew : 0},
+        {name: '今日新增', count: moduleData.todayNew, percentage: moduleData.yesterdayNew > 0 ? (moduleData.todayNew * 100) / moduleData.yesterdayNew : 0},
+        {name: '昨天关闭', count: moduleData.yesterdayClosed, percentage: moduleData.yesterdayNew > 0 ? (moduleData.yesterdayClosed * 100) / moduleData.yesterdayNew : 0},
+        {name: '今日关闭', count: moduleData.todayClosed, percentage: moduleData.yesterdayNew > 0 ? (moduleData.todayClosed * 100) / moduleData.yesterdayNew : 0}
+      ]
+    };
   }
 };
 
@@ -382,21 +553,30 @@ const getStatusType = (status) => {
   overflow-y: auto;
 }
 
-.list-name ul {
+.project-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.list-name li {
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 13px;
-  color: #606266;
+.project-list li {
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: #409EFF;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding-left: 10px;
+  border-radius: 4px;
 }
 
-.list-name li:last-child {
-  border-bottom: none;
+.project-list li:hover {
+  background-color: #ecf5ff;
+}
+
+.project-list li.active {
+  background-color: #ecf5ff;
+  border-left: 3px solid #409EFF;
 }
 
 /* Bug统计样式 */
@@ -504,38 +684,24 @@ const getStatusType = (status) => {
   margin-bottom: 15px;
 }
 
-.stat-row {
-  display: flex;
-  align-items: center;
+.bug-stat-item {
   margin-bottom: 10px;
-  gap: 10px;
 }
 
-.stat-label {
-  width: 80px;
+.bug-stat-label {
   font-size: 13px;
   color: #606266;
+  margin-bottom: 4px;
 }
 
-.stat-bar {
-  flex: 1;
-  height: 8px;
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.bar-fill {
-  height: 100%;
-  background-color: #1890ff;
-  border-radius: 4px;
-}
-
-.stat-value {
-  width: 30px;
+.bug-stat-value {
   font-size: 13px;
   color: #606266;
-  text-align: right;
+  margin-bottom: 4px;
+}
+
+.bug-stat-item .el-progress {
+  width: 100%;
 }
 
 /* 未关闭的测试单 */

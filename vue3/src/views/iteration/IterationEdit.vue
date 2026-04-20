@@ -68,7 +68,8 @@
 <script setup>
 import {ref, onMounted} from 'vue';
 import {useRouter, useRoute} from 'vue-router';
-import axios from 'axios';
+import { ElMessage } from 'element-plus';
+import request from '@/utils/request.js';
 
 const router = useRouter();
 const route = useRoute();
@@ -91,7 +92,7 @@ const projects = ref([]);
 const fetchProjects = async () => {
   try {
     // 传递username参数，使用固定值202201
-    const response = await axios.get('http://localhost:9090/workbench/projects', {
+    const response = await request.get('/workbench/projects', {
       params: { username: '202201' }
     });
     if (response.data.code === 200) {
@@ -106,7 +107,7 @@ const fetchProjects = async () => {
 const fetchIterationDetail = async () => {
   if (isEdit.value && iterationId.value) {
     try {
-      const response = await axios.get(`http://localhost:9090/iteration/detail/${iterationId.value}`);
+      const response = await request.get(`/iteration/detail/${iterationId.value}`);
       if (response.data.code === 200) {
         iterationForm.value = response.data.data;
       }
@@ -121,13 +122,13 @@ const saveIteration = async () => {
   try {
     let response;
     if (isEdit.value) {
-      response = await axios.put('http://localhost:9090/iteration/update', iterationForm.value);
+      response = await request.put('/iteration/update', iterationForm.value);
     } else {
-      response = await axios.post('http://localhost:9090/iteration/create', iterationForm.value);
+      response = await request.post('/iteration/create', iterationForm.value);
     }
     if (response.data.code === 200) {
       ElMessage.success(isEdit.value ? '迭代更新成功' : '迭代创建成功');
-      router.push('/iteration/iterationTableList');
+      router.push('/iteration/iterationList');
     }
   } catch (error) {
     console.error('保存迭代失败:', error);
@@ -137,7 +138,7 @@ const saveIteration = async () => {
 
 // 取消
 const cancel = () => {
-  router.push('/iteration/iterationTableList');
+  router.push('/iteration/iterationList');
 };
 
 // 初始加载

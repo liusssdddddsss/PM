@@ -123,8 +123,13 @@ const activeMenu = computed(() => {
   
   // 检查当前路径是否匹配菜单中的某个项
   for (const item of menuList.value) {
-    // 如果当前路径以菜单项的路径开头，则返回该菜单项的路径
-    if (currentPath.startsWith(item.path)) {
+    // 获取菜单项路径的父路径
+    const itemParentPath = item.path.split('/').slice(0, 3).join('/');
+    // 获取当前路径的父路径
+    const currentParentPath = currentPath.split('/').slice(0, 3).join('/');
+    
+    // 如果当前路径的父路径与菜单项的父路径匹配，则返回该菜单项的路径
+    if (currentParentPath === itemParentPath) {
       return item.path;
     }
   }
