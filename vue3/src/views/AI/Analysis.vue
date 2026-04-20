@@ -70,7 +70,7 @@
           
           <div class="analysis-info" v-if="lastAnalysisTime">
             <div class="info-item">
-              <el-icon><i-ep-time /></el-icon>
+              <el-icon><i-ep-timer /></el-icon>
               <span>上次分析时间：{{ lastAnalysisTime }}</span>
             </div>
             <div class="info-item">
@@ -215,7 +215,7 @@
                       <p class="ai-intro">基于当前分析结果，我为您提供以下智能建议：</p>
                       <ul class="ai-suggestion-list" v-if="aiSuggestions.length > 0">
                         <li v-for="(suggestion, index) in aiSuggestions" :key="index" class="ai-suggestion-item">
-                          <el-icon class="ai-icon"><i-ep-robot /></el-icon>
+                          <el-icon class="ai-icon"><i-ep-chat-line-round /></el-icon>
                           <span>{{ suggestion }}</span>
                         </li>
                       </ul>
@@ -238,7 +238,7 @@
 import { ref, computed } from 'vue';
 import axios from 'axios';
 import { ElMessage, ElEmpty, ElCollapse, ElCollapseItem, ElProgress, ElAlert, ElStatistic, ElTabs, ElTabPane, ElButton, ElAvatar, ElIcon } from 'element-plus';
-import { DataAnalysis, Goods, Aim, Time, InfoFilled, Lightbulb } from '@element-plus/icons-vue';
+import { DataAnalysis, Goods, Aim, Clock, InfoFilled, Timer } from '@element-plus/icons-vue';
 
 // 状态变量
 const loading = ref({

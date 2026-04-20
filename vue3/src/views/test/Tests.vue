@@ -44,10 +44,14 @@
 
                 <div class="bug-stats">
                   <h3>Bug统计</h3>
+                  <br>
                   <div class="bug-stat-item" v-for="(item, index) in bugStats.detail" :key="index">
-                    <div class="bug-stat-label">{{item.name}}</div>
-                    <div class="bug-stat-value">{{item.count}}</div>
-                    <el-progress :percentage="item.percentage" />
+                    <div class="bug-stat-label">
+                      <span class="label-text">{{ item.name }}</span>
+                      <span class="label-count">{{ item.count }}</span>
+                    </div>
+<!--                    <p class="bug-stat-value"></p>-->
+<!--                    <el-progress :percentage="item.percentage" />-->
                   </div>
                 </div>
               </div>
@@ -544,7 +548,7 @@ const getStatusType = (status) => {
   font-size: 14px;
   font-weight: bold;
   color: #303133;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   flex-shrink: 0;
 }
 
@@ -560,7 +564,7 @@ const getStatusType = (status) => {
 }
 
 .project-list li {
-  padding: 10px 0;
+  padding: 5px 0;
   cursor: pointer;
   font-size: 14px;
   color: #409EFF;
@@ -677,6 +681,12 @@ const getStatusType = (status) => {
   color: #606266;
 }
 
+.bug-stats{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
 .bug-stats h3 {
   font-size: 14px;
   font-weight: bold;
@@ -689,9 +699,14 @@ const getStatusType = (status) => {
 }
 
 .bug-stat-label {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between; /* 标签左对齐，数字右对齐，视觉更清晰 */
+  align-items: center;
+  white-space: nowrap; /* 防止文字换行 */
+}
+.label-count {
+  font-weight: bold;
+  margin-left: 8px; /* 与标签文字留点间距 */
 }
 
 .bug-stat-value {
@@ -717,7 +732,7 @@ const getStatusType = (status) => {
   font-size: 14px;
   font-weight: bold;
   color: #303133;
-  margin-bottom: 15px;
+  margin-bottom: 3px;
   flex-shrink: 0;
 }
 
