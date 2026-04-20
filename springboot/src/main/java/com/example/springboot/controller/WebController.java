@@ -24,7 +24,7 @@ public class WebController {
     
     // 处理前端路由路径，转发到index.html
     // 只处理前端路由，不拦截API请求
-    @GetMapping({"/workbench", "/workbench/**", "/itemSet", "/itemSet/**", "/products", "/products/**", "/tasks", "/tasks/**", "/iterations", "/iterations/**", "/teams", "/teams/**", "/test", "/test/**", "/feedback", "/feedback/**", "/AI", "/AI/**"})
+    @GetMapping({"/workbench", "/workbench/**", "/itemSet", "/itemSet/**", "/productResearch", "/productResearch/**", "/task", "/task/**", "/iteration", "/iteration/**", "/teams", "/teams/**", "/test", "/test/**", "/feedbacks", "/feedbacks/**", "/AI", "/AI/**"})
     public ResponseEntity<byte[]> handleFrontendRoutes(HttpServletRequest request) throws IOException {
         // 检查是否是API请求（包含/api/或特定的API路径）
         String requestPath = request.getRequestURI();

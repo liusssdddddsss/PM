@@ -4,6 +4,7 @@ import com.example.springboot.common.Result;
 import com.example.springboot.entity.*;
 import com.example.springboot.repository.ProjectMemberRepository;
 import com.example.springboot.service.*;
+import com.example.springboot.utils.RolePermissionUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,7 +127,7 @@ public class DashboardController {
             for (Bug bug : bugs) {
                 // 如果指定了项目，只统计该项目的Bug
                 if (targetProjectId != null) {
-                    if (bug.getProject_id() == null || !bug.getProject_id().equals(targetProjectId.intValue())) {
+                    if (bug.getProjectId() == null || !bug.getProjectId().equals(targetProjectId.intValue())) {
                         continue;
                     }
                 }
@@ -143,10 +144,10 @@ public class DashboardController {
                 }
                 
                 // 统计昨天和今天的Bug数据
-                if (bug.getCreated_at() != null) {
+                if (bug.getCreatedAt() != null) {
                     try {
-                        // 直接比较字符串，假设created_at格式为yyyy-MM-dd
-                        String bugDate = bug.getCreated_at().substring(0, Math.min(10, bug.getCreated_at().length()));
+                        // 直接比较字符串，假设createdAt格式为yyyy-MM-dd
+                        String bugDate = bug.getCreatedAt().substring(0, Math.min(10, bug.getCreatedAt().length()));
                         if (bugDate.equals(yesterdayStr)) {
                             yesterdayNew++;
                         } else if (bugDate.equals(todayStr)) {
@@ -158,10 +159,10 @@ public class DashboardController {
                 }
                 
                 if (bug.getStatus() != null && bug.getStatus() == 2) { // 已解决
-                    if (bug.getResolved_at() != null) {
+                    if (bug.getResolvedAt() != null) {
                         try {
-                            // 直接比较字符串，假设resolved_at格式为yyyy-MM-dd
-                            String bugDate = bug.getResolved_at().substring(0, Math.min(10, bug.getResolved_at().length()));
+                            // 直接比较字符串，假设resolvedAt格式为yyyy-MM-dd
+                            String bugDate = bug.getResolvedAt().substring(0, Math.min(10, bug.getResolvedAt().length()));
                             if (bugDate.equals(yesterdayStr)) {
                                 yesterdayResolved++;
                             } else if (bugDate.equals(todayStr)) {
@@ -336,8 +337,8 @@ public class DashboardController {
             
             for (Bug bug : bugs) {
                 // 只返回指派给当前用户的Bug
-                // 注意：assignee_id 存储的是用户名（字符串），不是用户id
-                if (bug.getAssignee_id() != null && bug.getAssignee_id().toString().equals(username)) {
+                // 注意：assigneeId 存储的是用户名（字符串），不是用户id
+                if (bug.getAssigneeId() != null && bug.getAssigneeId().toString().equals(username)) {
                     Map<String, Object> bugMap = new HashMap<>();
                     bugMap.put("id", bug.getId());
                     bugMap.put("name", bug.getTitle() != null ? bug.getTitle() : "无标题");
@@ -366,9 +367,9 @@ public class DashboardController {
                     
                     // 添加项目名称
                     String projectName = "未知项目";
-                    if (bug.getProject_id() != null) {
+                    if (bug.getProjectId() != null) {
                         try {
-                            Optional<Project> projectOpt = projectService.findById(bug.getProject_id().longValue());
+                            Optional<Project> projectOpt = projectService.findById(bug.getProjectId().longValue());
                             if (projectOpt.isPresent()) {
                                 projectName = projectOpt.get().getName();
                             }
@@ -588,7 +589,7 @@ public class DashboardController {
             for (Bug bug : bugs) {
                 // 如果指定了用户名，只统计与该用户有关的Bug
                 if (username != null) {
-                    if (bug.getAssignee_id() != null && bug.getAssignee_id().toString().equals(username)) {
+                    if (bug.getAssigneeId() != null && bug.getAssigneeId().toString().equals(username)) {
                         if (bug.getStatus() != null && bug.getStatus() != 2) { // 假设2表示已解决
                             activeBugCount++;
                         }
@@ -831,11 +832,11 @@ public class DashboardController {
             List<Bug> bugs = bugService.findall();
             for (Bug bug : bugs) {
                 if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
-                    if (bug.getResolved_at() != null) {
+                    if (bug.getResolvedAt() != null) {
                         // 尝试从字符串中提取年份
                         try {
-                            // 假设resolved_at格式为yyyy-MM-dd或yyyy-MM-dd HH:mm:ss
-                            String resolvedAt = bug.getResolved_at();
+                            // 假设resolvedAt格式为yyyy-MM-dd或yyyy-MM-dd HH:mm:ss
+                            String resolvedAt = bug.getResolvedAt();
                             if (resolvedAt.length() >= 4) {
                                 int bugYear = Integer.parseInt(resolvedAt.substring(0, 4));
                                 if (bugYear == targetYear) {
@@ -1032,17 +1033,17 @@ public class DashboardController {
                     List<Bug> bugs = bugService.findall();
                     for (Bug bug : bugs) {
                         // 过滤出与当前产品相关的Bug
-                        if (bug.getProject_id() != null) {
-                            // 查找Bug所属的项目，再判断项目是否属于当前产品
-                            for (Project project : allProjects) {
-                                if (project.getId().intValue() == bug.getProject_id() && 
-                                    project.getProduct_id() != null && 
-                                    project.getProduct_id().equals(product.getId())) {
+                    if (bug.getProjectId() != null) {
+                        // 查找Bug所属的项目，再判断项目是否属于当前产品
+                        for (Project project : allProjects) {
+                            if (project.getId().intValue() == bug.getProjectId() && 
+                                project.getProduct_id() != null && 
+                                project.getProduct_id().equals(product.getId())) {
                                     // 如果指定了用户名，只统计与该用户有关的Bug
                                     if (username != null) {
                                         // 检查Bug是否指派给用户，或者项目是否与用户相关
                                         boolean isBugRelated = false;
-                                        if (bug.getAssignee_id() != null && bug.getAssignee_id().toString().equals(username)) {
+                                        if (bug.getAssigneeId() != null && bug.getAssigneeId().toString().equals(username)) {
                                             isBugRelated = true;
                                         }
                                         if (!isBugRelated) {
@@ -1273,11 +1274,11 @@ public class DashboardController {
             Calendar cal = Calendar.getInstance();
             for (Bug bug : bugs) {
                 if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
-                    if (bug.getResolved_at() != null) {
-                        // 尝试解析resolved_at字段
+                    if (bug.getResolvedAt() != null) {
+                        // 尝试解析resolvedAt字段
                         try {
                             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            Date date = sdf.parse(bug.getResolved_at());
+                            Date date = sdf.parse(bug.getResolvedAt());
                             cal.setTime(date);
                             if (cal.get(Calendar.YEAR) == targetYear) {
                                 // 按季度统计
@@ -1512,16 +1513,16 @@ public class DashboardController {
             for (Bug bug : bugs) {
                 // 如果指定了项目，只统计该项目的Bug
                 if (targetProjectId != null) {
-                    if (bug.getProject_id() == null || !bug.getProject_id().equals(targetProjectId.intValue())) {
+                    if (bug.getProjectId() == null || !bug.getProjectId().equals(targetProjectId.intValue())) {
                         continue;
                     }
                 }
                 
                 // 统计提出的Bug
-                if (bug.getCreated_at() != null) {
+                if (bug.getCreatedAt() != null) {
                     try {
-                        // 直接比较字符串，假设created_at格式为yyyy-MM-dd
-                        String bugDate = bug.getCreated_at().substring(0, Math.min(10, bug.getCreated_at().length()));
+                        // 直接比较字符串，假设createdAt格式为yyyy-MM-dd
+                        String bugDate = bug.getCreatedAt().substring(0, Math.min(10, bug.getCreatedAt().length()));
                         if (bugDate.equals(yesterdayStr)) {
                             yesterdayTiChuCount++;
                         } else if (bugDate.equals(todayStr)) {
@@ -1534,10 +1535,10 @@ public class DashboardController {
                 
                 // 统计修改的Bug
                 if (bug.getStatus() != null && bug.getStatus() == 2) { // 假设2表示已解决
-                    if (bug.getResolved_at() != null) {
+                    if (bug.getResolvedAt() != null) {
                         try {
-                            // 直接比较字符串，假设resolved_at格式为yyyy-MM-dd
-                            String bugDate = bug.getResolved_at().substring(0, Math.min(10, bug.getResolved_at().length()));
+                            // 直接比较字符串，假设resolvedAt格式为yyyy-MM-dd
+                            String bugDate = bug.getResolvedAt().substring(0, Math.min(10, bug.getResolvedAt().length()));
                             if (bugDate.equals(yesterdayStr)) {
                                 yesterdayBugCount++;
                             } else if (bugDate.equals(todayStr)) {
@@ -1704,7 +1705,7 @@ public class DashboardController {
                 
                 List<Bug> bugs = bugService.findall();
                 for (Bug bug : bugs) {
-                    if (bug.getProject_id() != null && bug.getProject_id().equals(projectId.intValue())) {
+                    if (bug.getProjectId() != null && bug.getProjectId().equals(projectId.intValue())) {
                         bugTotal++;
                         if (bug.getStatus() != null) {
                             if (bug.getStatus() == 2) { // 假设2表示已关闭
@@ -1866,57 +1867,37 @@ public class DashboardController {
     @Autowired
     private ProjectApprovalService projectApprovalService;
     
+    @Autowired
+    private RolePermissionUtils rolePermissionUtils;
+    
     @Operation(summary = "获取工作台统计数据", description = "返回工作台统计数据")
     @GetMapping("/statistics")
     public Result getStatistics(@RequestParam String username) {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // 1. 获取用户信息，判断用户角色
-            boolean isProductManager = false;
-            Iterable<User> users = userService.findAll();
-            User currentUser = null;
+            // 1. 获取用户角色
+            boolean isProductManager = rolePermissionUtils.isProductManager(username);
+            boolean isDeveloper = rolePermissionUtils.isDeveloper(username);
+            boolean isTester = rolePermissionUtils.isTester(username);
+            boolean isAdmin = rolePermissionUtils.isAdmin(username);
             
-            for (User user : users) {
-                if (user.getUsername() != null && user.getUsername().equals(username)) {
-                    currentUser = user;
-                    // 假设role_id为1表示产品经理
-                    if (user.getRole_id() != null && user.getRole_id() == 1) {
-                        isProductManager = true;
-                    }
-                    break;
-                }
-            }
-            
-            if (currentUser == null) {
-                return Result.error("用户不存在");
-            }
-            
-            // 2. 获取待审批数
+            // 2. 获取待审批数（只有产品经理和管理员可以看到）
             int approveState = 0;
-            List<ProjectApproval> approvals = projectApprovalService.findall();
-            for (ProjectApproval approval : approvals) {
-                // 由于ProjectApproval实体类没有status字段，这里简化处理，直接统计所有审批
-                // 如果是产品经理，显示所有审批
-                if (isProductManager) {
-                    approveState++;
-                } else {
-                    // 否则只显示当前用户的审批
-                    if (approval.getApprover_id() != null && approval.getApprover_id().toString().equals(username)) {
-                        approveState++;
-                    }
-                }
+            if (isProductManager || isAdmin) {
+                List<ProjectApproval> approvals = projectApprovalService.findall();
+                approveState = approvals.size();
             }
             
             // 3. 获取任务数
             int taskState = 0;
             List<Task> tasks = taskService.findall();
             for (Task task : tasks) {
-                // 如果是产品经理，显示所有任务
-                if (isProductManager) {
+                if (isAdmin || isProductManager) {
+                    // 管理员和产品经理可以看到所有任务
                     taskState++;
-                } else {
-                    // 否则只显示当前用户的任务
+                } else if (isDeveloper || isTester) {
+                    // 开发者和测试者只能看到自己的任务
                     if (task.getAssigneeId() != null && task.getAssigneeId().toString().equals(username)) {
                         taskState++;
                     }
@@ -1927,26 +1908,28 @@ public class DashboardController {
             int bugState = 0;
             List<Bug> bugs = bugService.findall();
             for (Bug bug : bugs) {
-                // 如果是产品经理，显示所有Bug
-                if (isProductManager) {
+                if (isAdmin || isProductManager) {
+                    // 管理员和产品经理可以看到所有Bug
                     bugState++;
-                } else {
-                    // 否则只显示当前用户的Bug
-                    if (bug.getAssignee_id() != null && bug.getAssignee_id().toString().equals(username)) {
+                } else if (isDeveloper) {
+                    // 开发者只能看到指派给自己的Bug
+                    if (bug.getAssigneeId() != null && bug.getAssigneeId().toString().equals(username)) {
                         bugState++;
                     }
+                } else if (isTester) {
+                    // 测试者可以看到所有Bug（因为测试者需要测试和验证Bug）
+                    bugState++;
                 }
             }
             
-
-            
-
-            
-            // 7. 获取文档数（暂时模拟）
+            // 5. 获取文档数（暂时模拟）
             int passageState = 0;
             
-            // 8. 昨天处理任务和Bug的次数（暂时模拟）
+            // 6. 昨天处理任务和Bug的次数（暂时模拟）
             int bug = 0;
+            
+            // 7. 添加用户角色信息
+            statistics.put("role", rolePermissionUtils.getRoleName(username));
             
             // 构建返回数据
             statistics.put("bug", bug);

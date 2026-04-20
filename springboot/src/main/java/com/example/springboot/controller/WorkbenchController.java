@@ -17,10 +17,13 @@ import com.example.springboot.service.ProjectService;
 import com.example.springboot.service.UserService;
 import com.example.springboot.service.ProjectMemberService;
 import com.example.springboot.service.ProductService;
+import com.example.springboot.service.OperationLogService;
 import com.example.springboot.service.TeamMemberService;
+import com.example.springboot.utils.RolePermissionUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -339,7 +342,7 @@ public class WorkbenchController {
                 try {
                     Integer userId = Integer.parseInt(username);
                     bugs = bugs.stream()
-                            .filter(bug -> bug.getReporter_id() != null && bug.getReporter_id().equals(userId))
+                            .filter(bug -> bug.getReporterId() != null && bug.getReporterId().equals(userId))
                             .toList();
                 } catch (NumberFormatException e) {
                     // 用户名不是数字格式，返回空列表
@@ -358,49 +361,73 @@ public class WorkbenchController {
     public Result getProjects(@RequestParam String username) {
         try {
             System.out.println("获取项目列表请求，用户名: " + username);
-            // 首先根据用户名获取用户信息
-            var user = userService.findById(username);
-            System.out.println("获取到的用户信息: " + (user.isPresent() ? user.get().getName() : "不存在"));
-            if (user.isPresent()) {
-                Long userId = Long.parseLong(user.get().getUsername());
-                System.out.println("用户ID: " + userId);
-                
-                // 根据用户ID查询参与的项目成员记录
-                List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                System.out.println("获取到的项目成员记录数量: " + projectMembers.size());
-                List<Map<String, Object>> projectList = new ArrayList<>();
-                
-                // 遍历项目成员记录，获取对应的项目信息
-                for (com.example.springboot.entity.ProjectMember member : projectMembers) {
-                    Long projectId = member.getProjectId();
-                    System.out.println("项目ID: " + projectId);
-                    if (projectId != null) {
-                        var project = projectService.findById(projectId);
-                        System.out.println("获取到的项目信息: " + (project.isPresent() ? project.get().getName() : "不存在"));
-                        if (project.isPresent()) {
-                            Project p = project.get();
-                            Map<String, Object> projectMap = new HashMap<>();
-                            projectMap.put("id", p.getId());
-                            projectMap.put("projectName", p.getName());
-                            
-                            // 从数据库查询项目成员数
-                            List<com.example.springboot.entity.ProjectMember> projectMemberList = projectMemberService.findByProjectId(projectId);
-                            projectMap.put("projectMember", projectMemberList.size());
-                            
-                            projectMap.put("finishTime", p.getEnd_date());
-                            projectMap.put("degree", p.getProgress() != null ? p.getProgress() : 0);
-                            projectMap.put("status", p.getStatus() != null ? p.getStatus() : 0);
-                            System.out.println("项目进度: " + (p.getProgress() != null ? p.getProgress() : 0));
-                            projectList.add(projectMap);
+            
+            // 获取用户角色
+            boolean isProductManager = rolePermissionUtils.isProductManager(username);
+            boolean isDeveloper = rolePermissionUtils.isDeveloper(username);
+            boolean isTester = rolePermissionUtils.isTester(username);
+            boolean isAdmin = rolePermissionUtils.isAdmin(username);
+            
+            List<Map<String, Object>> projectList = new ArrayList<>();
+            
+            if (isAdmin || isProductManager) {
+                // 管理员和产品经理可以看到所有项目
+                Iterable<Project> allProjects = projectService.findAll();
+                for (Project project : allProjects) {
+                    Map<String, Object> projectMap = new HashMap<>();
+                    projectMap.put("id", project.getId());
+                    projectMap.put("projectName", project.getName());
+                    
+                    // 从数据库查询项目成员数
+                    List<com.example.springboot.entity.ProjectMember> projectMemberList = projectMemberService.findByProjectId(project.getId());
+                    projectMap.put("projectMember", projectMemberList.size());
+                    
+                    projectMap.put("finishTime", project.getEnd_date());
+                    projectMap.put("degree", project.getProgress() != null ? project.getProgress() : 0);
+                    projectMap.put("status", project.getStatus() != null ? project.getStatus() : 0);
+                    projectList.add(projectMap);
+                }
+            } else if (isDeveloper || isTester) {
+                // 开发者和测试者只能看到自己参与的项目
+                var user = userService.findById(username);
+                if (user.isPresent()) {
+                    Long userId = Long.parseLong(user.get().getUsername());
+                    System.out.println("用户ID: " + userId);
+                    
+                    // 根据用户ID查询参与的项目成员记录
+                    List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                    System.out.println("获取到的项目成员记录数量: " + projectMembers.size());
+                    
+                    // 遍历项目成员记录，获取对应的项目信息
+                    for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                        Long projectId = member.getProjectId();
+                        System.out.println("项目ID: " + projectId);
+                        if (projectId != null) {
+                            var project = projectService.findById(projectId);
+                            System.out.println("获取到的项目信息: " + (project.isPresent() ? project.get().getName() : "不存在"));
+                            if (project.isPresent()) {
+                                Project p = project.get();
+                                Map<String, Object> projectMap = new HashMap<>();
+                                projectMap.put("id", p.getId());
+                                projectMap.put("projectName", p.getName());
+                                
+                                // 从数据库查询项目成员数
+                                List<com.example.springboot.entity.ProjectMember> projectMemberList = projectMemberService.findByProjectId(projectId);
+                                projectMap.put("projectMember", projectMemberList.size());
+                                
+                                projectMap.put("finishTime", p.getEnd_date());
+                                projectMap.put("degree", p.getProgress() != null ? p.getProgress() : 0);
+                                projectMap.put("status", p.getStatus() != null ? p.getStatus() : 0);
+                                System.out.println("项目进度: " + (p.getProgress() != null ? p.getProgress() : 0));
+                                projectList.add(projectMap);
+                            }
                         }
                     }
                 }
-                
-                System.out.println("返回的项目列表数量: " + projectList.size());
-                return Result.success(projectList);
-            } else {
-                return Result.error("用户不存在");
             }
+            
+            System.out.println("返回的项目列表数量: " + projectList.size());
+            return Result.success(projectList);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取项目列表失败: " + e.getMessage());
@@ -409,8 +436,21 @@ public class WorkbenchController {
 
     @Operation(summary = "获取未完成项目列表", description = "返回未完成项目列表数据")
     @GetMapping("/unfinished-projects")
-    public Result getUnfinishedProjects() {
+    public Result getUnfinishedProjects(@RequestParam(required = false) String username) {
         try {
+            // 获取用户角色
+            boolean isProductManager = false;
+            boolean isDeveloper = false;
+            boolean isTester = false;
+            boolean isAdmin = false;
+            
+            if (username != null) {
+                isProductManager = rolePermissionUtils.isProductManager(username);
+                isDeveloper = rolePermissionUtils.isDeveloper(username);
+                isTester = rolePermissionUtils.isTester(username);
+                isAdmin = rolePermissionUtils.isAdmin(username);
+            }
+            
             // 获取所有项目
             Iterable<Project> allProjects = projectService.findAll();
             List<Map<String, Object>> projectList = new ArrayList<>();
@@ -418,7 +458,165 @@ public class WorkbenchController {
             for (Project project : allProjects) {
                 // 过滤出未完成的项目（状态不是2已关闭或3已归档）
                 if (project.getStatus() == null || (project.getStatus() != 2 && project.getStatus() != 3)) {
+                    // 根据用户角色过滤项目
+                    boolean hasAccess = false;
+                    
+                    if (isAdmin || isProductManager) {
+                        // 管理员和产品经理可以看到所有项目
+                        hasAccess = true;
+                    } else if (isDeveloper || isTester) {
+                        // 开发者和测试者只能看到自己参与的项目
+                        try {
+                            Long userId = Long.parseLong(username);
+                            List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                            for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                                if (member.getProjectId() != null && member.getProjectId().equals(project.getId())) {
+                                    hasAccess = true;
+                                    break;
+                                }
+                            }
+                        } catch (Exception e) {
+                            // 用户名转换失败，跳过
+                        }
+                    }
+                    
+                    if (hasAccess || username == null) {
+                        Map<String, Object> projectMap = new HashMap<>();
+                        projectMap.put("title", project.getName());
+                        
+                        // 获取负责人姓名
+                        String managerName = "未知"; 
+                        if (project.getManagerId() != null) {
+                            try {
+                                var user = userService.findById(project.getManagerId().toString());
+                                if (user.isPresent()) {
+                                    managerName = user.get().getName();
+                                }
+                            } catch (Exception e) {
+                                System.out.println("获取负责人姓名失败: " + e.getMessage());
+                            }
+                        }
+                        projectMap.put("person", managerName);
+                        
+                        // 根据状态设置显示文本
+                        String statusText = "已排期"; // 默认状态
+                        if (project.getStatus() != null) {
+                            switch (project.getStatus()) {
+                                case 0:
+                                    statusText = "未开始";
+                                    break;
+                                case 1:
+                                    statusText = "进行中";
+                                    break;
+                            }
+                        }
+                        projectMap.put("states", statusText);
+                        
+                        // 从数据库获取实际数据
+                        Integer projectId = project.getId().intValue();
+                        
+                        // 计算总工时（从tasks表中获取）
+                        int totalHours = 0;
+                        List<Task> tasks = taskService.findall();
+                        for (Task task : tasks) {
+                            if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
+                                if (task.getEstimatedHours() != null) {
+                                    totalHours += task.getEstimatedHours().intValue();
+                                }
+                            }
+                        }
+                        projectMap.put("workTime", totalHours + "h");
+                        
+
+                        
+                        // 计算剩余任务数量（从tasks表中获取）
+                        int remainingTasks = 0;
+                        for (Task task : tasks) {
+                            if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
+                                // 假设任务状态为0或1表示未完成
+                                if (task.getStatus() == null || task.getStatus() < 2) {
+                                    remainingTasks++;
+                                }
+                            }
+                        }
+                        projectMap.put("shengYuTask", remainingTasks);
+                        
+                        // 计算剩余Bug数量（从bugs表中获取）
+                        int remainingBugs = 0;
+                        List<Bug> bugs = bugService.findall();
+                        for (Bug bug : bugs) {
+                            if (bug.getProjectId() != null && bug.getProjectId().equals(projectId)) {
+                                // 假设Bug状态为0或1表示未解决
+                                if (bug.getStatus() == null || bug.getStatus() < 2) {
+                                    remainingBugs++;
+                                }
+                            }
+                        }
+                        projectMap.put("shengYuBug", remainingBugs);
+                        
+                        // 设置完成时间和进度
+                        projectMap.put("finishTime", project.getEnd_date());
+                        projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
+                        
+                        projectList.add(projectMap);
+                    }
+                }
+            }
+            
+            return Result.success(projectList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取未完成项目列表失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取所有项目列表", description = "返回所有项目列表数据")
+    @GetMapping("/all-projects")
+    public Result getAllProjects(@RequestParam(required = false) String username) {
+        try {
+            // 获取用户角色
+            boolean isProductManager = false;
+            boolean isDeveloper = false;
+            boolean isTester = false;
+            boolean isAdmin = false;
+            
+            if (username != null) {
+                isProductManager = rolePermissionUtils.isProductManager(username);
+                isDeveloper = rolePermissionUtils.isDeveloper(username);
+                isTester = rolePermissionUtils.isTester(username);
+                isAdmin = rolePermissionUtils.isAdmin(username);
+            }
+            
+            // 获取所有项目
+            Iterable<Project> allProjects = projectService.findAll();
+            List<Map<String, Object>> projectList = new ArrayList<>();
+            
+            for (Project project : allProjects) {
+                // 根据用户角色过滤项目
+                boolean hasAccess = false;
+                
+                if (isAdmin || isProductManager) {
+                    // 管理员和产品经理可以看到所有项目
+                    hasAccess = true;
+                } else if (isDeveloper || isTester) {
+                    // 开发者和测试者只能看到自己参与的项目
+                    try {
+                        Long userId = Long.parseLong(username);
+                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                            if (member.getProjectId() != null && member.getProjectId().equals(project.getId())) {
+                                hasAccess = true;
+                                break;
+                            }
+                        }
+                    } catch (Exception e) {
+                        // 用户名转换失败，跳过
+                    }
+                }
+                
+                if (hasAccess || username == null) {
                     Map<String, Object> projectMap = new HashMap<>();
+                    projectMap.put("id", project.getId());
                     projectMap.put("title", project.getName());
                     
                     // 获取负责人姓名
@@ -435,6 +633,13 @@ public class WorkbenchController {
                     }
                     projectMap.put("person", managerName);
                     
+                    // 设置开始时间和预计完成时间
+                    projectMap.put("startTime", project.getStart_date());
+                    projectMap.put("finishTime", project.getEnd_date());
+                    
+                    // 设置进度
+                    projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
+                    
                     // 根据状态设置显示文本
                     String statusText = "已排期"; // 默认状态
                     if (project.getStatus() != null) {
@@ -445,122 +650,18 @@ public class WorkbenchController {
                             case 1:
                                 statusText = "进行中";
                                 break;
+                            case 2:
+                                statusText = "已关闭";
+                                break;
+                            case 3:
+                                statusText = "已归档";
+                                break;
                         }
                     }
                     projectMap.put("states", statusText);
                     
-                    // 从数据库获取实际数据
-                    Integer projectId = project.getId().intValue();
-                    
-                    // 计算总工时（从tasks表中获取）
-                    int totalHours = 0;
-                    List<Task> tasks = taskService.findall();
-                    for (Task task : tasks) {
-                        if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
-                            if (task.getEstimatedHours() != null) {
-                                totalHours += task.getEstimatedHours().intValue();
-                            }
-                        }
-                    }
-                    projectMap.put("workTime", totalHours + "h");
-                    
-
-                    
-                    // 计算剩余任务数量（从tasks表中获取）
-                    int remainingTasks = 0;
-                    for (Task task : tasks) {
-                        if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
-                            // 假设任务状态为0或1表示未完成
-                            if (task.getStatus() == null || task.getStatus() < 2) {
-                                remainingTasks++;
-                            }
-                        }
-                    }
-                    projectMap.put("shengYuTask", remainingTasks);
-                    
-                    // 计算剩余Bug数量（从bugs表中获取）
-                    int remainingBugs = 0;
-                    List<Bug> bugs = bugService.findall();
-                    for (Bug bug : bugs) {
-                        if (bug.getProject_id() != null && bug.getProject_id().equals(projectId)) {
-                            // 假设Bug状态为0或1表示未解决
-                            if (bug.getStatus() == null || bug.getStatus() < 2) {
-                                remainingBugs++;
-                            }
-                        }
-                    }
-                    projectMap.put("shengYuBug", remainingBugs);
-                    
-                    // 设置完成时间和进度
-                    projectMap.put("finishTime", project.getEnd_date());
-                    projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
-                    
                     projectList.add(projectMap);
                 }
-            }
-            
-            return Result.success(projectList);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error("获取未完成项目列表失败: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "获取所有项目列表", description = "返回所有项目列表数据")
-    @GetMapping("/all-projects")
-    public Result getAllProjects() {
-        try {
-            // 获取所有项目
-            Iterable<Project> allProjects = projectService.findAll();
-            List<Map<String, Object>> projectList = new ArrayList<>();
-            
-            for (Project project : allProjects) {
-                Map<String, Object> projectMap = new HashMap<>();
-                projectMap.put("id", project.getId());
-                projectMap.put("title", project.getName());
-                
-                // 获取负责人姓名
-                String managerName = "未知"; 
-                if (project.getManagerId() != null) {
-                    try {
-                        var user = userService.findById(project.getManagerId().toString());
-                        if (user.isPresent()) {
-                            managerName = user.get().getName();
-                        }
-                    } catch (Exception e) {
-                        System.out.println("获取负责人姓名失败: " + e.getMessage());
-                    }
-                }
-                projectMap.put("person", managerName);
-                
-                // 设置开始时间和预计完成时间
-                projectMap.put("startTime", project.getStart_date());
-                projectMap.put("finishTime", project.getEnd_date());
-                
-                // 设置进度
-                projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
-                
-                // 根据状态设置显示文本
-                String statusText = "已排期"; // 默认状态
-                if (project.getStatus() != null) {
-                    switch (project.getStatus()) {
-                        case 0:
-                            statusText = "未开始";
-                            break;
-                        case 1:
-                            statusText = "进行中";
-                            break;
-                        case 2:
-                            statusText = "已关闭";
-                            break;
-                        case 3:
-                            statusText = "已归档";
-                            break;
-                    }
-                }
-                projectMap.put("states", statusText);
-                
-                projectList.add(projectMap);
             }
             
             return Result.success(projectList);
@@ -572,8 +673,16 @@ public class WorkbenchController {
 
     @Operation(summary = "删除项目", description = "根据ID删除项目")
     @DeleteMapping("/projects/{id}")
-    public Result deleteProject(@PathVariable Long id) {
+    public Result deleteProject(@PathVariable Long id, @RequestParam String username) {
         try {
+            // 检查用户角色，只有管理员和产品经理可以删除项目
+            boolean isProductManager = rolePermissionUtils.isProductManager(username);
+            boolean isAdmin = rolePermissionUtils.isAdmin(username);
+            
+            if (!isProductManager && !isAdmin) {
+                return Result.error("权限不足，只有管理员和产品经理可以删除项目");
+            }
+            
             projectService.deleteById(id);
             return Result.success("删除项目成功");
         } catch (Exception e) {
@@ -813,6 +922,9 @@ public class WorkbenchController {
 
     @Resource
     TeamMemberService teamMemberService;
+    
+    @Autowired
+    private RolePermissionUtils rolePermissionUtils;
 
     @Operation(summary = "获取项目成员列表", description = "根据项目ID获取项目成员列表")
     @GetMapping("/projects/{id}/members")
@@ -968,7 +1080,7 @@ public class WorkbenchController {
                     // 否则只显示当前用户的Bug
                     try {
                         Integer userId = Integer.parseInt(username);
-                        if (bug.getAssignee_id() != null && bug.getAssignee_id().equals(userId)) {
+                        if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId)) {
                             bugState++;
                         }
                     } catch (NumberFormatException e) {

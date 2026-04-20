@@ -13,33 +13,33 @@ public class Bug {
     private Integer id;
     private String title;
     private String description;
-    private Integer project_id;
-    private Integer task_id;
-    private Integer reporter_id;
-    private Integer assignee_id;
+    private Integer projectId;
+    private Integer taskId;
+    private Integer reporterId;
+    private Integer assigneeId;
     private Integer severity;
     private Integer status;
-    private String bug_type;
-    private String created_at;
-    private String resolved_at;
+    private String bugType;
+    private String createdAt;
+    private String resolvedAt;
 
     // 构造方法
     public Bug() {
     }
 
-    public Bug(Integer id, String title, String description, Integer project_id, Integer task_id, Integer reporter_id, Integer assignee_id, Integer severity, Integer status, String bug_type, String created_at, String resolved_at) {
+    public Bug(Integer id, String title, String description, Integer projectId, Integer taskId, Integer reporterId, Integer assigneeId, Integer severity, Integer status, String bugType, String createdAt, String resolvedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
-        this.project_id = project_id;
-        this.task_id = task_id;
-        this.reporter_id = reporter_id;
-        this.assignee_id = assignee_id;
+        this.projectId = projectId;
+        this.taskId = taskId;
+        this.reporterId = reporterId;
+        this.assigneeId = assigneeId;
         this.severity = severity;
         this.status = status;
-        this.bug_type = bug_type;
-        this.created_at = created_at;
-        this.resolved_at = resolved_at;
+        this.bugType = bugType;
+        this.createdAt = createdAt;
+        this.resolvedAt = resolvedAt;
     }
 
     // Getter 和 Setter 方法
@@ -67,36 +67,36 @@ public class Bug {
         this.description = description;
     }
 
-    public Integer getProject_id() {
-        return project_id;
+    public Integer getProjectId() {
+        return projectId;
     }
 
-    public void setProject_id(Integer project_id) {
-        this.project_id = project_id;
+    public void setProjectId(Integer projectId) {
+        this.projectId = projectId;
     }
 
-    public Integer getTask_id() {
-        return task_id;
+    public Integer getTaskId() {
+        return taskId;
     }
 
-    public void setTask_id(Integer task_id) {
-        this.task_id = task_id;
+    public void setTaskId(Integer taskId) {
+        this.taskId = taskId;
     }
 
-    public Integer getReporter_id() {
-        return reporter_id;
+    public Integer getReporterId() {
+        return reporterId;
     }
 
-    public void setReporter_id(Integer reporter_id) {
-        this.reporter_id = reporter_id;
+    public void setReporterId(Integer reporterId) {
+        this.reporterId = reporterId;
     }
 
-    public Integer getAssignee_id() {
-        return assignee_id;
+    public Integer getAssigneeId() {
+        return assigneeId;
     }
 
-    public void setAssignee_id(Integer assignee_id) {
-        this.assignee_id = assignee_id;
+    public void setAssigneeId(Integer assigneeId) {
+        this.assigneeId = assigneeId;
     }
 
     public Integer getSeverity() {
@@ -115,28 +115,28 @@ public class Bug {
         this.status = status;
     }
 
-    public String getBug_type() {
-        return bug_type;
+    public String getBugType() {
+        return bugType;
     }
 
-    public void setBug_type(String bug_type) {
-        this.bug_type = bug_type;
+    public void setBugType(String bugType) {
+        this.bugType = bugType;
     }
 
-    public String getCreated_at() {
-        return created_at;
+    public String getCreatedAt() {
+        return createdAt;
     }
 
-    public void setCreated_at(String created_at) {
-        this.created_at = created_at;
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
     }
 
-    public String getResolved_at() {
-        return resolved_at;
+    public String getResolvedAt() {
+        return resolvedAt;
     }
 
-    public void setResolved_at(String resolved_at) {
-        this.resolved_at = resolved_at;
+    public void setResolvedAt(String resolvedAt) {
+        this.resolvedAt = resolvedAt;
     }
 
 }

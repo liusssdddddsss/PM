@@ -10,6 +10,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  base:'/PM/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -45,6 +46,11 @@ export default defineConfig({
         secure: false
       },
       '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/ai': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false

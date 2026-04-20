@@ -19,4 +19,9 @@ public class BugService {
     public long count() {
         return bugRepository.count();
     }
+
+    // 根据项目ID获取Bug列表
+    public List<Bug> findByProjectId(Integer projectId) {
+        return bugRepository.findByProjectId(projectId);
+    }
 }

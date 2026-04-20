@@ -4,7 +4,7 @@ import com.example.springboot.entity.Project;
 import com.example.springboot.entity.Product;
 import com.example.springboot.entity.Task;
 import com.example.springboot.entity.Bug;
-import com.example.springboot.entity.Message;
+import com.example.springboot.entity.AIWarning;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,7 @@ public class AIAnalysisService {
     private BugService bugService;
 
     @Autowired
-    private MessageService messageService;
+    private AIWarningService aiWarningService;
 
     // 分析所有项目的风险
     public Map<String, Object> analyzeProjectsRisk() {
@@ -134,13 +134,16 @@ public class AIAnalysisService {
         // 根据项目进度和剩余时间计算风险
         int progress = project.getProgress();
         Date endDate = project.getEnd_date();
-        if (endDate == null) {
+        Date startDate = project.getStart_date();
+        if (endDate == null || startDate == null) {
             return 50; // 默认风险
         }
 
         LocalDate currentDate = LocalDate.now();
         LocalDate endLocalDate = endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate startLocalDate = startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         long daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(currentDate, endLocalDate);
+        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endLocalDate);
 
         if (daysRemaining <= 0) {
             // 项目已超期
@@ -151,9 +154,13 @@ public class AIAnalysisService {
             }
         }
 
+        if (totalDays <= 0) {
+            return 50; // 默认风险
+        }
+
         // 根据剩余时间和进度计算风险
-        // 假设项目总周期为30天，根据剩余时间和进度的比例计算风险
-        int expectedProgress = 100 - (int) (daysRemaining * 100 / 30);
+        // 根据项目的实际总周期来计算预期进度
+        int expectedProgress = 100 - (int) (daysRemaining * 100 / totalDays);
         if (progress < expectedProgress - 20) {
             return 80; // 高风险
         } else if (progress < expectedProgress - 10) {
@@ -221,10 +228,7 @@ public class AIAnalysisService {
 
     // 计算Bug风险
     private int calculateBugRisk(Project project) {
-        List<Bug> bugs = bugService.findall();
-        List<Bug> projectBugs = bugs.stream()
-                .filter(bug -> bug.getProject_id() != null && bug.getProject_id().equals(project.getId().intValue()))
-                .collect(Collectors.toList());
+        List<Bug> projectBugs = bugService.findByProjectId(project.getId().intValue());
 
         if (projectBugs.isEmpty()) {
             return 0; // 无Bug，无风险
@@ -302,33 +306,54 @@ public class AIAnalysisService {
         return suggestions;
     }
 
-    // 创建风险消息并保存到数据库
+    // 创建风险消息并保存到ai_warnings表
     private void createRiskMessage(Project project, String riskLevel, List<String> warnings, List<String> suggestions) {
-        Message message = new Message();
-        message.setSender("AI智能助手");
-        message.setReceiver("system"); // 发送给系统，可根据实际需求修改接收者
-        message.setTeamId(null); // 可以根据项目所属团队设置
-        message.setIsRead(0); // 未读
-        message.setCreatedAt(new Date());
-        message.setType("risk"); // 设置消息类型为风险预警
-
-        // 构建消息内容
-        StringBuilder content = new StringBuilder();
-        content.append("【项目风险预警】\n");
-        content.append("项目名称: ").append(project.getName()).append("\n");
-        content.append("风险等级: ").append(riskLevel).append("\n");
-        content.append("\n风险预警: ");
-        for (String warning : warnings) {
-            if (!"未发现明显风险".equals(warning)) {
-                content.append("\n- ").append(warning);
+        String riskLevelCode = riskLevel.equals("高") ? "high" : riskLevel.equals("中") ? "medium" : "low";
+        
+        // 构建风险描述
+        StringBuilder riskDescription = new StringBuilder();
+        riskDescription.append("项目名称: " + project.getName() + "\n");
+        riskDescription.append("风险等级: " + riskLevel + "\n");
+        riskDescription.append("\n风险预警: ");
+        for (String warningMsg : warnings) {
+            if (!"未发现明显风险".equals(warningMsg)) {
+                riskDescription.append("\n- " + warningMsg);
             }
         }
-        content.append("\n\n建议措施: ");
+        
+        // 构建建议措施
+        StringBuilder suggestionText = new StringBuilder();
         for (String suggestion : suggestions) {
-            content.append("\n- ").append(suggestion);
+            suggestionText.append("\n- " + suggestion);
         }
-
-        message.setContent(content.toString());
-        messageService.save(message);
+        
+        // 检查是否已经存在相同的项目风险预警
+        List<AIWarning> existingWarnings = aiWarningService.findByProjectId(project.getId().intValue());
+        AIWarning warning = null;
+        
+        for (AIWarning existingWarning : existingWarnings) {
+            if ("project_risk".equals(existingWarning.getRiskType()) && riskLevelCode.equals(existingWarning.getRiskLevel())) {
+                // 存在相同的预警，覆盖原来的
+                warning = existingWarning;
+                break;
+            }
+        }
+        
+        if (warning == null) {
+            // 不存在相同的预警，创建新的
+            warning = new AIWarning();
+            warning.setProjectId(project.getId().intValue());
+            warning.setUserId(null); // 暂时设置为null，实际项目中应该设置为相关用户ID
+            warning.setRiskType("project_risk");
+            warning.setRiskLevel(riskLevelCode);
+            warning.setCreatedAt(new Date());
+        }
+        
+        // 更新预警信息
+        warning.setIsRead(0); // 重置为未读状态
+        warning.setRiskDescription(riskDescription.toString());
+        warning.setSuggestion(suggestionText.toString());
+        
+        aiWarningService.save(warning);
     }
 }

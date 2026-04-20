@@ -8,6 +8,7 @@ com\example\springboot\repository\UserRepository.class
 com\example\springboot\entity\LoginLog.class
 com\example\springboot\entity\OperationLog.class
 com\example\springboot\controller\AdminLogController.class
+com\example\springboot\service\AIAnalysisEngine.class
 com\example\springboot\entity\Task.class
 com\example\springboot\SpringbootApplication$1.class
 com\example\springboot\controller\AdminUserController$AdminUserSaveRequest.class
@@ -53,8 +54,10 @@ com\example\springboot\controller\IterationController.class
 com\example\springboot\controller\AdminTeamController.class
 com\example\springboot\controller\AdminController$LoginRequest.class
 com\example\springboot\common\CorsConfig.class
+com\example\springboot\service\AIWarningService.class
 com\example\springboot\entity\Bug.class
 com\example\springboot\controller\AdminUserController$AdminUserStatusRequest.class
+com\example\springboot\entity\AIWarning.class
 com\example\springboot\controller\AIAnalysisController.class
 com\example\springboot\service\TaskService.class
 com\example\springboot\service\OptionLogService.class
@@ -62,6 +65,7 @@ com\example\springboot\service\ProjectService.class
 com\example\springboot\common\Result.class
 com\example\springboot\controller\AdminFeedbackController$AdminFeedbackProcessRequest.class
 com\example\springboot\repository\ProjectRepository.class
+com\example\springboot\repository\AIWarningRepository.class
 com\example\springboot\controller\TeamController.class
 com\example\springboot\service\AdminService.class
 com\example\springboot\repository\FeedbackRepository.class
@@ -71,6 +75,7 @@ com\example\springboot\entity\Admin.class
 com\example\springboot\entity\ProjectApproval.class
 com\example\springboot\service\OperationLogService.class
 com\example\springboot\service\TeamMemberService.class
+com\example\springboot\utils\RolePermissionUtils.class
 com\example\springboot\entity\Team.class
 com\example\springboot\controller\AdminTeamController$AdminTeamCreateRequest.class
 com\example\springboot\entity\ProjectMember.class
@@ -78,5 +83,8 @@ com\example\springboot\entity\TestSuite.class
 com\example\springboot\repository\BugRepository.class
 com\example\springboot\entity\TeamMember.class
 com\example\springboot\repository\TeamMemberRepository.class
+com\example\springboot\controller\AIAnalysisEngineController.class
+com\example\springboot\controller\ProjectController.class
+com\example\springboot\controller\AIWarningController.class
 com\example\springboot\repository\OperationLogRepository.class
 com\example\springboot\controller\AdminUserController$AdminPasswordRequest.class
