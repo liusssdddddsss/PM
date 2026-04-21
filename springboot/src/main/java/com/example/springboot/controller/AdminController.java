@@ -16,10 +16,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
@@ -52,10 +54,10 @@ public class AdminController {
     private String uploadDir;   // 从配置文件读取上传根目录
 
 //    查询所有的数据
-    @Operation(summary = "查询所有管理员",description = "返回管理员列表")
+    @Operation(summary = "查询所有用户",description = "返回用户列表")
     @GetMapping("/findAll")
     public Result findAll(){
-        List<Admin> list = adminService.findall();
+        List<User> list = userRepository.findAll();
         return  Result.success(list);
     }
 
@@ -329,6 +331,43 @@ public class AdminController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取头像失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "更新用户角色", description = "根据用户ID更新用户角色")
+    @PutMapping("/users/{userId}/role")
+    public Result updateUserRole(@PathVariable String userId, @RequestBody Map<String, String> requestBody) {
+        try {
+            System.out.println("更新用户角色请求，用户ID: " + userId + "，请求体: " + requestBody);
+            
+            // 获取新角色
+            String position = requestBody.get("position");
+            if (position == null || position.isEmpty()) {
+                return Result.error("角色不能为空");
+            }
+            
+            // 更新用户角色
+            User user = userRepository.findByUsername(userId);
+            if (user != null) {
+                // 根据角色设置对应的role_id
+                if ("产品经理".equals(position)) {
+                    user.setRole_id(1L);
+                } else if ("开发者".equals(position)) {
+                    user.setRole_id(3L);
+                } else if ("测试者".equals(position)) {
+                    user.setRole_id(4L);
+                } else if ("管理员".equals(position)) {
+                    user.setRole_id(2L);
+                }
+                userRepository.save(user);
+                System.out.println("用户角色更新成功，用户ID: " + userId + "，新角色: " + position);
+                return Result.success("用户角色更新成功");
+            } else {
+                return Result.error("用户不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新用户角色失败: " + e.getMessage());
         }
     }
 }

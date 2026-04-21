@@ -1,6 +1,7 @@
 package com.example.springboot.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Date;
 
 @Entity
@@ -15,6 +16,7 @@ public class User {
     private String email;
     private String avatar;
     private String department;
+    @JsonProperty("role_id")
     private Long role_id;
     private Integer is_admin;
     private Integer status;

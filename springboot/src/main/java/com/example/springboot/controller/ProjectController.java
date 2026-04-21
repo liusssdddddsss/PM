@@ -3,9 +3,11 @@ package com.example.springboot.controller;
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.Project;
 import com.example.springboot.service.ProjectService;
+import com.example.springboot.utils.RolePermissionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
@@ -18,15 +20,23 @@ import java.util.Map;
 public class ProjectController {
     @Autowired
     private ProjectService projectService;
+    
+    @Autowired
+    private RolePermissionUtils rolePermissionUtils;
 
     // 获取项目列表
     @GetMapping("/project/list")
-    public Result getProjectList() {
+    public Result getProjectList(@RequestParam(value = "username", required = false) String username) {
         try {
             Iterable<Project> projects = projectService.findAll();
             List<Map<String, Object>> projectList = new ArrayList<>();
             
             for (Project project : projects) {
+                // 检查用户是否有权限访问该项目
+                if (username != null && !rolePermissionUtils.hasProjectAccess(username, project.getId())) {
+                    continue; // 跳过无权限的项目
+                }
+                
                 Map<String, Object> projectMap = new HashMap<>();
                 projectMap.put("id", project.getId());
                 projectMap.put("name", project.getName());

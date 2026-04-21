@@ -35,9 +35,16 @@
         <el-table-column prop="assignee" label="指派对象" width="100"></el-table-column>
         <el-table-column label="操作" width="180">
             <template #default="scope">
-              <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-              <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
-              <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+              <!-- 非开发者和测试者显示完整操作按钮 -->
+              <template v-if="!isDeveloperOrTester">
+                <span class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+                <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
+                <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+              </template>
+              <!-- 开发者和测试者只显示查看按钮 -->
+              <template v-else>
+                <span class="action-text edit-action" @click="handleEdit(scope.row.id)">查看</span>
+              </template>
             </template>
           </el-table-column>
       </el-table>
@@ -102,6 +109,58 @@ import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
 
+// 获取用户角色
+const userRole = ref(null);
+
+// 检查是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  const roleId = Number(userRole.value);
+  return roleId === 3 || roleId === 4;
+});
+
+// 获取用户角色
+const fetchUserRole = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const username = user.username;
+      
+      console.log('获取用户角色，用户名:', username);
+      const userRes = await request.get(`/admin/findAll`);
+      if (userRes.data.code === 200 && Array.isArray(userRes.data.data)) {
+        // 从User列表中查找当前用户，将username转换为字符串类型进行匹配
+        const currentUser = userRes.data.data.find(u => u.username == String(username));
+        console.log('找到的当前用户:', currentUser);
+        if (currentUser) {
+          console.log('当前用户的role_id:', currentUser.role_id);
+          console.log('当前用户的roleId:', currentUser.roleId); // 检查驼峰命名的字段
+          if (currentUser.role_id) {
+            userRole.value = currentUser.role_id;
+            console.log('当前用户角色ID:', userRole.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else if (currentUser.roleId) {
+            // 处理驼峰命名的情况
+            userRole.value = currentUser.roleId;
+            console.log('当前用户角色ID (roleId):', userRole.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else {
+            console.error('当前用户没有role_id字段或role_id为null/undefined:', currentUser);
+          }
+        } else {
+          console.error('未找到用户角色信息:', currentUser);
+        }
+      } else {
+        console.error('获取用户列表失败:', userRes.data);
+      }
+    } else {
+      console.error('本地存储中没有用户信息');
+    }
+  } catch (error) {
+    console.error('获取用户角色失败:', error);
+  }
+};
+
 const router = useRouter();
 
 // 接收props
@@ -123,8 +182,9 @@ const emit = defineEmits(['update:total']);
 const feedbackList = ref([]);
 
 // 从后端获取反馈列表数据
-onMounted(() => {
-  fetchFeedbacks();
+onMounted(async () => {
+  await fetchUserRole();
+  await fetchFeedbacks();
 });
 
 // 监听状态变化，重新过滤数据

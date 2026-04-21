@@ -302,7 +302,7 @@
             <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff;">
               <div class="staying-test-list">
                 <h3>待测试的测试单</h3>
-                <ul class="test-list">
+                <ul class="test-list" v-if="!isDeveloper">
                   <li v-for="(item, index) in testStatistics.testLists" :key="index">
                     <a href="#" style="cursor: pointer;" @click.prevent="handleTestClick(item)">{{item}}</a>
                   </li>
@@ -310,6 +310,9 @@
                     <span style="color: #909399;">暂无待测试的测试单</span>
                   </li>
                 </ul>
+                <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
+                  无权限查看
+                </div>
               </div>
 
             </div>
@@ -324,7 +327,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, watch} from "vue";
+import {ref, onMounted, watch, computed} from "vue";
 import { useRouter } from "vue-router";
 import ApproveList from '@/views/workbenchView/listView/ApproveList.vue';
 import TaskList from "@/views/workbenchView/listView/TaskList.vue";
@@ -339,6 +342,59 @@ import ProductList from "@/views/workbenchView/listView/ProductList.vue";
 import { useEcharts } from '@/utils/useEcharts.js';
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
 import request from "@/utils/request.js";
+
+// 当前用户角色
+const userRole = ref(null);
+
+// 判断用户是否为开发者
+const isDeveloper = computed(() => {
+  // 角色ID：3=开发者
+  return userRole.value === 3;
+});
+
+// 判断用户是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  // 角色ID：3=开发者，4=测试者
+  const roleId = Number(userRole.value);
+  return roleId === 3 || roleId === 4;
+});
+
+// 获取用户角色
+const fetchUserRole = async () => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      console.log('用户信息:', user);
+      // 直接从用户对象中获取角色ID
+      if (user.role_id !== undefined) {
+        userRole.value = user.role_id;
+        console.log('从本地存储获取角色ID:', userRole.value);
+      } else if (user.roleId !== undefined) {
+        userRole.value = user.roleId;
+        console.log('从本地存储获取角色ID (roleId):', userRole.value);
+      } else {
+        // 如果本地存储中没有角色信息，从后端获取
+        console.log('本地存储中没有角色信息，从后端获取');
+        const response = await request.get('/admin/findAll');
+        if (response.data.code === 200) {
+          const users = response.data.data;
+          const currentUser = users.find(u => u.username == user.username);
+          if (currentUser) {
+            userRole.value = currentUser.role_id || currentUser.roleId;
+            console.log('从后端获取角色ID:', userRole.value);
+            // 更新本地存储中的用户信息
+            user.role_id = userRole.value;
+            localStorage.setItem('user', JSON.stringify(user));
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取用户角色失败:', error);
+  }
+};
 
 // 初始化路由
 const router = useRouter();
@@ -473,6 +529,9 @@ onMounted(async () => {
     
     // 从后端获取用户的真实姓名和头像
     fetchUserInfo(user.username);
+    
+    // 获取用户角色
+    await fetchUserRole();
   } else {
     console.error('本地存储中没有用户信息');
   }
@@ -950,9 +1009,19 @@ const fetchTaskOverview = async () => {
 // 从后端获取测试统计数据
 const fetchTestStatistics = async (projectName = '') => {
   try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
     let url = '/dashboard/test-statistics';
     if (projectName) {
       url += `?projectName=${encodeURIComponent(projectName)}`;
+    }
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (url.includes('?')) {
+        url += `&username=${user.username}`;
+      } else {
+        url += `?username=${user.username}`;
+      }
     }
     const response = await request.get(url);
     if (response.data.code === 200) {

@@ -38,6 +38,7 @@ const dynamicData = ref([]);
 // 从后端获取最新动态数据
 const fetchDynamicData = async () => {
   try {
+    // 最新动态改为全员可见，不传递用户名参数
     const response = await request.get('/dashboard/dynamic');
     if (response.data.code === 200) {
       dynamicData.value = response.data.data || [];

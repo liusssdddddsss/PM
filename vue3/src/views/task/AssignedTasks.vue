@@ -60,9 +60,16 @@
         <el-table-column prop="remainingTime" label="剩余工时" width="100"></el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="scope">
-            <span class="action-text close-action" @click="handleClose(scope.row.id)">关闭</span>
-            <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
-            <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+            <!-- 非开发者和测试者显示完整操作按钮 -->
+            <template v-if="!isDeveloperOrTester">
+              <span class="action-text close-action" @click="handleClose(scope.row.id)">关闭</span>
+              <span class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
+              <span class="action-text delete-action" @click="handleDelete(scope.row.id)">删除</span>
+            </template>
+            <!-- 开发者和测试者只显示查看按钮 -->
+            <template v-else>
+              <span class="action-text edit-action" @click="handleEdit(scope.row.id)">查看</span>
+            </template>
           </template>
         </el-table-column>
       </el-table>
@@ -71,9 +78,22 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+
+// 获取用户角色
+const userRole = ref(null);
+const userStr = localStorage.getItem('user');
+if (userStr) {
+  const user = JSON.parse(userStr);
+  userRole.value = user.role_id || user.role;
+}
+
+// 检查是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  return userRole.value === 3 || userRole.value === 4;
+});
 
 const tabs = ref([
   {name:'全部',type:'all',count:16},

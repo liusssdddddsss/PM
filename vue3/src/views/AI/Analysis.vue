@@ -1,9 +1,9 @@
 <template>
   <div class="analysis-container">
-    <div class="header-section">
-      <h2 class="main-title">智能分析预警系统</h2>
-      <p class="main-subtitle">基于AI技术的项目和产品风险分析平台</p>
-    </div>
+<!--    <div class="header-section">-->
+<!--      <h2 class="main-title">智能分析预警系统</h2>-->
+<!--      <p class="main-subtitle">基于AI技术的项目和产品风险分析平台</p>-->
+<!--    </div>-->
     
     <div class="content-section">
       <div class="left-panel">
@@ -39,10 +39,10 @@
               <el-icon class="btn-icon"><Refresh /></el-icon>
               立即扫描
             </el-button>
-            <el-button type="info" @click="getEngineStatus" class="action-btn">
-              <el-icon class="btn-icon"><View /></el-icon>
-              刷新状态
-            </el-button>
+<!--            <el-button type="info" @click="getEngineStatus" class="action-btn">-->
+<!--              <el-icon class="btn-icon"><View /></el-icon>-->
+<!--              刷新状态-->
+<!--            </el-button>-->
           </div>
         </el-card>
       </div>
@@ -420,8 +420,8 @@ const getProjectName = (projectId) => {
 <style scoped>
 .analysis-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 30px;
+  //background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  //padding: 30px;
 }
 
 .header-section {
@@ -434,7 +434,7 @@ const getProjectName = (projectId) => {
   font-weight: bold;
   color: #303133;
   margin-bottom: 10px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  //text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .main-subtitle {
@@ -460,13 +460,13 @@ const getProjectName = (projectId) => {
 
 .panel-card {
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  //box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .panel-card:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  //box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
 
@@ -496,7 +496,7 @@ const getProjectName = (projectId) => {
 
 .title .subtitle {
   margin: 0;
-  color: #909399;
+  //color: #909399;
   font-size: 14px;
 }
 
@@ -551,7 +551,7 @@ const getProjectName = (projectId) => {
 .engine-status {
   margin: 20px 0;
   padding: 15px;
-  background: #f8f9fa;
+  //background: #f8f9fa;
   border-radius: 12px;
 }
 

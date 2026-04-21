@@ -82,8 +82,9 @@ public class DashboardController {
             int resolvedBugs = 0;
             int unresolvedBugs = 0;
 
-            // 检查用户是否为产品经理
+            // 检查用户角色
             boolean isProductManager = false;
+            boolean isDeveloper = false;
             Long currentUserId = null;
             if (username != null) {
                 User user = userService.findByUsername(username);
@@ -92,14 +93,44 @@ public class DashboardController {
                     if (user.getId() != null) {
                         currentUserId = user.getId().longValue();
                     }
-                    // 假设role_id为1表示产品经理
+                    // 假设role_id为1表示产品经理，2表示开发者，3表示测试者
                     if (user.getRole_id() != null && user.getRole_id() == 1) {
                         isProductManager = true;
+                    } else if (user.getRole_id() != null && user.getRole_id() == 2) {
+                        isDeveloper = true;
                     }
                 }
             }
             System.out.println("是否为产品经理: " + isProductManager);
+            System.out.println("是否为开发者: " + isDeveloper);
             System.out.println("当前用户ID: " + currentUserId);
+
+            // 获取用户参与的项目ID列表
+            Set<Long> userProjectIds = new HashSet<>();
+            if (username != null) {
+                try {
+                    // 尝试将用户名转换为Long类型（如果用户名是数字格式）
+                    Long userId = Long.parseLong(username);
+                    List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                    for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                        if (member.getProjectId() != null) {
+                            userProjectIds.add(member.getProjectId());
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    // 用户名不是数字格式，尝试通过用户名查找用户
+                    User user = userService.findByUsername(username);
+                    if (user != null && user.getId() != null) {
+                        Long userId = user.getId().longValue();
+                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                            if (member.getProjectId() != null) {
+                                userProjectIds.add(member.getProjectId());
+                            }
+                        }
+                    }
+                }
+            }
 
             // 如果指定了项目名称，过滤出该项目的Bug
             Long targetProjectId = null;
@@ -129,6 +160,13 @@ public class DashboardController {
                 if (targetProjectId != null) {
                     if (bug.getProjectId() == null || !bug.getProjectId().equals(targetProjectId.intValue())) {
                         continue;
+                    }
+                } else if (username != null) {
+                    // 如果未指定项目，只统计用户参与项目的Bug
+                    if (bug.getProjectId() != null) {
+                        if (!userProjectIds.contains(Long.valueOf(bug.getProjectId()))) {
+                            continue;
+                        }
                     }
                 }
                 
@@ -194,13 +232,22 @@ public class DashboardController {
             statistics.put("unclosedBugs", unresolvedBugs);
             statistics.put("bugRepairRate", Math.round(bugRepairRate));
             
-            // 提取测试列表
+            // 提取测试列表（只显示用户有权限查看的）
             List<String> testLists = new ArrayList<>();
             for (TestSuite testSuite : testSuites) {
                 System.out.println("测试套件ID: " + testSuite.getId() + ", 名称: " + testSuite.getName() + ", 负责人ID: " + testSuite.getAssignee_id());
-                // 不考虑用户角色，显示所有测试单
+                // 检查用户是否有权限查看该测试套件
                 if (testSuite.getName() != null) {
-                    testLists.add(testSuite.getName());
+                    if (username == null) {
+                        // 未登录用户不显示
+                        continue;
+                    } else if (isProductManager) {
+                        // 产品经理可以查看所有
+                        testLists.add(testSuite.getName());
+                    } else if (testSuite.getProject_id() != null && userProjectIds.contains(testSuite.getProject_id())) {
+                        // 其他用户只能查看自己参与项目的测试套件
+                        testLists.add(testSuite.getName());
+                    }
                 }
             }
             System.out.println("最终测试列表数量: " + testLists.size());
@@ -209,51 +256,38 @@ public class DashboardController {
             // 提取模块列表（近期模块审核）
             List<String> modules = new ArrayList<>();
             for (TestSuite testSuite : testSuites) {
-                // 不考虑用户角色，显示所有测试单
+                // 检查用户是否有权限查看该测试套件
                 if (testSuite.getName() != null) {
-                    modules.add(testSuite.getName());
+                    if (username == null) {
+                        // 未登录用户不显示
+                        continue;
+                    } else if (isProductManager) {
+                        // 产品经理可以查看所有
+                        modules.add(testSuite.getName());
+                    } else if (testSuite.getProject_id() != null && userProjectIds.contains(testSuite.getProject_id())) {
+                        // 其他用户只能查看自己参与项目的测试套件
+                        modules.add(testSuite.getName());
+                    }
                 }
             }
             statistics.put("modules", modules);
 
-            // 提取待测试的测试单
+            // 提取待测试的测试单（开发者不可以查看）
             List<Map<String, Object>> pendingTests = new ArrayList<>();
-            for (TestSuite testSuite : testSuites) {
-                // 不考虑用户角色，显示所有待测试的测试单
-                if (testSuite.getStatus() != null && testSuite.getStatus() == 1) { // 1表示待测试
-                    Map<String, Object> test = new HashMap<>();
-                    test.put("name", testSuite.getName());
-                    
-                    // 转换优先级
-                    String priority = "一般";
-                    if (testSuite.getPriority() != null) {
-                        switch (testSuite.getPriority()) {
-                            case 1: priority = "紧急"; break;
-                            case 2: priority = "一般"; break;
-                            case 3: priority = "正常"; break;
-                        }
-                    }
-                    test.put("priority", priority);
-                    
-                    // 获取产品名称
-                    String productName = "未知产品";
-                    if (testSuite.getProduct_id() != null) {
-                        try {
-                            Optional<Product> productOpt = productService.findById(testSuite.getProduct_id());
-                            if (productOpt.isPresent()) {
-                                productName = productOpt.get().getName();
+            if (!isDeveloper) { // 开发者不可以查看待测试的测试单
+                for (TestSuite testSuite : testSuites) {
+                    if (testSuite.getStatus() != null && testSuite.getStatus() == 1) { // 1表示待测试
+                        // 检查用户是否有权限查看该测试套件
+                        if (testSuite.getName() != null) {
+                            if (isProductManager) {
+                                // 产品经理可以查看所有
+                                addPendingTest(testSuite, productService, pendingTests);
+                            } else if (testSuite.getProject_id() != null && userProjectIds.contains(testSuite.getProject_id())) {
+                                // 测试者只能查看自己参与项目的待测试测试单
+                                addPendingTest(testSuite, productService, pendingTests);
                             }
-                        } catch (Exception e) {
-                            // 如果获取产品名称失败，使用默认值
                         }
                     }
-                    test.put("product", productName);
-                    
-                    // 开始日期和结束日期
-                    test.put("startDate", testSuite.getStart_date() != null ? testSuite.getStart_date() : "");
-                    test.put("endDate", testSuite.getEnd_date() != null ? testSuite.getEnd_date() : "");
-                    
-                    pendingTests.add(test);
                 }
             }
             statistics.put("pendingTests", pendingTests);
@@ -263,6 +297,43 @@ public class DashboardController {
             e.printStackTrace();
             return Result.error("获取测试统计数据失败: " + e.getMessage());
         }
+    }
+    
+    // 辅助方法：添加待测试的测试单
+    private void addPendingTest(TestSuite testSuite, ProductService productService, List<Map<String, Object>> pendingTests) {
+        Map<String, Object> test = new HashMap<>();
+        test.put("name", testSuite.getName());
+        
+        // 转换优先级
+        String priority = "一般";
+        if (testSuite.getPriority() != null) {
+            switch (testSuite.getPriority()) {
+                case 1: priority = "紧急"; break;
+                case 2: priority = "一般"; break;
+                case 3: priority = "正常"; break;
+            }
+        }
+        test.put("priority", priority);
+        
+        // 获取产品名称
+        String productName = "未知产品";
+        if (testSuite.getProduct_id() != null) {
+            try {
+                Optional<Product> productOpt = productService.findById(testSuite.getProduct_id());
+                if (productOpt.isPresent()) {
+                    productName = productOpt.get().getName();
+                }
+            } catch (Exception e) {
+                // 如果获取产品名称失败，使用默认值
+            }
+        }
+        test.put("product", productName);
+        
+        // 开始日期和结束日期
+        test.put("startDate", testSuite.getStart_date() != null ? testSuite.getStart_date() : "");
+        test.put("endDate", testSuite.getEnd_date() != null ? testSuite.getEnd_date() : "");
+        
+        pendingTests.add(test);
     }
 
     @Operation(summary = "获取用户测试任务", description = "返回当前用户的测试任务列表")
@@ -396,7 +467,7 @@ public class DashboardController {
 
     @Operation(summary = "获取最新动态数据", description = "返回最新动态数据")
     @GetMapping("/dynamic")
-    public Result getDynamicData() {
+    public Result getDynamicData(@RequestParam(required = false) String username) {
         try {
             // 从数据库获取操作日志数据
             List<OperationLog> operationLogs = operationLogService.findall();
@@ -414,8 +485,65 @@ public class DashboardController {
             // 从数据库获取所有用户
             Iterable<User> allUsers = userService.findAll();
             
+            // 获取用户参与的项目ID列表
+            Set<Long> userProjectIds = new HashSet<>();
+            if (username != null) {
+                try {
+                    // 尝试将用户名转换为Long类型（如果用户名是数字格式）
+                    Long userId = Long.parseLong(username);
+                    List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                    for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                        if (member.getProjectId() != null) {
+                            userProjectIds.add(member.getProjectId());
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    // 用户名不是数字格式，尝试通过用户名查找用户
+                    User user = userService.findByUsername(username);
+                    if (user != null && user.getId() != null) {
+                        Long userId = user.getId().longValue();
+                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                            if (member.getProjectId() != null) {
+                                userProjectIds.add(member.getProjectId());
+                            }
+                        }
+                    }
+                }
+            }
+            
             // 转换操作日志为前端需要的格式
             for (OperationLog log : operationLogs) {
+                // 检查是否是用户团队内的动态
+                if (username != null) {
+                    // 这里简化处理，假设操作日志中的module字段包含项目信息
+                    // 实际项目中可能需要更复杂的逻辑来判断动态是否与用户团队相关
+                    boolean isTeamRelated = false;
+                    
+                    // 1. 操作人是用户自己
+                    if (log.getUser_id() != null && log.getUser_id().equals(username)) {
+                        isTeamRelated = true;
+                    }
+                    
+                    // 2. 操作与用户参与的项目相关
+                    if (!isTeamRelated && log.getModule() != null) {
+                        // 尝试从module字段中提取项目信息
+                        // 这里简化处理，实际项目中可能需要更复杂的解析
+                        String module = log.getModule();
+                        for (Long projectId : userProjectIds) {
+                            if (module.contains(projectId.toString())) {
+                                isTeamRelated = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 如果不是团队相关的动态，跳过
+                    if (!isTeamRelated) {
+                        continue;
+                    }
+                }
+                
                 Map<String, String> item = new HashMap<>();
                 
                 // 格式化时间
@@ -431,13 +559,13 @@ public class DashboardController {
                 if (log.getUser_id() != null) {
                     try {
                         // 遍历所有用户，找到对应的用户
-                for (User user : allUsers) {
-                    // 直接使用String类型比较，因为log.getUser_id()现在是String类型
-                    if (user.getUsername() != null && user.getUsername().equals(log.getUser_id())) {
-                        operator = user.getName() != null ? user.getName() : user.getUsername();
-                        break;
-                    }
-                }
+                        for (User user : allUsers) {
+                            // 直接使用String类型比较，因为log.getUser_id()现在是String类型
+                            if (user.getUsername() != null && user.getUsername().equals(log.getUser_id())) {
+                                operator = user.getName() != null ? user.getName() : user.getUsername();
+                                break;
+                            }
+                        }
                     } catch (Exception e) {
                         // 如果获取用户信息失败，使用默认值
                     }

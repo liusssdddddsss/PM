@@ -43,11 +43,19 @@
         <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
         <el-table-column label="操作" width="240">
             <template #default="scope">
-              <span v-if="scope.row.status !== '已关闭'" class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-              <span v-else class="action-text open-action" @click="handleOpen(scope.row)">打开</span>
-              <span v-if="scope.row.status !== '已关闭'" class="action-text edit-action" @click="goToProductEdit(scope.row.id)">编辑</span>
-              <span class="action-text submit-action" @click="handleSubmitCode(scope.row)">提交代码</span>
-              <span class="action-text delete-action" @click="handleDelete(scope.row)">删除</span>
+              <!-- 非开发者和测试者显示完整操作按钮 -->
+              <template v-if="!isDeveloperOrTester">
+                <span v-if="scope.row.status !== '已关闭'" class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+                <span v-else class="action-text open-action" @click="handleOpen(scope.row)">打开</span>
+                <span v-if="scope.row.status !== '已关闭'" class="action-text edit-action" @click="goToProductEdit(scope.row.id)">编辑</span>
+                <span class="action-text submit-action" @click="handleSubmitCode(scope.row)">提交代码</span>
+                <span class="action-text delete-action" @click="handleDelete(scope.row)">删除</span>
+              </template>
+              <!-- 开发者和测试者只显示查看和提交代码按钮 -->
+              <template v-else>
+                <span class="action-text edit-action" @click="goToProductEdit(scope.row.id)">查看</span>
+                <span class="action-text submit-action" @click="handleSubmitCode(scope.row)">提交代码</span>
+              </template>
             </template>
           </el-table-column>
       </el-table>
@@ -186,6 +194,58 @@ import request from "@/utils/request.js";
 import { recordOperationLog } from "@/utils/operationLog.js";
 import { ElMessageBox, ElMessage } from "element-plus";
 
+// 获取用户角色
+const userRole = ref(null);
+
+// 检查是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  const roleId = Number(userRole.value);
+  return roleId === 3 || roleId === 4;
+});
+
+// 获取用户角色
+const fetchUserRole = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const username = user.username;
+      
+      console.log('获取用户角色，用户名:', username);
+      const userRes = await request.get(`/admin/findAll`);
+      if (userRes.data.code === 200 && Array.isArray(userRes.data.data)) {
+        // 从User列表中查找当前用户，将username转换为字符串类型进行匹配
+        const currentUser = userRes.data.data.find(u => u.username == String(username));
+        console.log('找到的当前用户:', currentUser);
+        if (currentUser) {
+          console.log('当前用户的role_id:', currentUser.role_id);
+          console.log('当前用户的roleId:', currentUser.roleId); // 检查驼峰命名的字段
+          if (currentUser.role_id) {
+            userRole.value = currentUser.role_id;
+            console.log('当前用户角色ID:', userRole.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else if (currentUser.roleId) {
+            // 处理驼峰命名的情况
+            userRole.value = currentUser.roleId;
+            console.log('当前用户角色ID (roleId):', userRole.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else {
+            console.error('当前用户没有role_id字段或role_id为null/undefined:', currentUser);
+          }
+        } else {
+          console.error('未找到用户角色信息:', currentUser);
+        }
+      } else {
+        console.error('获取用户列表失败:', userRes.data);
+      }
+    } else {
+      console.error('本地存储中没有用户信息');
+    }
+  } catch (error) {
+    console.error('获取用户角色失败:', error);
+  }
+};
+
 // 接收父组件传递的搜索词、活动标签和状态
 const props = defineProps({
   searchQuery: {
@@ -218,8 +278,9 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 
 // 从后端获取任务列表数据
-onMounted(() => {
-  fetchTasks();
+onMounted(async () => {
+  await fetchUserRole();
+  await fetchTasks();
 });
 
 // 监听 activeTab 变化，重新获取任务列表

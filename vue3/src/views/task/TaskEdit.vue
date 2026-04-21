@@ -1,12 +1,12 @@
 <template>
   <div class="task-edit">
-    <h3>{{ taskForm.name || '编辑任务' }}</h3>
+    <h3>{{ taskForm.name || '查看任务' }}</h3>
     <div class="form-container">
       <div class="form-content">
         <div class="left-section">
           <el-form :model="taskForm" label-width="120px">
             <el-form-item label="任务名称">
-              <el-input v-model="taskForm.name" placeholder="请输入" />
+              <el-input v-model="taskForm.name" placeholder="请输入" readonly />
             </el-form-item>
 
             <el-form-item label="任务描述">
@@ -15,30 +15,22 @@
                   type="textarea"
                   placeholder="请输入任务描述"
                   :rows="6"
+                  readonly
               />
             </el-form-item>
 
             <el-form-item label="附件">
-              <el-upload
-                  class="upload-demo"
-                  action="#"
-                  :auto-upload="false"
-                  :on-change="handleFileChange"
-                  :file-list="fileList"
-                  drag
-              >
-                <i class="el-icon-upload"></i>
-                <div class="el-upload__text">选择文件</div>
-                <template #tip>
-                  <div class="el-upload__tip">
-                    可点击添加或拖拽上传，不超过100.0MB
-                  </div>
-                </template>
-              </el-upload>
+              <div class="file-list">
+                <div v-for="(file, index) in fileList" :key="index" class="file-item">
+                  {{ file.name }}
+                </div>
+                <div v-if="fileList.length === 0" class="no-files">
+                  无附件
+                </div>
+              </div>
             </el-form-item>
 
             <div class="form-buttons">
-              <el-button type="primary" @click="saveTask">保存</el-button>
               <el-button @click="goBack">返回</el-button>
             </div>
           </el-form>
@@ -48,7 +40,7 @@
           <h3>基本信息</h3>
           <el-form :model="taskForm" label-width="120px">
             <el-form-item label="所属项目">
-              <el-select v-model="taskForm.project" placeholder="请选择">
+              <el-select v-model="taskForm.project" placeholder="请选择" disabled>
                 <el-option label="项目名称1" value="project1" />
                 <el-option label="项目名称2" value="project2" />
                 <el-option label="项目名称3" value="project3" />
@@ -56,7 +48,7 @@
             </el-form-item>
 
             <el-form-item label="指派给">
-              <el-select v-model="taskForm.assignedTo" placeholder="请选择">
+              <el-select v-model="taskForm.assignedTo" placeholder="请选择" disabled>
                 <el-option label="张三" value="zhangsan" />
                 <el-option label="李四" value="lisi" />
                 <el-option label="王五" value="wangwu" />
@@ -64,7 +56,7 @@
             </el-form-item>
 
             <el-form-item label="任务状态">
-              <el-select v-model="taskForm.status" placeholder="请选择">
+              <el-select v-model="taskForm.status" placeholder="请选择" disabled>
                 <el-option label="进行中" value="inProgress" />
                 <el-option label="待开始" value="pending" />
                 <el-option label="已完成" value="completed" />
@@ -72,7 +64,7 @@
             </el-form-item>
 
             <el-form-item label="优先级">
-              <el-select v-model="taskForm.priority" placeholder="请选择">
+              <el-select v-model="taskForm.priority" placeholder="请选择" disabled>
                 <el-option label="重要" value="high" />
                 <el-option label="一般" value="medium" />
                 <el-option label="次要" value="low" />
@@ -85,6 +77,7 @@
                   type="date"
                   placeholder="请选"
                   style="width: 100%"
+                  disabled
               />
             </el-form-item>
 
@@ -94,6 +87,7 @@
                   type="date"
                   placeholder="请选"
                   style="width: 100%"
+                  disabled
               />
             </el-form-item>
           </el-form>
@@ -396,5 +390,28 @@ h3 {
   flex: 1;
   font-size: 12px;
   color: #303133;
+}
+
+.file-list {
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 10px;
+  min-height: 100px;
+  background-color: #f9f9f9;
+}
+
+.file-item {
+  padding: 5px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.file-item:last-child {
+  border-bottom: none;
+}
+
+.no-files {
+  color: #909399;
+  text-align: center;
+  padding: 20px 0;
 }
 </style>

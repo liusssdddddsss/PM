@@ -1,13 +1,13 @@
 <template>
   <div class="edit">
-    <h3>编辑项目</h3>
+    <h3>查看项目</h3>
     <el-divider/>
     <div class="form-container">
       <el-form :model="projectForm" label-width="120px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="项目名称">
-              <el-input v-model="projectForm.name" placeholder="请输入项目名称" />
+              <el-input v-model="projectForm.name" placeholder="请输入项目名称" readonly />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -19,6 +19,7 @@
                 :remote-method="remoteSearch"
                 :loading="loading"
                 placeholder="请选择所属产品"
+                disabled
               >
                 <el-option
                   v-for="product in productList"
@@ -39,6 +40,7 @@
                   type="date"
                   placeholder="请选"
                   style="width: 100%"
+                  disabled
               />
             </el-form-item>
           </el-col>
@@ -49,6 +51,7 @@
                   type="date"
                   placeholder="请选"
                   style="width: 100%"
+                  disabled
               />
             </el-form-item>
           </el-col>
@@ -57,7 +60,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="负责人">
-              <el-select v-model="projectForm.leader" placeholder="请选择负责人">
+              <el-select v-model="projectForm.leader" placeholder="请选择负责人" disabled>
                 <el-option label="张三" value="zhangsan" />
                 <el-option label="李四" value="lisi" />
                 <el-option label="王五" value="wangwu" />
@@ -74,6 +77,7 @@
                 :remote-method="remoteSearchDevelopers"
                 :loading="loadingDevelopers"
                 placeholder="请选择开发者"
+                disabled
               >
                 <el-option
                   v-for="developer in developerList"
@@ -97,6 +101,7 @@
                 :remote-method="remoteSearchTesters"
                 :loading="loadingTesters"
                 placeholder="请选择测试者"
+                disabled
               >
                 <el-option
                   v-for="tester in testerList"
@@ -115,11 +120,12 @@
               type="textarea"
               placeholder="请输入备注"
               :rows="4"
+              readonly
           />
         </el-form-item>
 
         <el-form-item label="访问控制">
-          <el-radio-group v-model="projectForm.accessControl">
+          <el-radio-group v-model="projectForm.accessControl" disabled>
             <el-radio label="public">公开(所有人可见)</el-radio>
             <el-radio label="private">私有(只项目负责人、团队成员和干系人可访问)</el-radio>
           </el-radio-group>
@@ -128,7 +134,6 @@
         <el-row :gutter="20">
           <el-col :span="24">
             <div class="form-buttons">
-              <el-button type="primary" @click="saveProject">保存</el-button>
               <el-button @click="goBack">返回</el-button>
             </div>
           </el-col>

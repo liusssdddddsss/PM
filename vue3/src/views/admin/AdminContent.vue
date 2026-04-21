@@ -95,7 +95,7 @@
               <el-table-column label="操作" min-width="380">
                 <template #default="scope">
                   <el-button size="small" type="primary" @click="showUserDetail(scope.row)">查看</el-button>
-                  <el-button size="small" type="success" @click="editPermission(scope.row)">权限</el-button>
+                  <el-button size="small" type="success" @click="switchUserIdentity(scope.row)">切换身份</el-button>
                   <el-button size="small" type="warning" @click="editUser(scope.row)">编辑</el-button>
                   <el-button size="small" type="danger" @click="toggleUserStatus(scope.row)">
                     {{scope.row.status === '启用' ? '禁用' : '启用'}}
@@ -199,40 +199,31 @@
       </template>
     </el-dialog>
     
-    <!-- 权限编辑对话框 -->
+
+    
+    <!-- 切换用户身份对话框 -->
     <el-dialog
-      v-model="permissionDialogVisible"
-      title="编辑用户权限"
-      width="600px"
+      v-model="switchIdentityDialogVisible"
+      title="切换用户身份"
+      width="400px"
     >
-      <el-form :model="formPermission" label-width="100px">
+      <el-form :model="formSwitchIdentity" label-width="80px">
         <el-form-item label="用户">
-          <el-input v-model="formPermission.userName" disabled />
+          <el-input v-model="formSwitchIdentity.userName" disabled />
         </el-form-item>
-        <el-form-item label="角色">
-          <el-select v-model="formPermission.role" placeholder="请选择角色">
-            <el-option label="超级管理员" value="超级管理员" />
+        <el-form-item label="新身份">
+          <el-select v-model="formSwitchIdentity.newRole" placeholder="请选择新身份">
             <el-option label="产品经理" value="产品经理" />
             <el-option label="开发者" value="开发者" />
             <el-option label="测试者" value="测试者" />
+            <el-option label="管理员" value="管理员" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="权限列表">
-          <el-table :data="permissionList" style="width: 100%">
-            <el-table-column prop="code" label="权限代码" width="150" />
-            <el-table-column prop="name" label="权限名称" />
-            <el-table-column label="权限" width="100">
-              <template #default="scope">
-                <el-checkbox v-model="scope.row.checked" />
-              </template>
-            </el-table-column>
-          </el-table>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="permissionDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="savePermission">保存</el-button>
+          <el-button @click="switchIdentityDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveSwitchIdentity">保存</el-button>
         </span>
       </template>
     </el-dialog>
@@ -337,8 +328,8 @@ const userList = computed(() => {
 // 对话框状态
 const userDialogVisible = ref(false);
 const userDetailVisible = ref(false);
-const permissionDialogVisible = ref(false);
 const passwordDialogVisible = ref(false);
+const switchIdentityDialogVisible = ref(false);
 const isEditUser = ref(false);
 
 // 表单数据
@@ -363,24 +354,18 @@ const selectedUser = ref({
   status: ''
 });
 
-const formPermission = ref({
-  userName: '',
-  role: ''
-});
-
 const formPassword = ref({
   userName: '',
   newPassword: '',
   confirmPassword: ''
 });
 
-// 权限列表
-const permissionList = ref([
-  {code: 'USER_MANAGE', name: '用户管理', checked: false},
-  {code: 'ROLE_MANAGE', name: '角色权限配置', checked: false},
-  {code: 'ADMIN_SETTINGS', name: '系统配置', checked: false},
-  {code: 'LOG_VIEW', name: '查看全系统日志', checked: false}
-]);
+// 切换身份表单
+const formSwitchIdentity = ref({
+  userId: '',
+  userName: '',
+  newRole: ''
+});
 
 // 方法
 const showAddUserDialog = () => {
@@ -467,20 +452,30 @@ const showUserDetail = (user) => {
   userDetailVisible.value = true;
 };
 
-const editPermission = (user) => {
-  formPermission.value = {
+const switchUserIdentity = (user) => {
+  formSwitchIdentity.value = {
+    userId: user.userId,
     userName: user.name,
-    role: user.position
+    newRole: user.position
   };
-  // 根据角色设置权限
-  permissionList.value.forEach(permission => {
-    permission.checked = user.position === '管理员';
-  });
-  permissionDialogVisible.value = true;
+  switchIdentityDialogVisible.value = true;
 };
 
-const savePermission = () => {
-  permissionDialogVisible.value = false;
+const saveSwitchIdentity = async () => {
+  try {
+    const response = await request.put(`/admin/users/${formSwitchIdentity.value.userId}/role`, {
+      position: formSwitchIdentity.value.newRole
+    });
+    if (response.data.code === 200) {
+      // 重新获取用户列表
+      await fetchUserList();
+      // 刷新统计数据
+      await fetchDashboardData();
+      switchIdentityDialogVisible.value = false;
+    }
+  } catch (error) {
+    console.error('切换用户身份失败:', error);
+  }
 };
 
 const changePassword = (user) => {

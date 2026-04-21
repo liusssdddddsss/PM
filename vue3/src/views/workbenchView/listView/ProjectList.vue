@@ -9,6 +9,9 @@
       >
         {{ project.name }}
       </li>
+      <li v-if="projectList.length === 0" class="no-permission">
+        你无权限查看项目
+      </li>
     </ul>
   </div>
 </template>
@@ -25,8 +28,13 @@ const projectList = ref([]);
 // 从后端获取项目列表数据
 const fetchProjects = async () => {
   try {
-    // 从后端获取所有项目列表
-    const response = await request.get('/workbench/all-projects');
+    // 从本地存储获取用户信息
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const username = user ? user.username : '';
+    
+    // 从后端获取所有项目列表，传递username参数
+    const response = await request.get(`/workbench/all-projects?username=${username}`);
     console.log('获取项目列表响应:', response);
     if (response.data.code === 200) {
       projectList.value = response.data.data.map(project => ({
@@ -81,5 +89,16 @@ onMounted(async () => {
 .project-list li.active {
   background-color: #ecf5ff;
   border-left: 3px solid #409EFF;
+}
+
+.project-list li.no-permission {
+  color: #909399;
+  cursor: default;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.project-list li.no-permission:hover {
+  background-color: transparent;
 }
 </style>

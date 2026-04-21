@@ -1,9 +1,15 @@
 package com.example.springboot.utils;
 
+import com.example.springboot.entity.Project;
+import com.example.springboot.entity.ProjectMember;
 import com.example.springboot.entity.User;
+import com.example.springboot.service.ProjectMemberService;
+import com.example.springboot.service.ProjectService;
 import com.example.springboot.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class RolePermissionUtils {
@@ -16,6 +22,12 @@ public class RolePermissionUtils {
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private ProjectService projectService;
+    
+    @Autowired
+    private ProjectMemberService projectMemberService;
     
     /**
      * 检查用户是否为产品经理
@@ -82,8 +94,42 @@ public class RolePermissionUtils {
         }
         
         // 开发者和测试者只能访问自己参与的项目
-        // 这里可以根据实际的项目成员关系进行检查
-        // 暂时返回true，后续可以根据实际需求实现
-        return true;
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
+        
+        // 获取项目信息
+        java.util.Optional<Project> optionalProject = projectService.findById(projectId);
+        if (!optionalProject.isPresent()) {
+            return false;
+        }
+        Project project = optionalProject.get();
+        
+        // 检查用户是否是项目的创建者或管理者
+        Long userId = null;
+        try {
+            userId = Long.parseLong(user.getUsername());
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        
+        if (userId != null && (userId.equals(project.getCreator_id()) || userId.equals(project.getManagerId()))) {
+            return true;
+        }
+        
+        // 检查用户是否是项目的成员
+        try {
+            List<ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+            for (ProjectMember member : projectMembers) {
+                if (member.getProjectId() != null && member.getProjectId().equals(projectId)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // 检查失败，返回false
+        }
+        
+        return false;
     }
 }

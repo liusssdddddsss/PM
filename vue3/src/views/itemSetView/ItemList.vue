@@ -19,7 +19,7 @@
               class="search-input"
           />
         </div>
-        <div class="addProject">
+        <div class="addProject" v-if="!isDeveloperOrTester">
 <!--        <el-button @click="goToItemEdit">
           编辑项目
         </el-button>-->
@@ -32,7 +32,13 @@
     <div class="list">
       <div class="project-table-container">
         <div class="table-container">
+          <!-- 无权限提示 -->
+          <div v-if="projectData.length === 0" class="no-permission">
+            你无权限查看项目
+          </div>
+          
           <el-table
+              v-else
               :data="paginatedData"
               style="width: 100%"
               class="ProjectTable"
@@ -74,10 +80,17 @@
             </el-table-column>
             <el-table-column label="操作" width="200">
               <template #default="scope">
-                <span v-if="scope.row.states !== '已关闭'" class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
-                <span v-else class="action-text open-action" @click="handleOpen(scope.row)">打开</span>
-                <span v-if="scope.row.states !== '已关闭'" class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
-                <span class="action-text delete-action" @click="handleDelete(scope.row)">删除</span>
+                <!-- 非开发者和测试者可以看到关闭/打开和删除按钮 -->
+                <template v-if="!isDeveloperOrTester">
+                  <span v-if="scope.row.states !== '已关闭'" class="action-text close-action" @click="handleClose(scope.row)">关闭</span>
+                  <span v-else class="action-text open-action" @click="handleOpen(scope.row)">打开</span>
+                  <span v-if="scope.row.states !== '已关闭'" class="action-text edit-action" @click="handleEdit(scope.row.id)">编辑</span>
+                  <span class="action-text delete-action" @click="handleDelete(scope.row)">删除</span>
+                </template>
+                <!-- 开发者和测试者只能看到查看按钮 -->
+                <template v-else>
+                  <span class="action-text edit-action" @click="handleEdit(scope.row.id)">查看</span>
+                </template>
               </template>
             </el-table-column>
           </el-table>
@@ -102,8 +115,8 @@
 
 <script setup>
 
-import {ref, computed} from "vue";
-import {useRouter} from "vue-router";
+import {ref, computed, onMounted, onBeforeMount} from "vue";
+import {useRouter, useRoute} from "vue-router";
 import request from "@/utils/request.js";
 import { ElMessageBox, ElMessage } from "element-plus";
 import { recordOperationLog } from "@/utils/operationLog.js";
@@ -133,10 +146,76 @@ const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(20);
 
+// 当前用户角色
+const userRole = ref(null);
+
+// 判断用户是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  // 角色ID：3=开发者，4=测试者
+  const roleId = Number(userRole.value);
+  return roleId === 3 || roleId === 4;
+});
+
+// 获取用户角色
+const fetchUserRole = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const username = user.username;
+      
+      console.log('获取用户角色，用户名:', username);
+      const userRes = await request.get(`/admin/findAll`);
+      console.log('获取用户列表响应:', userRes);
+      if (userRes.data.code === 200 && Array.isArray(userRes.data.data)) {
+        console.log('用户列表数据:', userRes.data.data);
+        console.log('用户列表数据长度:', userRes.data.data.length);
+        // 从User列表中查找当前用户，处理不同类型的username
+        const currentUser = userRes.data.data.find(u => {
+          // 尝试不同的匹配方式
+          return u.username == String(username) || u.username == username;
+        });
+        console.log('找到的当前用户:', currentUser);
+        if (currentUser) {
+          console.log('当前用户的所有属性:', Object.keys(currentUser));
+          console.log('当前用户的role_id:', currentUser.role_id);
+          console.log('当前用户的roleId:', currentUser.roleId); // 检查驼峰命名的字段
+          console.log('当前用户的role_id类型:', typeof currentUser.role_id);
+          if (currentUser.role_id !== undefined && currentUser.role_id !== null) {
+            userRole.value = currentUser.role_id;
+            console.log('当前用户角色ID:', userRole.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else if (currentUser.roleId !== undefined && currentUser.roleId !== null) {
+            // 处理驼峰命名的情况
+            userRole.value = currentUser.roleId;
+            console.log('当前用户角色ID (roleId):', userRole.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else {
+            console.error('当前用户没有role_id字段或role_id为null/undefined:', currentUser);
+          }
+        } else {
+          console.error('未找到用户角色信息:', currentUser);
+        }
+      } else {
+        console.error('获取用户列表失败:', userRes.data);
+      }
+    } else {
+      console.error('本地存储中没有用户信息');
+    }
+  } catch (error) {
+    console.error('获取用户角色失败:', error);
+  }
+};
+
 // 从后端获取项目数据
 const fetchProjects = async () => {
   try {
-    const response = await request.get('/workbench/all-projects');
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const username = user ? user.username : '';
+    
+    const response = await request.get(`/workbench/all-projects?username=${username}`);
     if (response.data.code === 200 && Array.isArray(response.data.data)) {
       // 处理时间格式，只保留日期部分
       projectData.value = response.data.data.map(project => ({
@@ -195,9 +274,6 @@ const fetchTasksForHours = async () => {
 };
 
 // 组件挂载时获取数据
-import { onMounted, onBeforeMount } from 'vue';
-import { useRoute } from 'vue-router';
-
 const route = useRoute();
 
 onBeforeMount(() => {
@@ -208,8 +284,16 @@ onBeforeMount(() => {
   }
 });
 
-onMounted(() => {
-  fetchProjects();
+onMounted(async () => {
+  try {
+    console.log('开始获取用户角色');
+    await fetchUserRole();
+    console.log('获取用户角色完成，用户角色ID:', userRole.value);
+    console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+    await fetchProjects();
+  } catch (error) {
+    console.error('组件挂载时出错:', error);
+  }
 });
 
 // 根据当前标签和搜索词过滤数据
@@ -507,6 +591,13 @@ const handleDelete = (project) => {
 .el-table--border td {
   border: none !important;
   vertical-align: middle;
+}
+
+.no-permission {
+  text-align: center;
+  padding: 60px 0;
+  color: #909399;
+  font-size: 14px;
 }
 
 .pagination {

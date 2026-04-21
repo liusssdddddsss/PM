@@ -72,47 +72,24 @@ public class WorkbenchController {
     @GetMapping("/approvals")
     public Result getApprovals(@RequestParam(required = false) String username) {
         try {
+            // 检查用户角色，只有产品经理和管理员可以查看审批列表
+            if (username == null || username.isEmpty()) {
+                return Result.success(new ArrayList<>()); // 未登录用户返回空列表
+            }
+            
+            boolean isProductManager = rolePermissionUtils.isProductManager(username);
+            boolean isAdmin = rolePermissionUtils.isAdmin(username);
+            
+            if (!isProductManager && !isAdmin) {
+                return Result.success(new ArrayList<>()); // 非产品经理和管理员返回空列表
+            }
+            
             List<ProjectApproval> approvals = projectApprovalService.findall();
             List<Map<String, Object>> approvalList = new ArrayList<>();
-            
-            // 获取用户参与的项目ID列表
-            Set<Long> userProjectIds = new HashSet<>();
-            if (username != null && !username.isEmpty()) {
-                try {
-                    Long userId = Long.parseLong(username);
-                    List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                    System.out.println("用户 " + username + " 参与的项目成员记录数: " + projectMembers.size());
-                    for (com.example.springboot.entity.ProjectMember member : projectMembers) {
-                        if (member.getProjectId() != null) {
-                            userProjectIds.add(member.getProjectId());
-                            System.out.println("用户参与的项目ID: " + member.getProjectId());
-                        }
-                    }
-                    System.out.println("用户参与的项目ID列表: " + userProjectIds);
-                } catch (NumberFormatException e) {
-                    // 用户名不是数字格式，返回空列表
-                    System.out.println("用户名不是数字格式: " + username);
-                }
-            }
             
             System.out.println("审批记录总数: " + approvals.size());
             for (ProjectApproval approval : approvals) {
                 System.out.println("审批记录: project_id=" + approval.getProject_id() + ", approver_id=" + approval.getApprover_id() + ", action=" + approval.getAction());
-                
-                // 如果指定了用户名，只返回用户参与项目的审批
-                if (username != null && !username.isEmpty()) {
-                    if (approval.getProject_id() == null) {
-                        System.out.println("跳过没有项目ID的审批");
-                        continue; // 跳过没有项目ID的审批
-                    }
-                    Long projectId = approval.getProject_id().longValue();
-                    if (!userProjectIds.contains(projectId)) {
-                        System.out.println("跳过用户未参与项目的审批，项目ID: " + projectId);
-                        continue; // 跳过用户未参与项目的审批
-                    } else {
-                        System.out.println("保留用户参与项目的审批，项目ID: " + projectId);
-                    }
-                }
                 
                 Map<String, Object> approvalMap = new HashMap<>();
                 approvalMap.put("id", approval.getId());
@@ -467,16 +444,10 @@ public class WorkbenchController {
                     } else if (isDeveloper || isTester) {
                         // 开发者和测试者只能看到自己参与的项目
                         try {
-                            Long userId = Long.parseLong(username);
-                            List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                            for (com.example.springboot.entity.ProjectMember member : projectMembers) {
-                                if (member.getProjectId() != null && member.getProjectId().equals(project.getId())) {
-                                    hasAccess = true;
-                                    break;
-                                }
-                            }
+                            // 使用RolePermissionUtils检查用户是否有权限访问该项目
+                            hasAccess = rolePermissionUtils.hasProjectAccess(username, project.getId());
                         } catch (Exception e) {
-                            // 用户名转换失败，跳过
+                            // 权限检查失败，跳过
                         }
                     }
                     
@@ -574,47 +545,18 @@ public class WorkbenchController {
     @GetMapping("/all-projects")
     public Result getAllProjects(@RequestParam(required = false) String username) {
         try {
-            // 获取用户角色
-            boolean isProductManager = false;
-            boolean isDeveloper = false;
-            boolean isTester = false;
-            boolean isAdmin = false;
-            
-            if (username != null) {
-                isProductManager = rolePermissionUtils.isProductManager(username);
-                isDeveloper = rolePermissionUtils.isDeveloper(username);
-                isTester = rolePermissionUtils.isTester(username);
-                isAdmin = rolePermissionUtils.isAdmin(username);
-            }
-            
             // 获取所有项目
             Iterable<Project> allProjects = projectService.findAll();
             List<Map<String, Object>> projectList = new ArrayList<>();
             
             for (Project project : allProjects) {
-                // 根据用户角色过滤项目
-                boolean hasAccess = false;
-                
-                if (isAdmin || isProductManager) {
-                    // 管理员和产品经理可以看到所有项目
-                    hasAccess = true;
-                } else if (isDeveloper || isTester) {
-                    // 开发者和测试者只能看到自己参与的项目
-                    try {
-                        Long userId = Long.parseLong(username);
-                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
-                            if (member.getProjectId() != null && member.getProjectId().equals(project.getId())) {
-                                hasAccess = true;
-                                break;
-                            }
-                        }
-                    } catch (Exception e) {
-                        // 用户名转换失败，跳过
-                    }
+                // 检查用户是否有权限访问该项目
+                boolean hasAccess = true;
+                if (username != null) {
+                    hasAccess = rolePermissionUtils.hasProjectAccess(username, project.getId());
                 }
                 
-                if (hasAccess || username == null) {
+                if (hasAccess) {
                     Map<String, Object> projectMap = new HashMap<>();
                     projectMap.put("id", project.getId());
                     projectMap.put("title", project.getName());

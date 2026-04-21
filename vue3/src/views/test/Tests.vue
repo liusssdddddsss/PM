@@ -60,10 +60,13 @@
             <!-- 未关闭的测试单 -->
             <div class="unclosed-tests">
               <h3>未关闭的测试单</h3>
-              <div class="list-content">
+              <div  v-if="!isDeveloper" class="list-content">
                 <ul class="test-list">
                   <li v-for="(item, index) in unclosedTestCases" :key="index">{{ item }}</li>
                 </ul>
+              </div>
+              <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
+                无权限查看
               </div>
             </div>
           </div>
@@ -76,9 +79,10 @@
               <h3>待测试的测试单</h3>
               <el-button type="text" icon="el-icon-setting"
                          @click="goToTestList"
+                         v-if="!isDeveloper"
               >更多</el-button>
             </div>
-            <div class="card-content">
+            <div v-if="!isDeveloper" class="card-content">
               <el-table :data="pendingTestCases" stripe style="width: 100%">
                 <el-table-column prop="name" label="测试单名称" min-width="200" />
                 <el-table-column prop="priority" label="优先级" width="100">
@@ -90,6 +94,9 @@
                 <el-table-column prop="startDate" label="开始日期" width="120" />
                 <el-table-column prop="endDate" label="结束日期" width="120" />
               </el-table>
+            </div>
+            <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
+              无权限查看
             </div>
           </div>
         </el-card>
@@ -132,7 +139,7 @@
             <h3>指派给我的用例列表</h3>
           </div>
           <div class="card-content">
-            <el-table :data="assignedTestCases" stripe style="width: 100%">
+            <el-table :data="assignedTestCases" v-if="!isDeveloper" stripe style="width: 100%">
               <el-table-column prop="name" label="用例名称" min-width="180" />
               <el-table-column prop="priority" label="优先级" width="100">
                 <template #default="scope">
@@ -146,6 +153,9 @@
               </el-table-column>
               <el-table-column prop="project" label="所属项目" min-width="150" />
             </el-table>
+            <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
+              无权限查看
+            </div>
           </div>
         </div>
         </el-card>
@@ -155,7 +165,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import {useRouter} from "vue-router";
 import request from "@/utils/request.js";
 
@@ -185,6 +195,22 @@ const unclosedTestCases = ref([]);
 
 // 待测试的测试单
 const pendingTestCases = ref([]);
+
+// 当前用户角色
+const userRole = ref('');
+
+// 判断用户是否为开发者
+const isDeveloper = computed(() => {
+  // 角色ID：3=开发者
+  return userRole.value === 3;
+});
+
+// 判断用户是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  // 角色ID：3=开发者，4=测试者
+  const roleId = Number(userRole.value);
+  return roleId === 3 || roleId === 4;
+});
 
 const router = useRouter();
 const goToTestList =()=>{
@@ -217,6 +243,45 @@ const fetchTestStatistics = async (projectName = '') => {
   try {
     const userStr = localStorage.getItem('user');
     const username = userStr ? JSON.parse(userStr).username : '';
+    
+    // 获取用户角色
+    try {
+      const userRes = await request.get(`/admin/findAll`);
+      if (userRes.data.code === 200 && Array.isArray(userRes.data.data)) {
+        // 从User列表中查找当前用户，处理不同类型的username
+        const currentUser = userRes.data.data.find(u => {
+          // 尝试不同的匹配方式
+          return u.username == String(username) || u.username == username;
+        });
+        console.log('找到的当前用户:', currentUser);
+        if (currentUser) {
+          console.log('当前用户的所有属性:', Object.keys(currentUser));
+          console.log('当前用户的role_id:', currentUser.role_id);
+          console.log('当前用户的roleId:', currentUser.roleId); // 检查驼峰命名的字段
+          console.log('当前用户的role_id类型:', typeof currentUser.role_id);
+          if (currentUser.role_id !== undefined && currentUser.role_id !== null) {
+            userRole.value = currentUser.role_id;
+            console.log('当前用户角色ID:', userRole.value);
+            console.log('是否为开发者:', isDeveloper.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else if (currentUser.roleId !== undefined && currentUser.roleId !== null) {
+            // 处理驼峰命名的情况
+            userRole.value = currentUser.roleId;
+            console.log('当前用户角色ID (roleId):', userRole.value);
+            console.log('是否为开发者:', isDeveloper.value);
+            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
+          } else {
+            console.error('当前用户没有role_id字段或role_id为null/undefined:', currentUser);
+          }
+        } else {
+          console.error('未找到用户角色信息:', currentUser);
+        }
+      } else {
+        console.error('获取用户列表失败:', userRes.data);
+      }
+    } catch (error) {
+      console.error('获取用户角色失败:', error);
+    }
     
     let url = '/dashboard/test-statistics';
     let params = {};

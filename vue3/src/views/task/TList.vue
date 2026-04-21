@@ -19,7 +19,7 @@
               class="search-input"
           />
         </div>
-        <div class="addProduct">
+        <div class="addProduct" v-if="!isDeveloperOrTester">
           <el-button class="button" @click="goToAddForm">
             添加任务
           </el-button>
@@ -34,9 +34,22 @@
 
 <script setup>
 
-import {ref, onMounted} from "vue";
+import {ref, onMounted, computed} from "vue";
 import TaskList from "@/views/workbenchView/listView/TaskList.vue";
 import {useRouter, useRoute} from "vue-router";
+
+// 获取用户角色
+const userRole = ref(null);
+const userStr = localStorage.getItem('user');
+if (userStr) {
+  const user = JSON.parse(userStr);
+  userRole.value = user.role_id || user.role;
+}
+
+// 检查是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  return userRole.value === 3 || userRole.value === 4;
+});
 
 const tabs = ref([
   {name:'全部',type:'all'},

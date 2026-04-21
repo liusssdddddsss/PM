@@ -1,1 +1,0 @@
-import{a as r}from"./index-C0Zqfgkc.js";const t=r.create({baseURL:"http://localhost:8080",timeout:3e4});t.interceptors.request.use(e=>(e.data instanceof FormData?delete e.headers["Content-Type"]:e.headers["Content-Type"]||(e.headers["Content-Type"]="application/json;charset=UTF-8"),e),e=>Promise.reject(e));t.interceptors.response.use(e=>e,e=>Promise.reject(e));export{t as r};

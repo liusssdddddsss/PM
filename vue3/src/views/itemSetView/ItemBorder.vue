@@ -1,6 +1,6 @@
 <template>
   <div class="border-comment">
-    <div class="addProject">
+    <div class="addProject" v-if="!isDeveloperOrTester">
       <el-button>
         添加项目
       </el-button>
@@ -50,8 +50,21 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from "vue";
+import {ref, onMounted, computed} from "vue";
 import request from "@/utils/request.js";
+
+// 获取用户角色
+const userRole = ref(null);
+const userStr = localStorage.getItem('user');
+if (userStr) {
+  const user = JSON.parse(userStr);
+  userRole.value = user.role_id || user.role;
+}
+
+// 检查是否为开发者或测试者
+const isDeveloperOrTester = computed(() => {
+  return userRole.value === 3 || userRole.value === 4;
+});
 
 const ingProjectList = ref([]);
 const ingTaskList = ref([]);

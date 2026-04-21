@@ -1,7 +1,13 @@
 <template>
   <div class="task-table-container">
     <div class="table-container">
+      <!-- 无权限提示 -->
+      <div v-if="tableData.length === 0" class="no-permission">
+        你无权限查看审批
+      </div>
+      
       <el-table
+          v-else
           :data="tableData"
           style="width: 100%"
           class="TaskTable"
@@ -386,5 +392,12 @@ const fetchApprovals = async () => {
 .el-table--border td {
   border: none !important;
   vertical-align: middle;
+}
+
+.no-permission {
+  text-align: center;
+  padding: 40px 0;
+  color: #909399;
+  font-size: 14px;
 }
 </style>

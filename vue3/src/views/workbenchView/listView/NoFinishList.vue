@@ -57,7 +57,12 @@ const tableData = ref([]);
 // 从后端获取未完成项目列表
 const fetchUnfinishedProjects = async () => {
   try {
-    const response = await request.get('/workbench/unfinished-projects');
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const username = user ? user.username : '';
+    
+    const response = await request.get(`/workbench/unfinished-projects?username=${username}`);
     if (response.data.code === 200) {
       tableData.value = response.data.data;
     }

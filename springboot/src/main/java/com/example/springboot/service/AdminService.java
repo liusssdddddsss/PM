@@ -100,7 +100,25 @@ public class AdminService {
                             System.out.println("用户状态值: " + user.getStatus());
                             if (user.getStatus() == 1) {
                                 System.out.println("用户状态正常，允许登录");
-                                return admin;
+                                // 创建一个包含role_id的Admin对象返回
+                                Admin resultAdmin = new Admin();
+                                resultAdmin.setId(admin.getId());
+                                resultAdmin.setUsername(admin.getUsername());
+                                resultAdmin.setName(admin.getName());
+                                resultAdmin.setPassword(admin.getPassword());
+                                resultAdmin.setIs_admin(admin.getIs_admin());
+                                resultAdmin.setAvatar(admin.getAvatar());
+                                // 添加role_id字段
+                                try {
+                                    java.lang.reflect.Field roleIdField = Admin.class.getDeclaredField("role_id");
+                                    roleIdField.setAccessible(true);
+                                    roleIdField.set(resultAdmin, user.getRole_id());
+                                    System.out.println("设置role_id成功: " + user.getRole_id());
+                                } catch (Exception e) {
+                                    // 如果Admin类没有role_id字段，记录日志
+                                    System.out.println("Admin类没有role_id字段，无法设置: " + e.getMessage());
+                                }
+                                return resultAdmin;
                             } else {
                                 // 用户被禁用
                                 System.out.println("用户被禁用，禁止登录");

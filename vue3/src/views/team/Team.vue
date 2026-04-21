@@ -6,8 +6,8 @@
         <div class="team-header">
           <h3>团队管理</h3>
           <div class="header-actions">
-            <button class="btn" @click="createTeam">创建团队</button>
-            <button class="btn" @click="inviteMember">邀请成员</button>
+            <button v-if="hasOperationPermission" class="btn" @click="createTeam">创建团队</button>
+            <button v-if="hasOperationPermission" class="btn" @click="inviteMember">邀请成员</button>
 <!--            <button class="btn" @click="exportReport">导出报告</button>-->
           </div>
         </div>
@@ -80,7 +80,7 @@
               <div class="team-actions">
                 <button class="btn-small" @click.stop="switchTeam(team.name)">切换</button>
                 <br>
-                <button class="btn-small warn" @click.stop="disbandTeam(team)">解散</button>
+                <button v-if="hasOperationPermission" class="btn-small warn" @click.stop="disbandTeam(team)">解散</button>
               </div>
             </div>
           </div>
@@ -103,7 +103,8 @@
                 <td>{{ item.role }}</td>
                 <td>{{ item.responsibility }}</td>
                 <td>{{ item.projects }}</td>
-                <td><button class="btn-small warn" @click="deleteDivision(item)">删除</button></td>
+                <td v-if="hasOperationPermission"><button class="btn-small warn" @click="deleteDivision(item)">删除</button></td>
+                <td v-else></td>
               </tr>
             </table>
           </div>
@@ -232,14 +233,11 @@ const teams = ref([]);
 // 团队分工数据
 const divisionData = ref([]);
 
-
-
-
+// 当前用户角色
+const userRole = ref('');
 
 // 当前选中的团队
 const currentTeam = ref('');
-
-
 
 // 创建团队弹窗
 const showCreateTeamDialog = ref(false);
@@ -352,6 +350,13 @@ const totalMembers = computed(() => overview.value.totalMembers || 0);
 const totalProjects = computed(() => overview.value.totalProjects || 0);
 const totalMessages = computed(() => overview.value.totalMessages || 0);
 
+// 判断用户是否有操作权限（只有超级管理员和产品经理有操作权限）
+const hasOperationPermission = computed(() => {
+  // 角色ID：1=超级管理员，2=产品经理，3=开发者，4=测试者
+  // 只有超级管理员和产品经理有操作权限
+  return userRole.value === 1 || userRole.value === 2;
+});
+
 // 从后端获取团队概览和所属团队（仅限当前登录用户）
 const fetchTeamData = async () => {
   try {
@@ -364,6 +369,20 @@ const fetchTeamData = async () => {
     const user = JSON.parse(userStr);
     const username = user.username;
     console.log('获取团队数据，用户名:', username);
+    
+    // 获取用户角色
+    try {
+      const userRes = await request.get(`/admin/findAll`);
+      if (userRes.data.code === 200 && Array.isArray(userRes.data.data)) {
+        const currentUser = userRes.data.data.find(u => u.username == username);
+        if (currentUser && currentUser.role_id) {
+          userRole.value = currentUser.role_id;
+          console.log('当前用户角色ID:', userRole.value);
+        }
+      }
+    } catch (error) {
+      console.error('获取用户角色失败:', error);
+    }
 
     // 概览数据
     console.log('开始获取团队概览数据');
