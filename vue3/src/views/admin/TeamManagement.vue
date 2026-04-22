@@ -20,6 +20,7 @@
             <el-button type="text" @click="showTeamDetail(scope.row)">{{scope.row.teamId}}</el-button>
           </template>
         </el-table-column>
+        <el-table-column prop="teamName" label="团队名称" width="150" />
         <el-table-column prop="leader" label="领导人员" width="120" />
         <el-table-column label="团队成员" width="200">
           <template #default="scope">
@@ -37,11 +38,12 @@
           <template #default="scope">
             <div v-if="scope.row.members && scope.row.members.length > 0" class="role-grid">
               <div v-for="(member, index) in scope.row.members" :key="index" class="role-item">
-                {{ member.role }}
+                {{ getRoleName(member.role) }}
               </div>
             </div>
             <div v-else>
-              -</div>
+              -
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="项目名称" width="250">
@@ -141,7 +143,11 @@
       <el-form-item label="团队成员">
         <el-table :data="selectedTeam.members" style="width: 100%">
           <el-table-column prop="name" label="姓名" width="100" />
-          <el-table-column prop="role" label="角色" width="100" />
+          <el-table-column label="角色" width="100">
+            <template #default="scope">
+              {{ getRoleName(scope.row.role) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="position" label="职位" />
         </el-table>
       </el-form-item>
@@ -192,7 +198,18 @@
 
 <script setup>
 import {ref, computed, onMounted} from "vue";
-import axios from "axios";
+import request from '@/utils/request.js';
+
+// 根据角色编号获取角色名称
+const getRoleName = (roleId) => {
+  const roleMap = {
+    '1': '超级管理员',
+    '2': '产品经理',
+    '3': '开发者',
+    '4': '测试者'
+  };
+  return roleMap[roleId] || '成员';
+};
 
 // 搜索关键词
 const searchQuery = ref('');
@@ -250,7 +267,7 @@ const formTeam = ref({
 // 获取团队列表
 const fetchTeams = async () => {
   try {
-    const response = await axios.get('http://localhost:9091/admin/teams');
+    const response = await request.get('/admin/teams');
     if (response.data.code === 200) {
       originalTeamList.value = response.data.data;
     }
@@ -279,7 +296,7 @@ const saveTeam = async () => {
       // 这里可以添加编辑团队的 API 调用
     } else {
       // 创建团队
-      const response = await axios.post('http://localhost:9091/admin/teams', {
+      const response = await request.post('/admin/teams', {
         teamName: formTeam.value.teamName,
         leaderName: formTeam.value.leader,
         projectName: formTeam.value.projectName,
@@ -299,7 +316,7 @@ const saveTeam = async () => {
 
 const showTeamDetail = async (team) => {
   try {
-    const response = await axios.get(`http://localhost:9091/admin/teams/${team.teamId}`);
+    const response = await request.get(`/admin/teams/${team.teamId}`);
     if (response.data.code === 200) {
       selectedTeam.value = {
         ...response.data.data,
@@ -321,7 +338,7 @@ const disbandTeam = async () => {
   if (!teamToDisband.value) return;
   
   try {
-    const response = await axios.delete(`http://localhost:9091/admin/teams/${teamToDisband.value.teamId}`);
+    const response = await request.delete(`/admin/teams/${teamToDisband.value.teamId}`);
     if (response.data.code === 200) {
       // 重新获取团队列表
       await fetchTeams();

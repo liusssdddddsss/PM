@@ -58,31 +58,27 @@
             </div>
             
             <!-- 未关闭的测试单 -->
-            <div class="unclosed-tests">
+            <div v-if="!isDeveloper" class="unclosed-tests">
               <h3>未关闭的测试单</h3>
-              <div  v-if="!isDeveloper" class="list-content">
+              <div class="list-content">
                 <ul class="test-list">
                   <li v-for="(item, index) in unclosedTestCases" :key="index">{{ item }}</li>
                 </ul>
-              </div>
-              <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
-                无权限查看
               </div>
             </div>
           </div>
         </el-card>
 
         <!-- 底部：待测试的测试单 -->
-        <el-card style="max-width: 98%;margin-top: 10px">
+        <el-card v-if="!isDeveloper" style="max-width: 98%;margin-top: 10px">
           <div class="pending-tests">
             <div class="pending-header">
               <h3>待测试的测试单</h3>
               <el-button type="text" icon="el-icon-setting"
                          @click="goToTestList"
-                         v-if="!isDeveloper"
               >更多</el-button>
             </div>
-            <div v-if="!isDeveloper" class="card-content">
+            <div class="card-content">
               <el-table :data="pendingTestCases" stripe style="width: 100%">
                 <el-table-column prop="name" label="测试单名称" min-width="200" />
                 <el-table-column prop="priority" label="优先级" width="100">
@@ -94,9 +90,6 @@
                 <el-table-column prop="startDate" label="开始日期" width="120" />
                 <el-table-column prop="endDate" label="结束日期" width="120" />
               </el-table>
-            </div>
-            <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
-              无权限查看
             </div>
           </div>
         </el-card>
@@ -139,7 +132,7 @@
             <h3>指派给我的用例列表</h3>
           </div>
           <div class="card-content">
-            <el-table :data="assignedTestCases" v-if="!isDeveloper" stripe style="width: 100%">
+            <el-table :data="assignedTestCases" stripe style="width: 100%">
               <el-table-column prop="name" label="用例名称" min-width="180" />
               <el-table-column prop="priority" label="优先级" width="100">
                 <template #default="scope">
@@ -153,9 +146,6 @@
               </el-table-column>
               <el-table-column prop="project" label="所属项目" min-width="150" />
             </el-table>
-            <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
-              无权限查看
-            </div>
           </div>
         </div>
         </el-card>

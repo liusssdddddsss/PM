@@ -255,7 +255,7 @@ const feedbacks = ref([]);
 // 获取反馈列表和统计数据
 const fetchFeedbacks = async () => {
   try {
-    const response = await axios.get('http://localhost:9091/admin/feedback');
+    const response = await axios.get('http://localhost:8080/admin/feedback');
     if (response.data.code === 200) {
       feedbacks.value = response.data.data || [];
       calculateStatistics();
@@ -358,7 +358,7 @@ const saveFeedback = async () => {
     // 确保状态设置为处理中
     currentFeedback.value.status = '处理中';
     
-    await axios.put(`http://localhost:9091/admin/feedback/${currentFeedback.value.id}/process`, {
+    await axios.put(`http://localhost:8080/admin/feedback/${currentFeedback.value.id}/process`, {
       reply: currentFeedback.value.reply,
       status: currentFeedback.value.status
     });

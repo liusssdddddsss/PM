@@ -13,6 +13,7 @@ public class Project {
     private Long product_id;
     @Column(name = "manager_id")
     private Long managerId;
+    private Long team_id;
     private Long creator_id;
     private Date start_date;
     private Date end_date;
@@ -20,6 +21,7 @@ public class Project {
     private Integer status;
     private Integer visibility;
     private Integer access_control;
+    private String description;
     private Date created_at;
 
     public Long getId() {
@@ -52,6 +54,14 @@ public class Project {
 
     public void setManagerId(Long managerId) {
         this.managerId = managerId;
+    }
+
+    public Long getTeam_id() {
+        return team_id;
+    }
+
+    public void setTeam_id(Long team_id) {
+        this.team_id = team_id;
     }
 
     public Long getCreator_id() {
@@ -108,6 +118,14 @@ public class Project {
 
     public void setAccess_control(Integer access_control) {
         this.access_control = access_control;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Date getCreated_at() {

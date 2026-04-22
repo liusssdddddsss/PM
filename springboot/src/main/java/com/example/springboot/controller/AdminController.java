@@ -60,6 +60,24 @@ public class AdminController {
         List<User> list = userRepository.findAll();
         return  Result.success(list);
     }
+    
+    @Operation(summary = "搜索用户", description = "根据关键词搜索用户")
+    @GetMapping("/search-users")
+    public Result searchUsers(@RequestParam(required = false) String search) {
+        try {
+            List<User> users = userRepository.findAll();
+            if (search != null && !search.isEmpty()) {
+                users = users.stream()
+                    .filter(user -> user.getName() != null && user.getName().toLowerCase().contains(search.toLowerCase()) ||
+                                    user.getUsername() != null && user.getUsername().toLowerCase().contains(search.toLowerCase()))
+                    .toList();
+            }
+            return Result.success(users);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("搜索用户失败: " + e.getMessage());
+        }
+    }
 
     public static class LoginRequest {
         public String username;
@@ -353,11 +371,11 @@ public class AdminController {
                 if ("产品经理".equals(position)) {
                     user.setRole_id(1L);
                 } else if ("开发者".equals(position)) {
-                    user.setRole_id(3L);
-                } else if ("测试者".equals(position)) {
-                    user.setRole_id(4L);
-                } else if ("管理员".equals(position)) {
                     user.setRole_id(2L);
+                } else if ("测试者".equals(position)) {
+                    user.setRole_id(3L);
+                } else if ("管理员".equals(position)) {
+                    user.setRole_id(99L);
                 }
                 userRepository.save(user);
                 System.out.println("用户角色更新成功，用户ID: " + userId + "，新角色: " + position);

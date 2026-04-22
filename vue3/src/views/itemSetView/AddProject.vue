@@ -12,11 +12,61 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="负责人">
-              <el-select v-model="projectForm.managerId" placeholder="请选择">
-                <el-option label="张三" value="202201" />
-                <el-option label="李四" value="202202" />
-                <el-option label="王五" value="202203" />
-                <el-option label="胡一刀" value="202204" />
+              <el-select
+                v-model="projectForm.managerId"
+                placeholder="请选择"
+                filterable
+                remote
+                :remote-method="searchUsers"
+                :loading="loadingUsers"
+              >
+                <el-option
+                  v-for="user in userOptions"
+                  :key="user.id"
+                  :label="user.name"
+                  :value="user.username"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="所属团队">
+              <el-select
+                v-model="projectForm.teamId"
+                placeholder="请选择"
+                filterable
+                remote
+                :remote-method="searchTeams"
+                :loading="loadingTeams"
+              >
+                <el-option
+                  v-for="team in teamOptions"
+                  :key="team.id"
+                  :label="team.name"
+                  :value="team.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="所属产品">
+              <el-select
+                v-model="projectForm.productId"
+                placeholder="请选择"
+                filterable
+                remote
+                :remote-method="searchProducts"
+                :loading="loadingProducts"
+              >
+                <el-option
+                  v-for="product in productOptions"
+                  :key="product.id"
+                  :label="product.name"
+                  :value="product.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -101,12 +151,79 @@ const router = useRouter();
 const projectForm = ref({
   name: '',
   managerId: '',
+  teamId: '',
+  productId: '',
   startDate: '',
   endDate: '',
   status: '0', // 默认未开始
   progress: 0,
   description: ''
 });
+
+// 搜索相关变量
+const userOptions = ref([]);
+const teamOptions = ref([]);
+const productOptions = ref([]);
+const loadingUsers = ref(false);
+const loadingTeams = ref(false);
+const loadingProducts = ref(false);
+
+// 搜索用户
+const searchUsers = async (query) => {
+  if (query) {
+    loadingUsers.value = true;
+    try {
+      const response = await request.get(`/admin/search-users?search=${query}`);
+      if (response.data.code === 200) {
+        userOptions.value = response.data.data || [];
+      }
+    } catch (error) {
+      console.error('搜索用户失败:', error);
+    } finally {
+      loadingUsers.value = false;
+    }
+  } else {
+    userOptions.value = [];
+  }
+};
+
+// 搜索团队
+const searchTeams = async (query) => {
+  if (query) {
+    loadingTeams.value = true;
+    try {
+      const response = await request.get(`/teams?search=${query}`);
+      if (response.data.code === 200) {
+        teamOptions.value = response.data.data || [];
+      }
+    } catch (error) {
+      console.error('搜索团队失败:', error);
+    } finally {
+      loadingTeams.value = false;
+    }
+  } else {
+    teamOptions.value = [];
+  }
+};
+
+// 搜索产品
+const searchProducts = async (query) => {
+  if (query) {
+    loadingProducts.value = true;
+    try {
+      const response = await request.get(`/api/productResearch/products?search=${query}`);
+      if (response.data.code === 200) {
+        productOptions.value = response.data.data || [];
+      }
+    } catch (error) {
+      console.error('搜索产品失败:', error);
+    } finally {
+      loadingProducts.value = false;
+    }
+  } else {
+    productOptions.value = [];
+  }
+};
 
 // 保存项目
 const saveProject = async () => {
@@ -115,6 +232,8 @@ const saveProject = async () => {
     const projectData = {
       name: projectForm.value.name,
       manager_id: projectForm.value.managerId ? parseInt(projectForm.value.managerId) : null,
+      team_id: projectForm.value.teamId ? parseInt(projectForm.value.teamId) : null,
+      product_id: projectForm.value.productId ? parseInt(projectForm.value.productId) : null,
       start_date: projectForm.value.startDate,
       end_date: projectForm.value.endDate,
       status: parseInt(projectForm.value.status),

@@ -67,38 +67,32 @@ public class WorkbenchController {
     ProjectMemberService projectMemberService;
     @Resource
     ProductService productService;
+    @Resource
+    RolePermissionUtils rolePermissionUtils;
 
     @Operation(summary = "获取审批列表", description = "返回审批列表数据")
     @GetMapping("/approvals")
     public Result getApprovals(@RequestParam(required = false) String username) {
         try {
-            // 检查用户角色，只有产品经理和管理员可以查看审批列表
-            if (username == null || username.isEmpty()) {
-                return Result.success(new ArrayList<>()); // 未登录用户返回空列表
+            // 检查用户权限，只有产品经理和管理员可以访问审批表
+            if (username != null && !username.isEmpty()) {
+                boolean isProductManager = rolePermissionUtils.isProductManager(username);
+                boolean isAdmin = rolePermissionUtils.isAdmin(username);
+                
+                if (!isProductManager && !isAdmin) {
+                    // 不是产品经理和管理员，返回空列表
+                    return Result.success(new ArrayList<>());
+                }
             }
             
-            boolean isProductManager = rolePermissionUtils.isProductManager(username);
-            boolean isAdmin = rolePermissionUtils.isAdmin(username);
-            
-            if (!isProductManager && !isAdmin) {
-                return Result.success(new ArrayList<>()); // 非产品经理和管理员返回空列表
-            }
-            
+            // 从数据库获取实际的审批数据
             List<ProjectApproval> approvals = projectApprovalService.findall();
             List<Map<String, Object>> approvalList = new ArrayList<>();
             
-            System.out.println("审批记录总数: " + approvals.size());
+            // 遍历审批数据，转换为前端需要的格式
             for (ProjectApproval approval : approvals) {
-                System.out.println("审批记录: project_id=" + approval.getProject_id() + ", approver_id=" + approval.getApprover_id() + ", action=" + approval.getAction());
-                
                 Map<String, Object> approvalMap = new HashMap<>();
                 approvalMap.put("id", approval.getId());
-                approvalMap.put("project_id", approval.getProject_id());
-                approvalMap.put("approver_id", approval.getApprover_id());
-                approvalMap.put("action", approval.getAction());
-                approvalMap.put("type", approval.getType());
-                approvalMap.put("comment", approval.getComment());
-                approvalMap.put("created_at", approval.getCreated_at());
                 
                 // 获取项目名称
                 String projectName = "未知项目";
@@ -114,6 +108,13 @@ public class WorkbenchController {
                 }
                 approvalMap.put("project_name", projectName);
                 
+                // 获取审批内容
+                approvalMap.put("comment", approval.getComment() != null ? approval.getComment() : "");
+                
+                // 获取审批类型
+                String approvalType = approval.getType() != null ? approval.getType() : "未知类型";
+                approvalMap.put("type", approvalType);
+                
                 // 获取审批人姓名
                 String approverName = "未知审批人";
                 if (approval.getApprover_id() != null) {
@@ -127,6 +128,14 @@ public class WorkbenchController {
                     }
                 }
                 approvalMap.put("approver_name", approverName);
+                
+                // 获取提交时间
+                String createdAt = approval.getCreated_at() != null ? approval.getCreated_at() : "";
+                approvalMap.put("created_at", createdAt);
+                
+                // 获取审批状态
+                String action = approval.getAction() != null ? approval.getAction() : "待审批";
+                approvalMap.put("action", action);
                 
                 approvalList.add(approvalMap);
             }
@@ -864,9 +873,6 @@ public class WorkbenchController {
 
     @Resource
     TeamMemberService teamMemberService;
-    
-    @Autowired
-    private RolePermissionUtils rolePermissionUtils;
 
     @Operation(summary = "获取项目成员列表", description = "根据项目ID获取项目成员列表")
     @GetMapping("/projects/{id}/members")
@@ -909,8 +915,77 @@ public class WorkbenchController {
 
     @Operation(summary = "新增项目", description = "新增项目")
     @PostMapping("/projects")
-    public Result addProject(@RequestBody Project project) {
+    public Result addProject(@RequestBody Map<String, Object> projectData) {
         try {
+            Project project = new Project();
+            project.setName((String) projectData.get("name"));
+            
+            // 处理manager_id
+            if (projectData.get("manager_id") != null) {
+                try {
+                    project.setManagerId(Long.parseLong(projectData.get("manager_id").toString()));
+                } catch (NumberFormatException e) {
+                    // 忽略转换错误
+                }
+            }
+            
+            // 处理team_id
+            if (projectData.get("team_id") != null) {
+                try {
+                    project.setTeam_id(Long.parseLong(projectData.get("team_id").toString()));
+                } catch (NumberFormatException e) {
+                    // 忽略转换错误
+                }
+            }
+            
+            // 处理product_id
+            if (projectData.get("product_id") != null) {
+                try {
+                    project.setProduct_id(Long.parseLong(projectData.get("product_id").toString()));
+                } catch (NumberFormatException e) {
+                    // 忽略转换错误
+                }
+            }
+            
+            // 处理日期
+            if (projectData.get("start_date") != null) {
+                try {
+                    project.setStart_date(new SimpleDateFormat("yyyy-MM-dd").parse((String) projectData.get("start_date")));
+                } catch (ParseException e) {
+                    // 忽略转换错误
+                }
+            }
+            
+            if (projectData.get("end_date") != null) {
+                try {
+                    project.setEnd_date(new SimpleDateFormat("yyyy-MM-dd").parse((String) projectData.get("end_date")));
+                } catch (ParseException e) {
+                    // 忽略转换错误
+                }
+            }
+            
+            // 处理状态和进度
+            if (projectData.get("status") != null) {
+                try {
+                    project.setStatus(Integer.parseInt(projectData.get("status").toString()));
+                } catch (NumberFormatException e) {
+                    // 忽略转换错误
+                }
+            }
+            
+            if (projectData.get("progress") != null) {
+                try {
+                    project.setProgress(Integer.parseInt(projectData.get("progress").toString()));
+                } catch (NumberFormatException e) {
+                    // 忽略转换错误
+                }
+            }
+            
+            // 处理描述
+            if (projectData.get("description") != null) {
+                project.setDescription((String) projectData.get("description"));
+            }
+            
             projectService.save(project);
             return Result.success("新增项目成功");
         } catch (Exception e) {
@@ -950,8 +1025,9 @@ public class WorkbenchController {
             
             if (userOptional.isPresent()) {
                 var user = userOptional.get();
-                // 假设role_id为1表示产品经理
-                if (user.getRole_id() != null && user.getRole_id() == 1) {
+                // 角色ID定义：1=超级管理员，2=产品经理，3=开发者，4=测试者
+                // 超级管理员和产品经理都应该能看到所有Bug
+                if (user.getRole_id() != null && (user.getRole_id() == 1 || user.getRole_id() == 2)) {
                     isProductManager = true;
                 }
             } else {
@@ -1014,22 +1090,41 @@ public class WorkbenchController {
             // 4. 获取Bug数
             int bugState = 0;
             List<Bug> bugs = bugService.findall();
+            System.out.println("获取到的Bug数量: " + bugs.size());
+            System.out.println("当前用户名: " + username);
+            System.out.println("是否为产品经理: " + isProductManager);
+            
+            // 检查数据库连接和Bug数据
+            if (bugs == null) {
+                System.out.println("Bug列表为null");
+            } else {
+                System.out.println("Bug列表不为null，大小: " + bugs.size());
+                for (Bug bug : bugs) {
+                    System.out.println("Bug详情: ID=" + bug.getId() + ", 标题=" + bug.getTitle() + ", 负责人ID=" + bug.getAssigneeId() + ", 状态=" + bug.getStatus());
+                }
+            }
+            
             for (Bug bug : bugs) {
                 // 如果是产品经理，显示所有Bug
                 if (isProductManager) {
                     bugState++;
+                    System.out.println("产品经理统计Bug: " + bug.getId());
                 } else {
                     // 否则只显示当前用户的Bug
                     try {
                         Integer userId = Integer.parseInt(username);
+                        System.out.println("Bug ID: " + bug.getId() + ", Assignee ID: " + bug.getAssigneeId() + ", 用户ID: " + userId);
                         if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId)) {
                             bugState++;
+                            System.out.println("匹配到Bug: " + bug.getId());
                         }
                     } catch (NumberFormatException e) {
                         // 用户名不是数字格式，跳过
+                        System.out.println("用户名不是数字格式: " + username);
                     }
                 }
             }
+            System.out.println("最终Bug数: " + bugState);
             
             // 6. 获取文档数（暂时模拟）
             int passageState = 0;

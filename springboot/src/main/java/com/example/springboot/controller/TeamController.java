@@ -940,4 +940,34 @@ public class TeamController {
             return Result.error("删除成员失败: " + e.getMessage());
         }
     }
+    
+    // 搜索团队
+    @Operation(summary = "搜索团队", description = "根据关键词搜索团队")
+    @GetMapping("")
+    public Result searchTeams(@RequestParam(required = false) String search) {
+        try {
+            List<Team> teams = teamService.findAll();
+            List<Map<String, Object>> teamList = new ArrayList<>();
+            
+            for (Team team : teams) {
+                // 如果有搜索关键词，过滤团队名称
+                if (search != null && !search.isEmpty()) {
+                    if (!team.getName().toLowerCase().contains(search.toLowerCase())) {
+                        continue;
+                    }
+                }
+                
+                Map<String, Object> teamMap = new HashMap<>();
+                teamMap.put("id", team.getId());
+                teamMap.put("name", team.getName());
+                teamMap.put("description", team.getDescription());
+                teamList.add(teamMap);
+            }
+            
+            return Result.success(teamList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("搜索团队失败: " + e.getMessage());
+        }
+    }
 }

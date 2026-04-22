@@ -45,15 +45,18 @@
 <!--        产品列表整合-->
         <el-card style="max-width: 98%;margin-top: 10px">
           <div class="product-list-tabs">
-            <div class="tab-header">
-              <span 
-                v-for="(tab, index) in tabs" 
-                :key="index"
-                :class="['tab-item', { active: activeTab === index }]"
-                @click="activeTab = index"
-              >
-                {{ tab.name }}
-              </span>
+            <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span 
+                  v-for="(tab, index) in tabs" 
+                  :key="index"
+                  :class="['tab-item', { active: activeTab === index }]"
+                  @click="activeTab = index"
+                >
+                  {{ tab.name }}
+                </span>
+              </div>
+              <el-button type="primary" @click="showCreateProductDialog = true">创建产品</el-button>
             </div>
             <div class="tab-content">
               <!-- 产品发布列表 -->
@@ -125,6 +128,37 @@
       </div>
     </div>
   </div>
+
+  <!-- 创建产品对话框 -->
+  <el-dialog
+    v-model="showCreateProductDialog"
+    title="创建产品"
+    width="500px"
+  >
+    <el-form :model="newProduct" :rules="createProductRules" ref="createProductForm">
+      <el-form-item label="产品名称" prop="name">
+        <el-input v-model="newProduct.name" placeholder="请输入产品名称" />
+      </el-form-item>
+      <el-form-item label="产品代码" prop="code">
+        <el-input v-model="newProduct.code" placeholder="请输入产品代码" />
+      </el-form-item>
+      <el-form-item label="负责人ID" prop="owner_id">
+        <el-input v-model="newProduct.owner_id" type="number" placeholder="请输入负责人ID" />
+      </el-form-item>
+      <el-form-item label="状态" prop="status">
+        <el-select v-model="newProduct.status" placeholder="请选择状态">
+          <el-option label="活跃" value="1" />
+          <el-option label="已关闭" value="0" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="showCreateProductDialog = false">取消</el-button>
+        <el-button type="primary" @click="createProduct">确定</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -136,6 +170,7 @@ import {useEcharts} from "@/utils/useEcharts.js";
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
 import ProjectList from "@/views/workbenchView/listView/ProjectList.vue";
 import request from "@/utils/request.js";
+import { ElMessage } from 'element-plus';
 
 // 初始化路由
 const router = useRouter();
@@ -165,6 +200,60 @@ const tabs = ref([
   { name: '产品列表' },
   { name: '未关闭列表' }
 ]);
+
+// 创建产品相关
+const showCreateProductDialog = ref(false);
+const newProduct = ref({
+  name: '',
+  code: '',
+  owner_id: '',
+  status: 1
+});
+const createProductForm = ref(null);
+const createProductRules = ref({
+  name: [
+    { required: true, message: '请输入产品名称', trigger: 'blur' }
+  ],
+  code: [
+    { required: true, message: '请输入产品代码', trigger: 'blur' }
+  ],
+  owner_id: [
+    { required: true, message: '请输入负责人ID', trigger: 'blur' }
+  ]
+});
+
+// 创建产品
+const createProduct = async () => {
+  if (!createProductForm.value) return;
+  
+  try {
+    await createProductForm.value.validate();
+    
+    const response = await request.post('/api/products', newProduct.value);
+    if (response.data.code === 200) {
+      ElMessage.success('产品创建成功');
+      showCreateProductDialog.value = false;
+      
+      // 重置表单
+      newProduct.value = {
+        name: '',
+        code: '',
+        owner_id: '',
+        status: 1
+      };
+      
+      // 重新获取产品数据
+      await fetchUnclosedProducts();
+      await fetchProductOverview();
+      await initCharts();
+    } else {
+      ElMessage.error('产品创建失败: ' + response.data.msg);
+    }
+  } catch (error) {
+    console.error('创建产品失败:', error);
+    ElMessage.error('产品创建失败，请稍后重试');
+  }
+};
 
 
 

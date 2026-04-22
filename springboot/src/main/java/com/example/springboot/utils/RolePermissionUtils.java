@@ -15,10 +15,10 @@ import java.util.List;
 public class RolePermissionUtils {
     
     // 角色定义
-    public static final Long ROLE_PRODUCT_MANAGER = 1L; // 产品经理
-    public static final Long ROLE_DEVELOPER = 2L; // 开发者
-    public static final Long ROLE_TESTER = 3L; // 测试者
-    public static final Long ROLE_ADMIN = 99L; // 管理员
+    public static final Long ROLE_ADMIN = 1L; // 超级管理员
+    public static final Long ROLE_PRODUCT_MANAGER = 2L; // 产品经理
+    public static final Long ROLE_DEVELOPER = 3L; // 开发者
+    public static final Long ROLE_TESTER = 4L; // 测试者
     
     @Autowired
     private UserService userService;
@@ -72,13 +72,13 @@ public class RolePermissionUtils {
         
         switch (user.getRole_id().intValue()) {
             case 1:
-                return "产品经理";
+                return "超级管理员";
             case 2:
-                return "开发者";
+                return "产品经理";
             case 3:
+                return "开发者";
+            case 4:
                 return "测试者";
-            case 99:
-                return "管理员";
             default:
                 return "普通用户";
         }
