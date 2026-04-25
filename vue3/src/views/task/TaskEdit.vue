@@ -276,7 +276,7 @@ const saveTask = async () => {
 
 // 返回上一页
 const goBack = () => {
-  router.push('/workbench/tasks');
+  router.push('/task/taskList');
 };
 
 // 组件挂载时获取任务详细数据

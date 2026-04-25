@@ -14,6 +14,14 @@ request.interceptors.request.use(config => {
         // 只有当Content-Type未设置且不是FormData时，才设置为application/json
         config.headers['Content-Type'] = 'application/json;charset=UTF-8';
     }
+    
+    // 从本地存储获取JWT令牌
+    const token = localStorage.getItem('token');
+    if (token) {
+        // 在请求头中携带JWT令牌
+        config.headers['Authorization'] = 'Bearer ' + token;
+    }
+    
     return config;
 }, error => {
     return Promise.reject(error);

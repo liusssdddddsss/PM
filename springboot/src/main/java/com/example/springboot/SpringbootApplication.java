@@ -36,6 +36,39 @@ public class SpringbootApplication {
         taskRepository.findAll().stream().limit(10).forEach(task -> {
             System.out.println("任务ID: " + task.getId() + ", 项目ID: " + task.getProjectId() + ", 负责人ID: " + task.getAssigneeId() + ", 创建者ID: " + task.getCreatorId());
         });
+        
+        // 检查202201用户的任务和Bug
+        System.out.println("\n检查202201用户的任务和Bug:");
+        com.example.springboot.service.UserService userService = context.getBean(com.example.springboot.service.UserService.class);
+        com.example.springboot.service.BugService bugService = context.getBean(com.example.springboot.service.BugService.class);
+        
+        // 查找202201用户
+        com.example.springboot.entity.User user = userService.findByUsername("202201");
+        if (user != null) {
+            System.out.println("找到用户: " + user.getUsername() + " (ID: " + user.getId() + ")");
+            
+            // 检查任务
+            int userTaskCount = 0;
+            for (com.example.springboot.entity.Task task : taskRepository.findAll()) {
+                if (task.getAssigneeId() != null && task.getAssigneeId().equals(user.getId())) {
+                    userTaskCount++;
+                    System.out.println("任务ID: " + task.getId() + ", 名称: " + task.getTitle());
+                }
+            }
+            System.out.println("用户202201的任务数量: " + userTaskCount);
+            
+            // 检查Bug
+            int userBugCount = 0;
+            for (com.example.springboot.entity.Bug bug : bugService.findall()) {
+                if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(user.getId())) {
+                    userBugCount++;
+                    System.out.println("Bug ID: " + bug.getId() + ", 标题: " + bug.getTitle());
+                }
+            }
+            System.out.println("用户202201的Bug数量: " + userBugCount);
+        } else {
+            System.out.println("未找到用户202201");
+        }
     }
 
     @Bean

@@ -117,6 +117,14 @@
 
       <!-- 团队公告和消息提示 -->
       <el-card style="max-width: 98%;">
+        <template #header>
+          <div class="card-header">
+            <span>团队消息</span>
+            <el-button type="primary" size="small" @click="openCreateMessageDialog">
+              创建消息
+            </el-button>
+          </div>
+        </template>
         
         <!-- 消息提示 -->
         <div class="content-scroll">
@@ -208,6 +216,45 @@
             <el-button @click="showInviteMemberDialog = false">取消</el-button>
             <el-button type="primary" @click="submitInviteMember">确定</el-button>
           </span>
+          </template>
+      </el-dialog>
+
+      <!-- 创建消息弹窗 -->
+      <el-dialog
+        v-model="showCreateMessageDialog"
+        title="创建团队消息"
+        width="500px"
+      >
+        <el-form :model="createMessageForm" label-width="80px">
+          <el-form-item label="团队">
+            <el-select v-model="createMessageForm.teamId" placeholder="请选择团队" disabled>
+              <el-option
+                v-for="team in teams"
+                :key="team.id"
+                :label="team.name"
+                :value="team.id"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="接收者">
+            <el-select v-model="createMessageForm.receiver" placeholder="请选择接收者（可选）" clearable style="width: 100%">
+              <el-option label="所有成员" value=""></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="消息内容">
+            <el-input
+              type="textarea"
+              v-model="createMessageForm.content"
+              :rows="6"
+              placeholder="请输入消息内容"
+            ></el-input>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="showCreateMessageDialog = false">取消</el-button>
+            <el-button type="primary" @click="submitCreateMessage">发送</el-button>
+          </span>
         </template>
       </el-dialog>
 
@@ -249,9 +296,17 @@ const createTeamForm = ref({
 // 邀请成员弹窗
 const showInviteMemberDialog = ref(false);
 const inviteMemberForm = ref({
-  teamId: '',
-  username: '',
-  role: ''
+    teamId: "",
+    username: "",
+    role: ""
+});
+
+// 创建消息弹窗
+const showCreateMessageDialog = ref(false);
+const createMessageForm = ref({
+    teamId: null,
+    receiver: "",
+    content: ""
 });
 
 // 搜索用户相关
@@ -503,11 +558,68 @@ const getResponsibilityByRole = (role) => {
   return roleResponsibilities[role] || '参与项目开发和维护';
 };
 
+// 打开创建消息弹窗
+const openCreateMessageDialog = () => {
+    // 设置当前选中的团队ID
+    const teamObj = teams.value.find(t => t.name === currentTeam.value);
+    if (teamObj && teamObj.id) {
+        createMessageForm.value.teamId = teamObj.id;
+    }
+    // 重置表单
+    createMessageForm.value.receiver = "";
+    createMessageForm.value.content = "";
+    showCreateMessageDialog.value = true;
+};
+
+// 提交创建消息
+const submitCreateMessage = async () => {
+    try {
+        // 验证内容
+        if (!createMessageForm.value.content || createMessageForm.value.content.trim() === "") {
+            ElMessage.error("消息内容不能为空");
+            return;
+        }
+
+        // 获取当前用户信息
+        const userStr = localStorage.getItem("user");
+        if (!userStr) {
+            ElMessage.error("用户未登录");
+            return;
+        }
+        const user = JSON.parse(userStr);
+
+        // 创建消息对象
+        const messageData = {
+            sender: user.name || user.username, // 使用用户姓名或用户名
+            receiver: createMessageForm.value.receiver || null,
+            content: createMessageForm.value.content,
+            teamId: createMessageForm.value.teamId
+        };
+
+        // 调用后端API
+        const response = await request.post("/teams/messages", messageData);
+        if (response.data.code === 200) {
+            ElMessage.success("消息发送成功");
+            // 关闭弹窗
+            showCreateMessageDialog.value = false;
+            // 刷新消息列表
+            await fetchMessages();
+            // 刷新概览数据
+            await fetchTeamData();
+        } else {
+            ElMessage.error(response.data.msg || "消息发送失败");
+        }
+    } catch (error) {
+        console.error("发送消息失败:", error);
+        ElMessage.error("消息发送失败");
+    }
+};
+
 // 从后端获取消息数据
 const fetchMessages = async () => {
-  try {
-    // 获取当前选中的团队
-    if (currentTeam.value) {
+    try {
+        // 获取当前选中的团队
+        if (currentTeam.value) {
       // 找到当前团队的ID
       const teamObj = teams.value.find(t => t.name === currentTeam.value);
       if (teamObj && teamObj.id) {
@@ -865,6 +977,15 @@ function goToTaskModule() {
   justify-content: space-between;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 卡片头部样式 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 16px;
 }
 
 .left {

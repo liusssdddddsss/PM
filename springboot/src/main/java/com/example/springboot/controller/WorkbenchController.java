@@ -7,11 +7,11 @@ import com.example.springboot.entity.ProjectApproval;
 import com.example.springboot.entity.ProjectMember;
 import com.example.springboot.entity.Product;
 import com.example.springboot.entity.TeamMember;
+import com.example.springboot.entity.User;
 
 import com.example.springboot.entity.Task;
 import com.example.springboot.service.BugService;
 import com.example.springboot.service.ProjectApprovalService;
-
 import com.example.springboot.service.TaskService;
 import com.example.springboot.service.ProjectService;
 import com.example.springboot.service.UserService;
@@ -152,7 +152,9 @@ public class WorkbenchController {
     @GetMapping("/tasks")
     public Result getTasks(@RequestParam(required = false) String username) {
         try {
+            System.out.println("开始获取任务列表，用户名: " + username);
             List<Task> tasks = taskService.findall();
+            System.out.println("获取到的任务数量: " + tasks.size());
             List<Map<String, Object>> taskList = new ArrayList<>();
             
             // 获取用户参与的项目ID列表（如果是产品经理）
@@ -188,10 +190,12 @@ public class WorkbenchController {
             }
             
             for (Task task : tasks) {
+                System.out.println("处理任务: " + task.getTitle() + "，负责人ID: " + task.getAssigneeId() + "，项目ID: " + task.getProjectId());
                 // 如果指定了用户名
                 if (username != null && !username.isEmpty()) {
                     try {
                         Integer userId = Integer.parseInt(username);
+                        System.out.println("转换后的用户ID: " + userId);
                         
                         // 如果是产品经理
                         if (isProductManager) {
@@ -201,59 +205,90 @@ public class WorkbenchController {
                         } else {
                             // 非产品经理，只返回被指派给当前用户的任务
                             if (task.getAssigneeId() == null || !task.getAssigneeId().equals(userId)) {
+                                System.out.println("跳过任务: " + task.getTitle() + "，负责人ID: " + task.getAssigneeId() + "，当前用户ID: " + userId);
                                 continue; // 跳过不是当前用户的任务
                             }
                         }
                     } catch (NumberFormatException e) {
                         // 用户名不是数字格式，如果是产品经理，仍然显示所有任务
+                        System.out.println("用户名不是数字格式: " + e.getMessage());
                         if (!isProductManager) {
+                            System.out.println("非产品经理，跳过任务");
                             continue; // 非产品经理，跳过
                         }
                     }
                 }
                 
-                Map<String, Object> taskMap = new HashMap<>();
-                taskMap.put("id", task.getId());
-                taskMap.put("title", task.getTitle());
-                taskMap.put("description", task.getDescription());
-                taskMap.put("project_id", task.getProjectId());
-                taskMap.put("requirement_id", task.getRequirementId());
-                taskMap.put("parent_id", task.getParentId());
-                taskMap.put("creator_id", task.getCreatorId());
-                taskMap.put("assignee_id", task.getAssigneeId());
-                taskMap.put("assignee_name", "未指派"); // 默认值
-                taskMap.put("priority", task.getPriority());
-                taskMap.put("status", task.getStatus());
-                taskMap.put("progress", task.getProgress());
-                taskMap.put("estimated_hours", task.getEstimatedHours());
-                taskMap.put("actual_hours", task.getActualHours());
-                taskMap.put("start_date", task.getStartDate());
-                taskMap.put("due_date", task.getDueDate());
-                taskMap.put("created_at", task.getCreatedAt());
-                taskMap.put("type", ""); // 默认值
-                taskMap.put("solution", ""); // 默认值
-                
-                // 获取项目名称
-                String projectName = "未知项目";
-                if (task.getProjectId() != null) {
-                    try {
-                        var project = projectService.findById(task.getProjectId().longValue());
-                        if (project.isPresent()) {
-                            projectName = project.get().getName();
+                try {
+                    Map<String, Object> taskMap = new HashMap<>();
+                    taskMap.put("id", task.getId());
+                    taskMap.put("title", task.getTitle());
+                    taskMap.put("description", task.getDescription());
+                    taskMap.put("project_id", task.getProjectId());
+                    taskMap.put("requirement_id", task.getRequirementId());
+                    taskMap.put("parent_id", task.getParentId());
+                    taskMap.put("creator_id", task.getCreatorId());
+                    taskMap.put("assignee_id", task.getAssigneeId());
+                    
+                    // 添加负责人姓名
+                    String assigneeName = "未指派";
+                    if (task.getAssigneeId() != null) {
+                        try {
+                            System.out.println("获取负责人信息，ID: " + task.getAssigneeId());
+                            Optional<User> userOpt = userService.findById(task.getAssigneeId().toString());
+                            if (userOpt.isPresent()) {
+                                assigneeName = userOpt.get().getName() != null ? userOpt.get().getName() : userOpt.get().getUsername();
+                                System.out.println("负责人姓名: " + assigneeName);
+                            } else {
+                                System.out.println("未找到负责人信息");
+                            }
+                        } catch (Exception e) {
+                            // 如果获取负责人信息失败，使用默认值
+                            System.out.println("获取负责人信息失败: " + e.getMessage());
                         }
-                    } catch (Exception e) {
-                        System.out.println("获取项目名称失败: " + e.getMessage());
                     }
+                    taskMap.put("assignee_name", assigneeName);
+                    taskMap.put("priority", task.getPriority());
+                    taskMap.put("status", task.getStatus());
+                    taskMap.put("progress", task.getProgress());
+                    taskMap.put("estimated_hours", task.getEstimatedHours());
+                    taskMap.put("actual_hours", task.getActualHours());
+                    taskMap.put("start_date", task.getStartDate());
+                    taskMap.put("due_date", task.getDueDate());
+                    taskMap.put("created_at", task.getCreatedAt());
+                    taskMap.put("type", ""); // 默认值
+                    taskMap.put("solution", ""); // 默认值
+                    
+                    // 获取项目名称
+                    String projectName = "未知项目";
+                    if (task.getProjectId() != null) {
+                        try {
+                            System.out.println("获取项目信息，ID: " + task.getProjectId());
+                            var project = projectService.findById(task.getProjectId().longValue());
+                            if (project.isPresent()) {
+                                projectName = project.get().getName();
+                                System.out.println("项目名称: " + projectName);
+                            } else {
+                                System.out.println("未找到项目信息");
+                            }
+                        } catch (Exception e) {
+                            System.out.println("获取项目名称失败: " + e.getMessage());
+                        }
+                    }
+                    taskMap.put("project_name", projectName);
+                    
+                    taskList.add(taskMap);
+                    System.out.println("添加任务到列表: " + task.getTitle());
+                } catch (Exception e) {
+                    System.out.println("处理任务失败: " + e.getMessage());
+                    e.printStackTrace();
                 }
-                taskMap.put("project_name", projectName);
-                
-                taskList.add(taskMap);
-                System.out.println("添加任务到列表: " + task.getTitle());
             }
             
             System.out.println("返回的任务列表数量: " + taskList.size());
             return Result.success(taskList);
         } catch (Exception e) {
+            System.out.println("获取任务列表失败: " + e.getMessage());
             e.printStackTrace();
             return Result.error("获取任务列表失败: " + e.getMessage());
         }
@@ -322,21 +357,146 @@ public class WorkbenchController {
     @GetMapping("/bugs")
     public Result getBugs(@RequestParam(required = false) String username) {
         try {
+            System.out.println("开始获取Bug列表，用户名: " + username);
             List<Bug> bugs = bugService.findall();
-            // 如果指定了用户名，只返回当前用户的Bug
+            System.out.println("获取到的Bug数量: " + bugs.size());
+            List<Map<String, Object>> bugList = new ArrayList<>();
+            
+            // 获取用户参与的项目ID列表（如果是产品经理）
+            boolean isProductManager = false;
+            
             if (username != null && !username.isEmpty()) {
                 try {
-                    Integer userId = Integer.parseInt(username);
-                    bugs = bugs.stream()
-                            .filter(bug -> bug.getReporterId() != null && bug.getReporterId().equals(userId))
-                            .toList();
-                } catch (NumberFormatException e) {
-                    // 用户名不是数字格式，返回空列表
-                    bugs = new ArrayList<>();
+                    System.out.println("开始获取用户信息，用户名: " + username);
+                    var user = userService.findByUsername(username);
+                    System.out.println("获取到的用户信息: " + (user != null ? user.getName() : "null"));
+                    if (user != null) {
+                        System.out.println("用户角色id: " + user.getRole_id());
+                        // 假设role_id为1或2表示不需要筛选的角色
+                        if (user.getRole_id() != null) {
+                            System.out.println("用户角色id不为null，值为: " + user.getRole_id());
+                            if (user.getRole_id().equals(1L) || user.getRole_id().equals(2L)) {
+                                isProductManager = true;
+                                System.out.println("用户角色id为" + user.getRole_id() + "，返回所有Bug");
+                            } else {
+                                System.out.println("用户角色id为" + user.getRole_id() + "，需要筛选Bug");
+                            }
+                        } else {
+                            System.out.println("用户角色id为null，需要筛选Bug");
+                        }
+                    } else {
+                        System.out.println("未找到用户信息");
+                    }
+                } catch (Exception e) {
+                    System.out.println("获取用户信息失败: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
-            return Result.success(bugs);
+            
+            for (Bug bug : bugs) {
+                System.out.println("处理Bug: " + bug.getTitle() + "，负责人ID: " + bug.getAssigneeId() + "，项目ID: " + bug.getProjectId());
+                // 如果指定了用户名
+                if (username != null && !username.isEmpty()) {
+                    try {
+                        Integer userId = Integer.parseInt(username);
+                        System.out.println("转换后的用户ID: " + userId);
+                        
+                        // 如果是产品经理
+                        if (isProductManager) {
+                            // 产品经理可以看到所有Bug
+                            System.out.println("产品经理看到Bug: " + bug.getTitle());
+                        } else {
+                            // 非产品经理，只返回被指派给当前用户的Bug
+                            if (bug.getAssigneeId() == null || !bug.getAssigneeId().equals(userId)) {
+                                System.out.println("跳过Bug: " + bug.getTitle() + "，负责人ID: " + bug.getAssigneeId() + "，当前用户ID: " + userId);
+                                continue; // 跳过不是当前用户的Bug
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        // 用户名不是数字格式，如果是产品经理，仍然显示所有Bug
+                        System.out.println("用户名不是数字格式: " + e.getMessage());
+                        if (!isProductManager) {
+                            System.out.println("非产品经理，跳过Bug");
+                            continue; // 非产品经理，跳过
+                        }
+                    }
+                }
+                
+                try {
+                    Map<String, Object> bugMap = new HashMap<>();
+                    bugMap.put("id", bug.getId());
+                    bugMap.put("title", bug.getTitle());
+                    bugMap.put("description", bug.getDescription());
+                    bugMap.put("projectId", bug.getProjectId());
+                    bugMap.put("reporterId", bug.getReporterId());
+                    bugMap.put("assigneeId", bug.getAssigneeId());
+                    bugMap.put("severity", bug.getSeverity());
+                    bugMap.put("status", bug.getStatus());
+                    bugMap.put("bugType", bug.getBugType());
+                    bugMap.put("createdAt", bug.getCreatedAt());
+                    bugMap.put("resolvedAt", bug.getResolvedAt());
+                    
+                    // 添加负责人姓名
+                    String assigneeName = "未指派";
+                    if (bug.getAssigneeId() != null) {
+                        try {
+                            System.out.println("Bug ID: " + bug.getId() + "，负责人ID: " + bug.getAssigneeId() + "，类型: " + bug.getAssigneeId().getClass());
+                            // 直接使用Integer类型的assigneeId查找用户
+                            Optional<User> userOpt = userService.findById(bug.getAssigneeId().toString());
+                            System.out.println("查找用户结果: " + (userOpt.isPresent() ? "找到" : "未找到"));
+                            if (userOpt.isPresent()) {
+                                User user = userOpt.get();
+                                System.out.println("用户信息: ID=" + user.getId() + "，username=" + user.getUsername() + ", 姓名=" + user.getName());
+                                assigneeName = user.getName() != null ? user.getName() : user.getUsername();
+                                System.out.println("负责人姓名: " + assigneeName);
+                            } else {
+                                // 如果没有找到用户，尝试遍历所有用户，查看是否有匹配的
+                                System.out.println("未找到用户，开始遍历所有用户:");
+                                Iterable<User> allUsers = userService.findAll();
+                                for (User user : allUsers) {
+                                    System.out.println("用户: ID=" + user.getId() + "，username=" + user.getUsername() + ", 姓名=" + user.getName());
+                                }
+                            }
+                        } catch (Exception e) {
+                            System.out.println("获取负责人信息失败: " + e.getMessage());
+                            e.printStackTrace();
+                            // 如果获取负责人信息失败，使用默认值
+                        }
+                    } else {
+                        System.out.println("Bug ID: " + bug.getId() + "，负责人ID为null");
+                    }
+                    bugMap.put("assignee_name", assigneeName);
+                    
+                    // 获取项目名称
+                    String projectName = "未知项目";
+                    if (bug.getProjectId() != null) {
+                        try {
+                            System.out.println("获取项目信息，ID: " + bug.getProjectId());
+                            var project = projectService.findById(bug.getProjectId().longValue());
+                            if (project.isPresent()) {
+                                projectName = project.get().getName();
+                                System.out.println("项目名称: " + projectName);
+                            } else {
+                                System.out.println("未找到项目信息");
+                            }
+                        } catch (Exception e) {
+                            System.out.println("获取项目名称失败: " + e.getMessage());
+                        }
+                    }
+                    bugMap.put("project_name", projectName);
+                    
+                    bugList.add(bugMap);
+                    System.out.println("添加Bug到列表: " + bug.getTitle());
+                } catch (Exception e) {
+                    System.out.println("处理Bug失败: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
+            System.out.println("返回的Bug列表数量: " + bugList.size());
+            return Result.success(bugList);
         } catch (Exception e) {
+            System.out.println("获取Bug列表失败: " + e.getMessage());
             e.printStackTrace();
             return Result.error("获取Bug列表失败: " + e.getMessage());
         }
@@ -1021,10 +1181,9 @@ public class WorkbenchController {
             
             // 1. 获取用户信息，判断用户角色
             boolean isProductManager = false;
-            var userOptional = userService.findById(username);
+            var user = userService.findByUsername(username);
             
-            if (userOptional.isPresent()) {
-                var user = userOptional.get();
+            if (user != null) {
                 // 角色ID定义：1=超级管理员，2=产品经理，3=开发者，4=测试者
                 // 超级管理员和产品经理都应该能看到所有Bug
                 if (user.getRole_id() != null && (user.getRole_id() == 1 || user.getRole_id() == 2)) {
@@ -1068,31 +1227,31 @@ public class WorkbenchController {
                 }
             }
             
-            // 3. 获取任务数
+            // 3. 获取任务数（只统计当前用户是负责人的任务）
             int taskState = 0;
             List<Task> tasks = taskService.findall();
             
-            for (Task task : tasks) {
-                // 如果是产品经理，显示所有任务
-                if (isProductManager) {
-                    taskState++;
-                } else {
-                    // 否则只显示与用户参与的项目相关的任务
-                    if (task.getProjectId() != null) {
-                        Long projectId = task.getProjectId().longValue();
-                        if (userProjectIds.contains(projectId)) {
-                            taskState++;
-                        }
+            // 先通过username查找用户，获取用户的id
+            Integer userId = null;
+            if (user != null) {
+                userId = user.getId();
+            }
+            
+            if (userId != null) {
+                for (Task task : tasks) {
+                    // 只统计当前用户是负责人的任务
+                    if (task.getAssigneeId() != null && task.getAssigneeId().equals(userId)) {
+                        taskState++;
                     }
                 }
             }
             
-            // 4. 获取Bug数
+            // 4. 获取Bug数（只统计当前用户是负责人的Bug）
             int bugState = 0;
             List<Bug> bugs = bugService.findall();
             System.out.println("获取到的Bug数量: " + bugs.size());
             System.out.println("当前用户名: " + username);
-            System.out.println("是否为产品经理: " + isProductManager);
+            System.out.println("当前用户ID: " + userId);
             
             // 检查数据库连接和Bug数据
             if (bugs == null) {
@@ -1104,23 +1263,12 @@ public class WorkbenchController {
                 }
             }
             
-            for (Bug bug : bugs) {
-                // 如果是产品经理，显示所有Bug
-                if (isProductManager) {
-                    bugState++;
-                    System.out.println("产品经理统计Bug: " + bug.getId());
-                } else {
-                    // 否则只显示当前用户的Bug
-                    try {
-                        Integer userId = Integer.parseInt(username);
-                        System.out.println("Bug ID: " + bug.getId() + ", Assignee ID: " + bug.getAssigneeId() + ", 用户ID: " + userId);
-                        if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId)) {
-                            bugState++;
-                            System.out.println("匹配到Bug: " + bug.getId());
-                        }
-                    } catch (NumberFormatException e) {
-                        // 用户名不是数字格式，跳过
-                        System.out.println("用户名不是数字格式: " + username);
+            if (userId != null) {
+                for (Bug bug : bugs) {
+                    // 只统计当前用户是负责人的Bug
+                    if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId)) {
+                        bugState++;
+                        System.out.println("匹配到Bug: " + bug.getId());
                     }
                 }
             }

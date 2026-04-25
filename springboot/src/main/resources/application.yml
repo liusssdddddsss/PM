@@ -46,3 +46,10 @@ spring:
 # 自定义上传目录（建议放在项目外，避免重新部署时丢失）
 file:
   upload-dir: ./uploads/
+
+# JWT配置
+jwt:
+  secret: your-secret-key-change-this-to-a-longer-random-key-256-bits-minimum
+  expiration: 86400000
+  prefix: Bearer
+  header: Authorization

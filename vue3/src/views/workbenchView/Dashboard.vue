@@ -7,14 +7,45 @@
           <p>
             {{currentTime}}
           </p>
-<!--          <p>-->
-<!--            昨日您处理任务和Bug-->
-<!--            <span>{{bug}}</span>-->
-<!--            次-->
-<!--          </p>-->
           <div class="state">
-            <div class="label">              <div class="user-avatar" @click="triggerFileInput">                <img :src="userAvatar" alt="头像" class="avatar">                <input type="file" ref="fileInput" accept="image/*" @change="handleFileChange" style="display: none;">              </div>              <p>                {{name}}，上午好              </p>            </div>
-            <div class="tasks">              <div class="approve" @click="navigateToModule('products')">                <p class="tasks-shu">                  {{projectCount}}                </p>                <span>产品总数</span>              </div>              <div class="task" @click="navigateToModule('projects')">                <p class="tasks-shu">                  {{xiangMuCount}}                </p>                <span>项目总数</span>              </div>              <div class="bugs" @click="navigateToModule('tasks')">                <p class="tasks-shu">                  {{taskAllCount}}                </p>                <span>任务总数</span>              </div>              <div class="needs" @click="navigateToModule('bugs')">                <p class="tasks-shu">                  {{bugState}}                </p>                <span>Bug数</span>              </div>              <div class="users">                <p class="tasks-shu">                  {{approveState}}                </p>                <span>待审批数</span>              </div>            </div>
+            <div class="label">
+              <div class="user-avatar" >
+<!--              <input type="file" ref="fileInput" accept="image/*" @change="handleFileChange" style="display: none;">-->
+              </div>
+              <p>                {{name}}，上午好              </p>
+            </div>
+            <div class="tasks">
+              <div class="approve" @click="navigateToModule('products')">
+                <p class="tasks-shu">
+                  {{projectCount}}
+                </p>
+                <span>产品总数</span>
+              </div>
+              <div class="task" @click="navigateToModule('projects')">
+                <p class="tasks-shu">
+                  {{xiangMuCount}}
+                </p>
+                <span>项目总数</span>
+              </div>
+              <div class="bugs" @click="navigateToModule('tasks')">
+                <p class="tasks-shu">
+                  {{taskAllCount}}
+                </p>
+                <span>任务总数</span>
+              </div>
+              <div class="needs" @click="navigateToModule('bugs')">
+                <p class="tasks-shu">
+                  {{bugState}}
+                </p>
+                <span>Bug数</span>
+              </div>
+              <div class="users">
+                <p class="tasks-shu">
+                  {{approveState}}
+                </p>
+                <span>待审批数</span>
+              </div>
+            </div>
           </div>
         </div>
       </el-card>
@@ -775,12 +806,18 @@ const projectDetailDialogVisible = ref(false);
 // 当前项目详情
 const currentProjectDetail = ref({
   projectName: '',
+  teamName:'',
   startTime: '',
   finishTime: '',
   remainingTime: '',
   risk: 0,
   teamMembers: [],
-  description: ''
+  description: '',
+  productName: '',
+  projectManager: '',
+  projectStatus: '',
+  projectProgress: '',
+  projectGoals: []
 });
 
 
@@ -867,18 +904,24 @@ const goToProjectModule = () => {
 // 导航到对应模块页面
 const navigateToModule = (module) => {
   console.log('跳转到模块:', module);
+  // 从本地存储中获取用户信息
+  const userStr = localStorage.getItem('user');
+  const username = userStr ? JSON.parse(userStr).username : '';
+  
   switch (module) {
     case 'products':
-      router.push('/productResearch/productList');
+      router.push('/productResearch/productDashboard');
       break;
     case 'projects':
       router.push('/itemSet/itemList');
       break;
     case 'tasks':
-      router.push('/task/taskList');
+      // 跳转到任务列表页面，并传递用户名为参数，以便只显示该用户负责的任务
+      router.push(`/task/taskList?assignee=${encodeURIComponent(username)}`);
       break;
     case 'bugs':
-      router.push('/test/bugList');
+      // 跳转到Bug列表页面，并传递用户名为参数，以便只显示该用户负责的Bug
+      router.push(`/test/bugList?assignee=${encodeURIComponent(username)}`);
       break;
     default:
       break;

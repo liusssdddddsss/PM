@@ -473,6 +473,20 @@ public class DashboardController {
                             }
                             bugMap.put("project", projectName);
                             
+                            // 添加负责人信息
+                            String assigneeName = "未知";
+                            if (bug.getAssigneeId() != null) {
+                                try {
+                                    Optional<User> userOpt = userService.findById(bug.getAssigneeId().toString());
+                                    if (userOpt.isPresent()) {
+                                        assigneeName = userOpt.get().getName() != null ? userOpt.get().getName() : userOpt.get().getUsername();
+                                    }
+                                } catch (Exception e) {
+                                    // 如果获取负责人信息失败，使用默认值
+                                }
+                            }
+                            bugMap.put("assignee", assigneeName);
+                            
                             // 添加其他必要字段
                             bugMap.put("deadline", "");
                             bugMap.put("progress", 0);
@@ -1977,6 +1991,162 @@ public class DashboardController {
         }
     }
 
+    @Operation(summary = "获取项目详细信息", description = "返回项目详细信息，包括项目基本信息、团队信息、项目目标和项目详情描述")
+    @GetMapping(value = "/project-info", produces = "application/json;charset=UTF-8")
+    public Result getProjectInfo(@RequestParam String projectName) {
+        try {
+            // 从数据库获取项目详细信息
+            Map<String, Object> projectInfo = new HashMap<>();
+            
+            // 首先根据项目名称查找项目
+            Project project = null;
+            Iterable<Project> projects = projectService.findAll();
+            for (Project p : projects) {
+                if (projectName.equals(p.getName())) {
+                    project = p;
+                    break;
+                }
+            }
+            
+            if (project != null) {
+                // 项目基本信息
+                projectInfo.put("projectName", project.getName());
+                projectInfo.put("startTime", project.getStart_date() != null ? project.getStart_date().toString() : "");
+                projectInfo.put("finishTime", project.getEnd_date() != null ? project.getEnd_date().toString() : "");
+                
+                // 计算剩余时间
+                if (project.getEnd_date() != null) {
+                    long diffInMillies = Math.abs(project.getEnd_date().getTime() - new Date().getTime());
+                    long diffInDays = diffInMillies / (1000 * 60 * 60 * 24);
+                    projectInfo.put("remainingTime", diffInDays + "天");
+                } else {
+                    projectInfo.put("remainingTime", "未知");
+                }
+                
+                // 项目状态
+                String projectStatus = "未知";
+                if (project.getStatus() != null) {
+                    switch (project.getStatus()) {
+                        case 0:
+                            projectStatus = "未开始";
+                            break;
+                        case 1:
+                            projectStatus = "进行中";
+                            break;
+                        case 2:
+                            projectStatus = "已完成";
+                            break;
+                        case 3:
+                            projectStatus = "已归档";
+                            break;
+                    }
+                }
+                projectInfo.put("projectStatus", projectStatus);
+                
+                // 项目进度
+                projectInfo.put("projectProgress", project.getProgress() != null ? project.getProgress() + "%" : "0%");
+                
+                // 所属产品
+                String productName = "未知";
+                if (project.getProduct_id() != null) {
+                    Optional<Product> productOpt = productService.findById(project.getProduct_id());
+                    if (productOpt.isPresent()) {
+                        productName = productOpt.get().getName();
+                    }
+                }
+                projectInfo.put("productName", productName);
+                
+                // 项目经理
+                String projectManager = "未知";
+                if (project.getManagerId() != null) {
+                    Optional<User> userOpt = userService.findById(project.getManagerId().toString());
+                    if (userOpt.isPresent()) {
+                        projectManager = userOpt.get().getName() != null ? userOpt.get().getName() : userOpt.get().getUsername();
+                    }
+                }
+                projectInfo.put("projectManager", projectManager);
+                
+                // 团队信息
+                projectInfo.put("teamName", "智慧教室开发团队"); // 暂时使用固定值，实际应该从数据库获取
+                
+                // 团队成员列表
+                List<Map<String, String>> teamMembers = new ArrayList<>();
+                
+                // 从项目成员表获取团队成员
+                List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByProjectId(project.getId());
+                for (com.example.springboot.entity.ProjectMember member : projectMembers) {
+                    if (member.getUserId() != null) {
+                        Optional<User> userOpt = userService.findById(member.getUserId().toString());
+                        if (userOpt.isPresent()) {
+                            User user = userOpt.get();
+                            Map<String, String> memberInfo = new HashMap<>();
+                            memberInfo.put("name", user.getName() != null ? user.getName() : user.getUsername());
+                            
+                            // 根据用户角色设置职位
+                            String position = "成员";
+                            if (user.getRole_id() != null) {
+                                switch (user.getRole_id().intValue()) {
+                                    case 1:
+                                        position = "管理员";
+                                        break;
+                                    case 2:
+                                        position = "产品经理";
+                                        break;
+                                    case 3:
+                                        position = "开发工程师";
+                                        break;
+                                    case 4:
+                                        position = "测试工程师";
+                                        break;
+                                }
+                            }
+                            memberInfo.put("position", position);
+                            teamMembers.add(memberInfo);
+                        }
+                    }
+                }
+                
+                // 如果没有团队成员，添加默认成员
+                if (teamMembers.isEmpty()) {
+                    teamMembers.add(Map.of("name", "张三", "position", "项目经理"));
+                    teamMembers.add(Map.of("name", "李四", "position", "开发工程师"));
+                    teamMembers.add(Map.of("name", "王五", "position", "测试工程师"));
+                }
+                
+                projectInfo.put("teamMembers", teamMembers);
+                
+                // 项目目标
+                List<String> projectGoals = new ArrayList<>();
+                projectGoals.add("完成智慧教室系统的开发");
+                projectGoals.add("实现智慧云盘功能");
+                projectGoals.add("确保系统稳定运行");
+                projectInfo.put("projectGoals", projectGoals);
+                
+                // 项目详情描述
+                projectInfo.put("description", project.getDescription() != null ? project.getDescription() : "这是一个详细的项目描述，包含项目的目标、范围、功能等信息。");
+            } else {
+                // 如果没有找到项目，返回默认数据
+                projectInfo.put("projectName", "暂无项目");
+                projectInfo.put("startTime", "");
+                projectInfo.put("finishTime", "");
+                projectInfo.put("remainingTime", "");
+                projectInfo.put("projectStatus", "未知");
+                projectInfo.put("projectProgress", "0%");
+                projectInfo.put("productName", "未知");
+                projectInfo.put("projectManager", "未知");
+                projectInfo.put("teamName", "未知团队");
+                projectInfo.put("teamMembers", new ArrayList<>());
+                projectInfo.put("projectGoals", new ArrayList<>());
+                projectInfo.put("description", "暂无项目详情");
+            }
+            
+            return Result.success(projectInfo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目详细信息失败: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "获取任务完成总览", description = "返回任务完成总览数据")
     @GetMapping("/task-overview")
     public Result getTaskOverview(@RequestParam(required = false) String username) {
@@ -1994,35 +2164,21 @@ public class DashboardController {
             int inProgress = 0; // 进行中
             int scheduled = 0; // 已排期
             
-            // 获取用户参与的项目ID列表
-            Set<Long> userProjectIds = new HashSet<>();
+            // 先通过username查找用户，获取用户的id
+            Integer userId = null;
             if (username != null) {
-                var user = userService.findById(username);
-                if (user.isPresent()) {
-                    try {
-                        Long userId = Long.parseLong(username);
-                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
-                            if (member.getProjectId() != null) {
-                                userProjectIds.add(member.getProjectId());
-                            }
-                        }
-                    } catch (NumberFormatException e) {
-                        // 用户名不是数字格式，返回空列表
-                    }
+                var user = userService.findByUsername(username);
+                if (user != null) {
+                    userId = user.getId();
                 }
             }
             
             List<Task> tasks = taskService.findall();
             for (Task task : tasks) {
-                // 如果指定了用户名，只统计与用户参与的项目相关的任务
-                if (username != null) {
-                    if (task.getProjectId() != null) {
-                        Long projectId = task.getProjectId().longValue();
-                        if (!userProjectIds.contains(projectId)) {
-                            continue;
-                        }
-                    } else {
+                // 如果指定了用户名，只统计当前用户是负责人的任务
+                if (username != null && userId != null) {
+                    // 只统计当前用户是负责人的任务
+                    if (task.getAssigneeId() == null || !task.getAssigneeId().equals(userId)) {
                         continue;
                     }
                 }
@@ -2103,6 +2259,9 @@ public class DashboardController {
     @Autowired
     private RolePermissionUtils rolePermissionUtils;
     
+    @Autowired
+    private TeamService teamService;
+    
     @Operation(summary = "获取工作台统计数据", description = "返回工作台统计数据")
     @GetMapping("/statistics")
     public Result getStatistics(@RequestParam String username) {
@@ -2114,6 +2273,15 @@ public class DashboardController {
             boolean isDeveloper = rolePermissionUtils.isDeveloper(username);
             boolean isTester = rolePermissionUtils.isTester(username);
             boolean isAdmin = rolePermissionUtils.isAdmin(username);
+            
+            // 先通过username查找用户，获取用户的id
+            Integer userId = null;
+            if (username != null) {
+                var user = userService.findByUsername(username);
+                if (user != null) {
+                    userId = user.getId();
+                }
+            }
             
             // 2. 获取待审批数（只有产品经理和管理员可以看到）
             int approveState = 0;
@@ -2131,7 +2299,7 @@ public class DashboardController {
                     taskState++;
                 } else if (isDeveloper || isTester) {
                     // 开发者和测试者只能看到自己的任务
-                    if (task.getAssigneeId() != null && task.getAssigneeId().toString().equals(username)) {
+                    if (task.getAssigneeId() != null && userId != null && task.getAssigneeId().equals(userId)) {
                         taskState++;
                     }
                 }
@@ -2146,7 +2314,7 @@ public class DashboardController {
                     bugState++;
                 } else if (isDeveloper) {
                     // 开发者只能看到指派给自己的Bug
-                    if (bug.getAssigneeId() != null && bug.getAssigneeId().toString().equals(username)) {
+                    if (bug.getAssigneeId() != null && userId != null && bug.getAssigneeId().equals(userId)) {
                         bugState++;
                     }
                 } else if (isTester) {
@@ -2267,123 +2435,5 @@ public class DashboardController {
         }
     }
     
-    @Operation(summary = "获取项目详细信息", description = "返回项目详细信息，包括开始时间、所属产品、团队成员及其职位等")
-    @GetMapping("/project-info")
-    public Result getProjectInfo(@RequestParam String projectName) {
-        try {
-            // 从数据库获取项目详细信息
-            Map<String, Object> projectInfo = new HashMap<>();
-            
-            // 根据项目名称查找项目
-            Project project = null;
-            Iterable<Project> projects = projectService.findAll();
-            for (Project p : projects) {
-                if (projectName.equals(p.getName())) {
-                    project = p;
-                    break;
-                }
-            }
-            
-            if (project != null) {
-                // 项目基本信息
-                projectInfo.put("projectName", project.getName());
-                projectInfo.put("startTime", project.getStart_date() != null ? project.getStart_date().toString() : "");
-                projectInfo.put("finishTime", project.getEnd_date() != null ? project.getEnd_date().toString() : "");
-                
-                // 计算剩余时间
-                if (project.getEnd_date() != null) {
-                    Calendar cal = Calendar.getInstance();
-                    Date today = cal.getTime();
-                    long diff = project.getEnd_date().getTime() - today.getTime();
-                    long days = diff / (1000 * 60 * 60 * 24);
-                    projectInfo.put("remainingTime", days + "天");
-                } else {
-                    projectInfo.put("remainingTime", "未知");
-                }
-                
-                // 项目风险（暂时设置为0，实际项目中应该从数据库获取）
-                projectInfo.put("risk", 0);
-                
-                // 所属产品
-                if (project.getProduct_id() != null) {
-                    Iterable<Product> products = productService.findAll();
-                    for (Product product : products) {
-                        if (product.getId().equals(project.getProduct_id())) {
-                            projectInfo.put("productName", product.getName());
-                            break;
-                        }
-                    }
-                } else {
-                    projectInfo.put("productName", "未知");
-                }
-                
-                // 项目状态
-                String status = "未知";
-                if (project.getStatus() != null) {
-                    switch (project.getStatus()) {
-                        case 0: status = "未开始"; break;
-                        case 1: status = "进行中"; break;
-                        case 2: status = "已完成"; break;
-                    }
-                }
-                projectInfo.put("projectStatus", status);
-                
-                // 项目进度
-                projectInfo.put("projectProgress", project.getProgress() != null ? project.getProgress() + "%" : "0%");
-                
-                // 项目经理
-                if (project.getManagerId() != null) {
-                    Iterable<User> users = userService.findAll();
-                    for (User user : users) {
-                        if (user.getUsername() != null && user.getUsername().equals(project.getManagerId().toString())) {
-                            projectInfo.put("projectManager", user.getName() != null ? user.getName() : user.getUsername());
-                            break;
-                        }
-                    }
-                } else {
-                    projectInfo.put("projectManager", "未知");
-                }
-                
-                // 团队成员及其职位（暂时模拟数据，实际项目中应该从数据库获取）
-                List<Map<String, String>> teamMembers = new ArrayList<>();
-                teamMembers.add(Map.of("name", "张三", "position", "项目经理"));
-                teamMembers.add(Map.of("name", "李四", "position", "开发工程师"));
-                teamMembers.add(Map.of("name", "王五", "position", "测试工程师"));
-                projectInfo.put("teamMembers", teamMembers);
-                
-                // 项目详情
-                projectInfo.put("description", "这是一个详细的项目描述，包含项目的目标、范围、功能等信息。");
-                
-                // 项目目标
-            List<String> projectGoals = new ArrayList<>();
-            projectGoals.add("完成智慧教室系统的开发");
-            projectGoals.add("实现智慧云盘功能");
-            projectGoals.add("确保系统稳定运行");
-            projectInfo.put("projectGoals", projectGoals);
-            
-            // 团队名称
-            projectInfo.put("teamName", "智慧教室开发团队");
-            } else {
-                // 如果没有找到项目，返回默认数据
-                projectInfo.put("projectName", "暂无项目");
-                projectInfo.put("startTime", "");
-                projectInfo.put("finishTime", "");
-                projectInfo.put("remainingTime", "");
-                projectInfo.put("risk", 0);
-                projectInfo.put("productName", "");
-                projectInfo.put("projectStatus", "");
-                projectInfo.put("projectProgress", "");
-                projectInfo.put("projectManager", "");
-                projectInfo.put("teamMembers", new ArrayList<>());
-            projectInfo.put("description", "");
-            projectInfo.put("projectGoals", new ArrayList<>());
-            projectInfo.put("teamName", "");
-            }
-            
-            return Result.success(projectInfo);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error("获取项目详细信息失败: " + e.getMessage());
-        }
-    }
+
 }

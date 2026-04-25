@@ -103,10 +103,14 @@ const handleLogin = async () => {
     console.log('登录响应:', response);
     
     if (response.data.code === 200) {
-      const user = response.data.data;
+      const result = response.data.data;
+      const user = result.user;
+      const token = result.token;
       console.log('登录成功，用户信息:', user);
-      // 存储用户信息到本地存储
+      console.log('登录成功，令牌:', token);
+      // 存储用户信息和令牌到本地存储
       localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
       
       // 如果勾选了自动登录，保存用户名和密码到本地存储
       if (form.autoLogin) {

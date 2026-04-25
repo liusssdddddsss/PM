@@ -23,6 +23,11 @@
             <span class="task-name">{{ scope.row.name }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="assignee" label="负责人" min-width="100">
+          <template #default="scope">
+            <span>{{ scope.row.assignee }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="priority" label="优先级" width="80">
           <template #default="scope">
             <span :class="getPriorityClass(scope.row.priority)">{{ scope.row.priority }}</span>
@@ -317,14 +322,14 @@ const filteredTaskList = computed(() => {
       
       if (props.activeTab === 'zhiPaiMe') {
         // 指派我的任务
-        filtered = filtered.filter(task => task.assignee_id === userId);
+        filtered = filtered.filter(task => task.assignee_id == userId);
       } else if (props.activeTab === 'meJoin') {
         // 我参与的任务
         // 这里简化处理，假设参与的任务是指被指派的任务
-        filtered = filtered.filter(task => task.assignee_id === userId);
+        filtered = filtered.filter(task => task.assignee_id == userId);
       } else if (props.activeTab === 'meZhiPai') {
         // 我指派的任务
-        filtered = filtered.filter(task => task.creator_id === userId);
+        filtered = filtered.filter(task => task.creator_id == userId);
       }
     }
   }
@@ -390,6 +395,7 @@ const fetchTasks = async () => {
             id: item.id,
             projectName: item.project_name,
             name: item.description || item.title,
+            assignee: item.assignee_name || '未指派',
             priority: getPriorityText(item.priority),
             status: getStatusText(item.status),
             deadline: item.due_date,

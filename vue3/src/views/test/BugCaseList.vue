@@ -24,6 +24,11 @@
             <span class="bug-name">{{ scope.row.name }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="assignee" label="负责人" min-width="100">
+          <template #default="scope">
+            <span>{{ scope.row.assignee }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="priority" label="优先级" width="80">
           <template #default="scope">
             <span :class="getPriorityClass(scope.row.priority)">{{ scope.row.priority }}</span>
@@ -325,6 +330,7 @@ const fetchBugs = async () => {
           id: item.id,
           projectName: item.project || '未知项目',
           name: item.name || item.title,
+          assignee: item.assignee || '未知',
           priority: item.priority,
           status: item.status,
           deadline: item.deadline || '',

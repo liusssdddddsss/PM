@@ -78,14 +78,21 @@ const handleTabClick = (type) => {
   activeTab.value = type;
 };
 
-// 组件加载时检查URL参数中的projectName或search
+// 组件加载时检查URL参数中的projectName、search或assignee
 onMounted(() => {
   const projectName = route.query.projectName;
   const search = route.query.search;
+  const assignee = route.query.assignee;
+  
   if (projectName) {
     searchQuery.value = projectName;
   } else if (search) {
     searchQuery.value = search;
+  }
+  
+  // 如果URL参数中有assignee，切换到"指派我的"标签
+  if (assignee) {
+    activeTab.value = 'zhiPaiMe';
   }
 });
 </script>

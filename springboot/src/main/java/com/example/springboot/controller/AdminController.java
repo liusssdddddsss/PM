@@ -9,6 +9,7 @@ import com.example.springboot.repository.LoginLogRepository;
 import com.example.springboot.repository.UserRepository;
 import com.example.springboot.service.AdminService;
 import com.example.springboot.util.AESUtil;
+import com.example.springboot.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -52,6 +53,9 @@ public class AdminController {
     
     @Value("${file.upload-dir}")
     private String uploadDir;   // 从配置文件读取上传根目录
+    
+    @Resource
+    private JwtUtil jwtUtil;
 
 //    查询所有的数据
     @Operation(summary = "查询所有用户",description = "返回用户列表")
@@ -132,8 +136,15 @@ public class AdminController {
         }
         
         if (admin != null) {
-            System.out.println("登录成功，返回用户信息");
-            return Result.success(admin);
+            System.out.println("登录成功，生成JWT令牌");
+            // 生成JWT令牌
+            String token = jwtUtil.generateToken(admin.getUsername().toString(), admin.getUsername().toString(), admin.getIs_admin() == 1 ? "admin" : "user");
+            // 构建返回结果，包含用户信息和令牌
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("user", admin);
+            result.put("token", token);
+            System.out.println("登录成功，返回用户信息和令牌");
+            return Result.success(result);
         } else {
             System.out.println("登录失败，返回错误信息: " + errorMessage);
             return Result.error(errorMessage);

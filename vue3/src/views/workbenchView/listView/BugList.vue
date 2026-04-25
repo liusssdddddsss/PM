@@ -29,6 +29,7 @@
       </template>
     </el-table-column>
     <el-table-column prop="sure" label="确认" width="90"></el-table-column>
+    <el-table-column prop="assignee" label="负责人" width="100"></el-table-column>
     <el-table-column prop="finishTime" label="完成时间" width="180"></el-table-column>
       </el-table>
     </div>
@@ -87,11 +88,14 @@ const fetchBugs = async () => {
         tableData.value = response.data.data.map(item => ({
           id: item.id,
           title: item.title,
-          priority: getPriorityText(item.priority),
+          priority: getPriorityText(item.severity),
           state: getStatusText(item.status),
-          sure: item.confirmed ? '已确认' : '未确认',
-          finishTime: item.due_date
+          sure: '已确认',
+          assignee: item.assignee_name || '未指派',
+          finishTime: item.resolvedAt
         }));
+        console.log('Bug列表数据:', response.data.data);
+        console.log('转换后的Bug列表数据:', tableData.value);
         console.log('转换后的Bug列表数据:', tableData.value);
         total.value = tableData.value.length;
       }
