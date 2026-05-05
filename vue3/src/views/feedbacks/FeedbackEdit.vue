@@ -26,7 +26,7 @@
           <el-input
               v-model="feedbackForm.description"
               type="textarea"
-              placeholder="可以在编辑器直接贴图。"
+              placeholder="请详细描述反馈内容"
               :rows="6"
               style="width: 80%"
           />
@@ -39,32 +39,14 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="抄送给">
-              <el-select v-model="feedbackForm.cc" placeholder="请选择">
-                <el-option label="张三" value="zhangsan" />
-                <el-option label="李四" value="lisi" />
-                <el-option label="王五" value="wangwu" />
+            <el-form-item label="类型">
+              <el-select v-model="feedbackForm.type" placeholder="请选择">
+                <el-option label="研发需求" value="development" />
+                <el-option label="用户需求" value="user" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-
-        <el-form-item label="附件">
-          <el-upload
-              class="upload-demo"
-              action="#"
-              :auto-upload="false"
-              :on-preview="handlePreview"
-              :on-remove="handleRemove"
-              :file-list="fileList"
-              list-type="picture"
-          >
-            <el-button type="primary">选择文件</el-button>
-            <template #tip>
-              <div class="el-upload__tip">可点击添加或拖拽上传,不超过 100.0MB</div>
-            </template>
-          </el-upload>
-        </el-form-item>
 
         <el-form-item>
           <div class="form-buttons">
@@ -95,7 +77,7 @@ const feedbackForm = ref({
   title: '',
   description: '',
   reporter: '',
-  cc: ''
+  type: ''
 });
 
 // 文件列表
@@ -158,7 +140,7 @@ const loadFeedbackDetail = async () => {
           title: data.title || '',
           description: data.description || '',
           reporter: data.creatorName || '', // 反馈者就是创建人
-          cc: data.assigneeName || '' // 抄送者就是被指派的人
+          type: data.type || '' // 反馈类型
         };
       } else {
         console.error('获取反馈详情失败:', response.data.message);

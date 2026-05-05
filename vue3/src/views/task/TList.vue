@@ -27,7 +27,7 @@
       </div>
     </div>
     <div class="list">
-      <TaskList :activeTab="activeTab" :search-query="searchQuery"/>
+      <TaskList :activeTab="activeTab" :search-query="searchQuery" :product-name="filterProjectName" :task-id="filterTaskId"/>
     </div>
   </div>
 </template>
@@ -59,9 +59,24 @@ const tabs = ref([
 ]);
 const activeTab=ref('all');
 const searchQuery=ref('');
+const filterProjectName = ref('');
+const filterTaskId = ref(null);
 
 const router =useRouter();
 const route = useRoute();
+
+// 处理URL参数
+onMounted(() => {
+  const params = route.query;
+  if (params.projectName) {
+    filterProjectName.value = decodeURIComponent(params.projectName);
+    console.log('URL参数 projectName:', filterProjectName.value);
+  }
+  if (params.taskId) {
+    filterTaskId.value = parseInt(params.taskId);
+    console.log('URL参数 taskId:', filterTaskId.value);
+  }
+});
 
 const goToEdit = () => {
   router.push('/task/taskEdit');

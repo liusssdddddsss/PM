@@ -141,40 +141,60 @@ public class DashboardController {
             // 如果指定了项目名称，过滤出该项目的Bug
             Long targetProjectId = null;
             if (projectName != null && !projectName.isEmpty()) {
+                System.out.println("获取测试统计，项目名称: " + projectName);
+                
                 // 1. 首先尝试通过projectName查找项目
                 Iterable<Project> projects = projectService.findAll();
                 for (Project project : projects) {
+                    System.out.println("遍历项目: " + project.getName() + ", ID: " + project.getId());
                     if (projectName.equals(project.getName())) {
                         targetProjectId = project.getId();
+                        System.out.println("找到匹配的项目，ID: " + targetProjectId);
                         break;
                     }
                 }
                 
                 // 2. 如果找不到项目，尝试通过projectName查找测试套件，然后获取测试套件关联的项目ID
                 if (targetProjectId == null) {
+                    System.out.println("通过项目名称未找到项目，尝试通过测试套件查找");
                     for (TestSuite testSuite : testSuites) {
                         if (projectName.equals(testSuite.getName()) && testSuite.getProject_id() != null) {
                             targetProjectId = testSuite.getProject_id();
+                            System.out.println("通过测试套件找到项目ID: " + targetProjectId);
                             break;
                         }
                     }
                 }
             }
+            
+            System.out.println("最终目标项目ID: " + (targetProjectId != null ? targetProjectId : "null"));
 
             for (Bug bug : bugs) {
                 // 如果指定了项目，只统计该项目的Bug
+                boolean shouldCount = true;
                 if (targetProjectId != null) {
-                    if (bug.getProjectId() == null || !bug.getProjectId().equals(targetProjectId.intValue())) {
-                        continue;
+                    if (bug.getProjectId() == null) {
+                        shouldCount = false;
+                    } else {
+                        long bugProjectId = bug.getProjectId().longValue();
+                        if (bugProjectId != targetProjectId) {
+                            shouldCount = false;
+                        }
                     }
                 } else if (username != null) {
                     // 如果未指定项目，只统计用户参与项目的Bug
                     if (bug.getProjectId() != null) {
                         if (!userProjectIds.contains(Long.valueOf(bug.getProjectId()))) {
-                            continue;
+                            shouldCount = false;
                         }
                     }
                 }
+                
+                if (!shouldCount) {
+                    continue;
+                }
+                
+                System.out.println("统计Bug: ID=" + bug.getId() + ", ProjectID=" + bug.getProjectId() + ", Status=" + bug.getStatus());
                 
                 // 统计Bug状态
                 if (bug.getStatus() != null) {
@@ -2080,6 +2100,7 @@ public class DashboardController {
                         if (userOpt.isPresent()) {
                             User user = userOpt.get();
                             Map<String, String> memberInfo = new HashMap<>();
+                            memberInfo.put("username", user.getUsername());
                             memberInfo.put("name", user.getName() != null ? user.getName() : user.getUsername());
                             
                             // 根据用户角色设置职位
@@ -2108,9 +2129,23 @@ public class DashboardController {
                 
                 // 如果没有团队成员，添加默认成员
                 if (teamMembers.isEmpty()) {
-                    teamMembers.add(Map.of("name", "张三", "position", "项目经理"));
-                    teamMembers.add(Map.of("name", "李四", "position", "开发工程师"));
-                    teamMembers.add(Map.of("name", "王五", "position", "测试工程师"));
+                    Map<String, String> member1 = new HashMap<>();
+                    member1.put("username", "zhangsan");
+                    member1.put("name", "张三");
+                    member1.put("position", "项目经理");
+                    teamMembers.add(member1);
+                    
+                    Map<String, String> member2 = new HashMap<>();
+                    member2.put("username", "lisi");
+                    member2.put("name", "李四");
+                    member2.put("position", "开发工程师");
+                    teamMembers.add(member2);
+                    
+                    Map<String, String> member3 = new HashMap<>();
+                    member3.put("username", "wangwu");
+                    member3.put("name", "王五");
+                    member3.put("position", "测试工程师");
+                    teamMembers.add(member3);
                 }
                 
                 projectInfo.put("teamMembers", teamMembers);

@@ -2,10 +2,13 @@ package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.Project;
+import com.example.springboot.service.ProjectProgressService;
 import com.example.springboot.service.ProjectService;
 import com.example.springboot.utils.RolePermissionUtils;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +26,9 @@ public class ProjectController {
     
     @Autowired
     private RolePermissionUtils rolePermissionUtils;
+    
+    @Autowired
+    private ProjectProgressService projectProgressService;
 
     // 获取项目列表
     @GetMapping("/project/list")
@@ -53,6 +59,49 @@ public class ProjectController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取项目列表失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "计算并更新单个项目的进度", description = "根据项目ID计算任务完成进度并更新到数据库")
+    @PostMapping("/project/calculate-progress")
+    public Result calculateProjectProgress(@RequestParam("projectId") Long projectId) {
+        try {
+            int progress = projectProgressService.calculateAndUpdateProjectProgress(projectId);
+            Map<String, Object> result = new HashMap<>();
+            result.put("projectId", projectId);
+            result.put("progress", progress);
+            result.put("message", "项目进度计算完成");
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("计算项目进度失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "计算并更新所有项目的进度", description = "批量计算所有项目的任务完成进度并更新到数据库")
+    @PostMapping("/project/calculate-all-progress")
+    public Result calculateAllProjectsProgress() {
+        try {
+            projectProgressService.calculateAndUpdateAllProjectsProgress();
+            return Result.success("所有项目进度计算完成");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("计算所有项目进度失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "获取项目当前进度", description = "获取项目当前的任务完成进度（不更新数据库）")
+    @GetMapping("/project/progress")
+    public Result getProjectProgress(@RequestParam("projectId") Long projectId) {
+        try {
+            int progress = projectProgressService.getProjectProgress(projectId);
+            Map<String, Object> result = new HashMap<>();
+            result.put("projectId", projectId);
+            result.put("progress", progress);
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目进度失败: " + e.getMessage());
         }
     }
 }

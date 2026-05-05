@@ -4,7 +4,7 @@
     <div class="left">
       <div class="brand">
         <h1>项目管理系统</h1>
-
+        <img :src="logoUrl" alt="Logo">
       </div>
     </div>
 <!--    右侧登录-->
@@ -47,7 +47,7 @@
               >
               <span>自动登录</span>
             </label>
-            <a href="#" class="forgot-password">忘记密码</a>
+<!--            <a href="#" class="forgot-password">忘记密码</a>-->
           </div>
 
 <!--          登录-->
@@ -62,6 +62,7 @@
 import {reactive, onMounted} from "vue";
 import request from "@/utils/request.js";
 import {useRouter} from "vue-router";
+import logoUrl from '../../assets/img/Login_log.png'
 
 request.get('/').then(res => {
   console.log(res);
@@ -146,7 +147,6 @@ const router = useRouter();
   display: flex;
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -158,7 +158,7 @@ const router = useRouter();
   justify-content: center;
   color: white;
   padding: 2rem;
-  background: rgba(0, 0, 0, 0.1);
+  background-color: #5A77FC;
 }
 
 .brand {
@@ -185,7 +185,6 @@ const router = useRouter();
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
 }
 
@@ -194,15 +193,10 @@ const router = useRouter();
   max-width: 440px;
   background-color: white;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid #5A77FC;
   padding: 3rem;
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.login-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
 }
 
 h2 {
@@ -267,21 +261,10 @@ h2 {
   accent-color: #667eea;
 }
 
-.forgot-password {
-  color: #667eea;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-.forgot-password:hover {
-  color: #764ba2;
-  text-decoration: underline;
-}
-
 .login-button {
   width: 100%;
   padding: 0.875rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #5A77FC;
   color: white;
   border: none;
   border-radius: 8px;
@@ -292,14 +275,6 @@ h2 {
   margin-top: 1rem;
 }
 
-.login-button:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-  transform: translateY(-2px);
-}
-
-.login-button:active {
-  transform: translateY(0);
-}
 
 @media (max-width: 768px) {
   .login {

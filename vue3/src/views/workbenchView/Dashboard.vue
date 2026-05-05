@@ -10,9 +10,9 @@
           <div class="state">
             <div class="label">
               <div class="user-avatar" >
-<!--              <input type="file" ref="fileInput" accept="image/*" @change="handleFileChange" style="display: none;">-->
               </div>
-              <p>                {{name}}，上午好              </p>
+              <p @click="showUserInfoDialog" style="cursor: pointer;">{{name}}，上午好</p>
+             
             </div>
             <div class="tasks">
               <div class="approve" @click="navigateToModule('products')">
@@ -60,7 +60,7 @@
                 :key="item.id"
                 class="project-item"
             >
-              <div class="project-card" @click="handleProjectCardClick(item.projectName)">
+              <div class="project-card" @click="handleProjectCardClick(item.projectName, item.id)">
                 <div class="project-header">
                   <h3 class="project-title">{{item.projectName}}</h3>
                   <div class="project-arrow">
@@ -168,6 +168,162 @@
         </div>
       </el-dialog>
 
+      <!-- 成员信息弹窗 -->
+      <el-dialog
+        v-model="memberInfoDialogVisible"
+        title="成员信息"
+        width="500px"
+        :close-on-click-modal="false"
+      >
+        <div class="member-info-content">
+          <div class="form-item">
+            <label class="form-label">工号</label>
+            <el-input 
+              v-model="memberInfoForm.username" 
+              :disabled="true"
+              class="form-input"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">姓名</label>
+            <el-input 
+              v-model="memberInfoForm.name" 
+              :disabled="true"
+              class="form-input"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">性别</label>
+            <el-input 
+              v-model="memberInfoForm.sex" 
+              :disabled="true"
+              class="form-input"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">邮箱</label>
+            <el-input 
+              v-model="memberInfoForm.email" 
+              :disabled="true"
+              class="form-input"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">部门</label>
+            <el-input 
+              v-model="memberInfoForm.department" 
+              :disabled="true"
+              class="form-input"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">职称</label>
+            <el-input 
+              v-model="memberInfoForm.position" 
+              :disabled="true"
+              class="form-input"
+            />
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="memberInfoDialogVisible = false">关闭</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 用户信息弹窗 -->
+      <el-dialog
+        v-model="userInfoDialogVisible"
+        title="个人信息"
+        width="500px"
+        :close-on-click-modal="false"
+      >
+        <div class="user-info-content">
+          <div class="form-item">
+            <label class="form-label">用户名</label>
+            <el-input 
+              v-model="userInfoForm.username" 
+              :disabled="true"
+              class="form-input"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">姓名</label>
+            <el-input 
+              v-model="userInfoForm.name" 
+              class="form-input"
+              placeholder="请输入姓名"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">密码</label>
+            <el-input 
+              v-model="userInfoForm.password" 
+              type="password" 
+              class="form-input"
+              placeholder="请输入密码（不修改请留空）"
+              :show-password="showPassword"
+            />
+            <span class="password-toggle" @click="togglePassword">
+              <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                <line x1="1" x2="23" y1="1" y2="23"></line>
+              </svg>
+            </span>
+          </div>
+          <div class="form-item">
+            <label class="form-label">性别</label>
+            <el-select v-model="userInfoForm.sex" class="form-input" placeholder="请选择性别">
+              <el-option label="男" value="男" />
+              <el-option label="女" value="女" />
+            </el-select>
+          </div>
+          <div class="form-item">
+            <label class="form-label">邮箱</label>
+            <el-input 
+              v-model="userInfoForm.email" 
+              class="form-input"
+              placeholder="请输入邮箱"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">部门</label>
+            <el-input 
+              v-model="userInfoForm.department" 
+              class="form-input"
+              placeholder="请输入部门"
+              :disabled="true"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">角色</label>
+            <el-select v-model="userInfoForm.role_id" class="form-input" placeholder="请选择角色" :disabled="true">
+              <el-option label="产品经理" :value="1" />
+              <el-option label="开发者" :value="2" />
+              <el-option label="测试者" :value="3" />
+              <el-option label="管理员" :value="99" />
+            </el-select>
+          </div>
+          <div class="form-item">
+            <label class="form-label">状态</label>
+            <el-select v-model="userInfoForm.status" class="form-input" :disabled="true">
+              <el-option label="启用" :value="1" />
+              <el-option label="禁用" :value="0" />
+            </el-select>
+          </div>
+        </div>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="userInfoDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveUserInfo">保存修改</el-button>
+          </div>
+        </template>
+      </el-dialog>
+
       <!-- 项目详情弹窗 -->
       <el-dialog
         v-model="projectDetailDialogVisible"
@@ -219,6 +375,7 @@
                   v-for="(member, index) in currentProjectDetail.teamMembers" 
                   :key="index"
                   class="team-member"
+                  @click="showMemberInfo(member)"
                 >
                   <div class="member-name">{{ member.name || '未知' }}</div>
                   <div class="member-position">{{ member.position || '未知职位' }}</div>
@@ -229,23 +386,33 @@
               </div>
             </div>
             
-            <!-- 项目目标 -->
-            <div class="project-goals">
-              <h4>项目目标</h4>
-              <ul class="goal-list">
-                <li v-for="(goal, index) in currentProjectDetail.projectGoals" :key="index">
-                  {{ goal }}
-                </li>
-                <li v-if="!currentProjectDetail.projectGoals || currentProjectDetail.projectGoals.length === 0" class="no-goals">
-                  暂无项目目标
-                </li>
-              </ul>
-            </div>
-            
             <!-- 项目详情 -->
             <div class="project-info">
               <h4>项目详情</h4>
               <p class="project-description">{{ currentProjectDetail.description || '暂无项目详情' }}</p>
+            </div>
+            
+            <!-- 项目任务列表 -->
+            <div class="project-tasks">
+              <h4 @click="goToProjectTasks" style="cursor: pointer; color: #238EFF;">任务列表</h4>
+              <div class="task-list-container">
+                <div 
+                  v-for="(task, index) in currentProjectDetail.tasks" 
+                  :key="index"
+                  class="task-item-row"
+                  @click="goToTaskDetail(task.id)"
+                >
+                  <div class="task-info">
+                    <span class="task-title">{{ task.title || '未命名任务' }}</span>
+                  </div>
+                  <div class="task-status-badge" :class="{ completed: task.status === 3 }">
+                    {{ task.status === 3 ? '已完成' : '未完成' }}
+                  </div>
+                </div>
+                <div v-if="!currentProjectDetail.tasks || currentProjectDetail.tasks.length === 0" class="no-tasks">
+                  暂无任务
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -483,6 +650,21 @@ const fetchProjects = async () => {
   }
 };
 
+// 计算并更新所有项目的进度
+const calculateAllProjectsProgress = async () => {
+  try {
+    const response = await request.post('/api/project/calculate-all-progress');
+    console.log('计算项目进度响应:', response);
+    if (response.data.code === 200) {
+      console.log('项目进度计算完成');
+      // 重新获取项目列表以获取更新后的进度
+      await fetchProjects();
+    }
+  } catch (error) {
+    console.error('计算项目进度失败:', error);
+  }
+};
+
 // 从后端获取用户信息
 const fetchUserInfo = async (username) => {
   try {
@@ -572,6 +754,9 @@ onMounted(async () => {
   
   // 从后端获取项目列表
   await fetchProjects();
+  
+  // 计算并更新项目进度
+  await calculateAllProjectsProgress();
   
   // 从后端获取产品总览数据
   await fetchProductOverview();
@@ -800,6 +985,37 @@ const dialogVisible = ref(false);
 
 
 
+// 控制用户信息弹窗显示
+const userInfoDialogVisible = ref(false);
+
+// 控制成员信息弹窗显示
+const memberInfoDialogVisible = ref(false);
+
+// 成员信息表单
+const memberInfoForm = ref({
+  username: '',
+  name: '',
+  sex: '',
+  email: '',
+  department: '',
+  position: ''
+});
+
+// 密码显示切换
+const showPassword = ref(false);
+
+// 用户信息表单
+const userInfoForm = ref({
+  username: '',
+  name: '',
+  password: '',
+  sex: '',
+  email: '',
+  department: '',
+  role_id: null,
+  status: 1
+});
+
 // 控制项目详情弹窗显示
 const projectDetailDialogVisible = ref(false);
 
@@ -817,7 +1033,8 @@ const currentProjectDetail = ref({
   projectManager: '',
   projectStatus: '',
   projectProgress: '',
-  projectGoals: []
+  projectGoals: [],
+  tasks: []
 });
 
 
@@ -840,9 +1057,11 @@ const handleProjectClick = async (projectName) => {
 
 // 处理测试统计项目点击事件
 const handleTestProjectClick = async (project) => {
-  console.log('点击了测试统计项目:', project);
+  // 确保获取到项目名称
+  const projectName = project && project.name ? project.name : '';
+  console.log('点击了测试统计项目:', projectName);
   // 调用后端API获取项目的测试统计数据
-  await fetchTestStatistics(project.name);
+  await fetchTestStatistics(projectName);
 };
 
 // 处理未完成项目列表的项目点击事件
@@ -853,13 +1072,32 @@ const handleUnfinishedProjectClick = async (projectName) => {
 };
 
 // 处理项目卡片点击事件，显示项目详情弹窗
-const handleProjectCardClick = async (projectName) => {
-  console.log('点击了项目卡片:', projectName);
+const handleProjectCardClick = async (projectName, projectId) => {
+  console.log('点击了项目卡片:', projectName, '项目ID:', projectId);
   try {
     // 调用后端API获取项目详细信息
     const response = await request.get('/dashboard/project-info', {
       params: { projectName }
     });
+    
+    // 获取项目下的任务列表（使用项目ID）
+    let tasks = [];
+    try {
+      const tasksResponse = await request.get('/workbench/project-tasks', {
+        params: { projectId }
+      });
+      if (tasksResponse.data.code === 200) {
+        tasks = tasksResponse.data.data || [];
+        console.log('获取到的任务列表:', tasks);
+        // 打印每个任务的ID
+        tasks.forEach((task, index) => {
+          console.log(`任务 ${index}: id=${task.id}, title=${task.title}`);
+        });
+      }
+    } catch (error) {
+      console.error('获取任务列表失败:', error);
+    }
+    
     if (response.data.code === 200) {
       // 更新项目详情数据
       currentProjectDetail.value = {
@@ -874,8 +1112,9 @@ const handleProjectCardClick = async (projectName) => {
         projectProgress: response.data.data.projectProgress || '0%',
         teamMembers: response.data.data.teamMembers || [],
         description: response.data.data.description || '暂无项目详情',
-        projectGoals: response.data.data.projectGoals || [],
-        teamName: response.data.data.teamName || '未知团队'
+        projectGoals: [],
+        teamName: response.data.data.teamName || '未知团队',
+        tasks: tasks
       };
       // 显示项目详情弹窗
       projectDetailDialogVisible.value = true;
@@ -885,6 +1124,56 @@ const handleProjectCardClick = async (projectName) => {
   } catch (error) {
     console.error('获取项目详情失败:', error.message || error || '未知错误');
   }
+};
+
+// 显示成员信息弹窗
+const showMemberInfo = async (member) => {
+  console.log('点击了成员:', member);
+  
+  // 重置表单
+  memberInfoForm.value = {
+    username: '',
+    name: '',
+    sex: '',
+    email: '',
+    department: '',
+    position: ''
+  };
+  
+  // 如果成员有username，从后端获取详细信息
+  if (member.username) {
+    try {
+      const response = await request.get('/admin/user-info', {
+        params: { username: member.username }
+      });
+      if (response.data.code === 200 && response.data.data) {
+        const userData = response.data.data;
+        memberInfoForm.value = {
+          username: userData.username || '',
+          name: userData.name || '',
+          sex: userData.sex || '',
+          email: userData.email || '',
+          department: userData.department || '',
+          position: member.position || ''
+        };
+      }
+    } catch (error) {
+      console.error('获取成员信息失败:', error);
+    }
+  } else {
+    // 如果没有username，使用已有信息
+    memberInfoForm.value = {
+      username: '',
+      name: member.name || '',
+      sex: '',
+      email: '',
+      department: '',
+      position: member.position || ''
+    };
+  }
+  
+  // 显示弹窗
+  memberInfoDialogVisible.value = true;
 };
 
 // 跳转到团队模块
@@ -899,6 +1188,24 @@ const goToProjectModule = () => {
   console.log('跳转到项目集模块');
   // 跳转到项目集模块的页面，并传递项目名称作为筛选条件
   router.push(`/itemSet/itemList?projectName=${encodeURIComponent(currentProjectDetail.value.projectName)}`);
+};
+
+// 跳转到任务模块，筛选显示当前项目的所有任务
+const goToProjectTasks = () => {
+  console.log('跳转到任务模块，显示项目:', currentProjectDetail.value.projectName);
+  // 关闭弹窗
+  projectDetailDialogVisible.value = false;
+  // 跳转到任务列表页面，传递项目名称作为筛选条件
+  router.push(`/task/taskList?projectName=${encodeURIComponent(currentProjectDetail.value.projectName)}`);
+};
+
+// 跳转到任务模块，显示具体的任务详情
+const goToTaskDetail = (taskId) => {
+  console.log('跳转到任务详情，任务ID:', taskId);
+  // 关闭弹窗
+  projectDetailDialogVisible.value = false;
+  // 跳转到任务列表页面，传递任务ID
+  router.push(`/task/taskList?taskId=${taskId}`);
 };
 
 // 导航到对应模块页面
@@ -1086,6 +1393,78 @@ const fetchTestStatistics = async (projectName = '') => {
   }
 };
 
+// 显示用户信息弹窗
+const showUserInfoDialog = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // 从后端获取用户详细信息
+      const response = await request.get(`/admin/user-info?username=${user.username}`);
+      if (response.data.code === 200) {
+        const userData = response.data.data;
+        userInfoForm.value = {
+          username: userData.username || '',
+          name: userData.name || '',
+          password: '',
+          sex: userData.sex ? userData.sex.toString() : '',
+          email: userData.email || '',
+          department: userData.department || '',
+          role_id: userData.role_id || null,
+          status: userData.status || 1
+        };
+      } else {
+        // 如果后端获取失败，使用本地存储的信息
+        userInfoForm.value = {
+          username: user.username || '',
+          name: user.name || user.username || '',
+          password: '',
+          sex: '',
+          email: '',
+          department: '',
+          role_id: user.role_id || null,
+          status: 1
+        };
+      }
+    }
+    userInfoDialogVisible.value = true;
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    alert('获取用户信息失败');
+  }
+};
+
+// 切换密码显示
+const togglePassword = () => {
+  showPassword.value = !showPassword.value;
+};
+
+// 保存用户信息
+const saveUserInfo = async () => {
+  try {
+    const response = await request.put('/admin/update-user', userInfoForm.value);
+    if (response.data.code === 200) {
+      // 更新成功后，更新本地存储的用户信息
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        user.name = userInfoForm.value.name;
+        user.role_id = userInfoForm.value.role_id;
+        localStorage.setItem('user', JSON.stringify(user));
+        // 更新页面上显示的用户名
+        name.value = userInfoForm.value.name;
+      }
+      userInfoDialogVisible.value = false;
+      alert('用户信息更新成功');
+    } else {
+      alert('用户信息更新失败: ' + response.data.msg);
+    }
+  } catch (error) {
+    console.error('更新用户信息失败:', error);
+    alert('更新用户信息失败');
+  }
+};
+
 </script>
 
 <style scoped>
@@ -1101,6 +1480,64 @@ const fetchTestStatistics = async (projectName = '') => {
 .right{
   flex: 1;
   //background-color: orange;
+}
+
+/* 用户信息弹窗样式 */
+.user-info-content {
+  padding: 20px 0;
+}
+
+.form-item {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.form-input {
+  width: 100%;
+}
+
+.password-toggle {
+  display: inline-block;
+  margin-left: -30px;
+  cursor: pointer;
+  color: #909399;
+  vertical-align: middle;
+}
+
+.password-toggle:hover {
+  color: #409EFF;
+}
+
+.dialog-footer {
+  text-align: right;
+}
+
+.dialog-footer .el-button {
+  margin-left: 10px;
+}
+
+/* 编辑图标样式 */
+.label {
+  cursor: pointer;
+  position: relative;
+}
+
+.label:hover .edit-icon {
+  opacity: 1;
+}
+
+.edit-icon {
+  opacity: 0;
+  transition: opacity 0.3s;
+  margin-left: 8px;
+  vertical-align: middle;
 }
 
 /*最新动态样式*/
@@ -1436,7 +1873,8 @@ p{
 .project-team,
 .project-goals,
 .project-risks,
-.project-info {
+.project-info,
+.project-tasks {
   background-color: #f9f9f9;
   padding: 15px;
   border-radius: 8px;
@@ -1446,11 +1884,66 @@ p{
 .project-team h4,
 .project-goals h4,
 .project-risks h4,
-.project-info h4 {
+.project-info h4,
+.project-tasks h4 {
   font-size: 16px;
   font-weight: 500;
   color: #303133;
   margin-bottom: 10px;
+}
+
+.task-list-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.task-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-item-row:hover {
+  background-color: #f5f7fa;
+  border-color: #c0c4cc;
+}
+
+.task-item-row:active {
+  background-color: #e8eaed;
+}
+
+.task-title {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 400;
+}
+
+.task-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: #f5f7fa;
+  color: #909399;
+}
+
+.task-status-badge.completed {
+  background-color: #e8f5e9;
+  color: #67c23a;
+}
+
+.no-tasks {
+  font-size: 14px;
+  color: #909399;
+  text-align: center;
+  padding: 20px;
 }
 
 .basic-info-grid {
@@ -1488,6 +1981,8 @@ p{
   border: 1px solid #dcdfe6;
   border-radius: 8px;
   font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   color: #303133;
   cursor: pointer;
   transition: all 0.3s;

@@ -363,6 +363,153 @@ public class AdminController {
         }
     }
     
+    @Operation(summary = "获取单个用户信息", description = "根据用户名获取用户详细信息")
+    @GetMapping("/user-info")
+    public Result getUserInfo(@RequestParam("username") String username) {
+        try {
+            System.out.println("获取用户信息请求，用户名: " + username);
+            
+            // 首先尝试以String类型查询
+            User user = userRepository.findByUsername(username);
+            
+            // 如果没找到，尝试转换为Long类型查询（兼容旧数据）
+            if (user == null) {
+                try {
+                    Long usernameLong = Long.parseLong(username);
+                    Admin admin = adminRepository.findByUsername(usernameLong);
+                    if (admin != null) {
+                        // 将Admin转换为User返回
+                        user = new User();
+                        user.setId(admin.getId());
+                        user.setUsername(username); // 保持String格式
+                        user.setName(admin.getName());
+                        user.setPassword(admin.getPassword());
+                        user.setIs_admin(admin.getIs_admin());
+                        user.setAvatar(admin.getAvatar());
+                        // 尝试从User表获取其他信息
+                        User userDetail = userRepository.findByUsername(username);
+                        if (userDetail != null) {
+                            user.setSex(userDetail.getSex());
+                            user.setEmail(userDetail.getEmail());
+                            user.setDepartment(userDetail.getDepartment());
+                            user.setRole_id(userDetail.getRole_id());
+                            user.setStatus(userDetail.getStatus());
+                        }
+                        System.out.println("从Admin找到用户: " + user.getName());
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("用户名不是数字，只尝试User表查询");
+                }
+            } else {
+                System.out.println("从User表找到用户: " + user.getName());
+            }
+            
+            if (user != null) {
+                // 解密邮箱显示给前端
+                if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                    try {
+                        String decryptedEmail = AESUtil.decrypt(user.getEmail());
+                        user.setEmail(decryptedEmail);
+                    } catch (Exception e) {
+                        System.out.println("邮箱解密失败，保留原值: " + e.getMessage());
+                    }
+                }
+                return Result.success(user);
+            } else {
+                return Result.error("用户不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取用户信息失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "更新用户信息", description = "更新用户的个人信息")
+    @PutMapping("/update-user")
+    public Result updateUser(@RequestBody User user) {
+        try {
+            System.out.println("更新用户信息请求: " + user.getUsername());
+            
+            String username = user.getUsername();
+            Long usernameLong = null;
+            try {
+                usernameLong = Long.parseLong(username);
+            } catch (NumberFormatException e) {
+                System.out.println("用户名不是数字: " + username);
+            }
+            
+            // 首先尝试更新User表
+            User existingUser = userRepository.findByUsername(username);
+            if (existingUser != null) {
+                // 更新用户信息
+                if (user.getName() != null) {
+                    existingUser.setName(user.getName());
+                }
+                if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+                    // 如果密码不为空，进行加密后保存
+                    try {
+                        String encryptedPassword = AESUtil.encrypt(user.getPassword());
+                        existingUser.setPassword(encryptedPassword);
+                    } catch (Exception e) {
+                        System.out.println("密码加密失败，使用BCrypt: " + e.getMessage());
+                        existingUser.setPassword(com.example.springboot.util.BCryptUtil.encrypt(user.getPassword()));
+                    }
+                }
+                if (user.getSex() != null) {
+                    existingUser.setSex(user.getSex());
+                }
+                if (user.getEmail() != null) {
+                    // 加密邮箱
+                    try {
+                        String encryptedEmail = AESUtil.encrypt(user.getEmail());
+                        existingUser.setEmail(encryptedEmail);
+                    } catch (Exception e) {
+                        existingUser.setEmail(user.getEmail());
+                    }
+                }
+                if (user.getDepartment() != null) {
+                    existingUser.setDepartment(user.getDepartment());
+                }
+                if (user.getRole_id() != null) {
+                    existingUser.setRole_id(user.getRole_id());
+                }
+                if (user.getStatus() != null) {
+                    existingUser.setStatus(user.getStatus());
+                }
+                userRepository.save(existingUser);
+                System.out.println("User表更新成功: " + user.getUsername());
+            }
+            
+            // 同时更新Admin表
+            if (usernameLong != null) {
+                Admin admin = adminRepository.findByUsername(usernameLong);
+                if (admin != null) {
+                    if (user.getName() != null) {
+                        admin.setName(user.getName());
+                    }
+                    if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+                        try {
+                            String encryptedPassword = AESUtil.encrypt(user.getPassword());
+                            admin.setPassword(encryptedPassword);
+                        } catch (Exception e) {
+                            admin.setPassword(com.example.springboot.util.BCryptUtil.encrypt(user.getPassword()));
+                        }
+                    }
+                    if (user.getAvatar() != null) {
+                        admin.setAvatar(user.getAvatar());
+                    }
+                    adminRepository.save(admin);
+                    System.out.println("Admin表更新成功: " + user.getUsername());
+                }
+            }
+            
+            return Result.success("用户信息更新成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新用户信息失败: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "更新用户角色", description = "根据用户ID更新用户角色")
     @PutMapping("/users/{userId}/role")
     public Result updateUserRole(@PathVariable String userId, @RequestBody Map<String, String> requestBody) {

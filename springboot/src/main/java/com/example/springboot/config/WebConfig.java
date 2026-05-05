@@ -31,8 +31,8 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 // 排除登录、注册等不需要认证的路径
                 .excludePathPatterns("/", "/index.html", "/api/login", "/api/register", "/api/logout", 
-                                   "/api/verificationCode", "/api/checkUsername",
-                                   "/admin/login",
-                                   "/uploads/**", "/static/**", "/assets/**", "/favicon.ico");
+                                  "/api/verificationCode", "/api/checkUsername",
+                                  "/admin/login", "/admin/user-info", "/admin/update-user",
+                                  "/uploads/**", "/static/**", "/assets/**", "/favicon.ico");
     }
 }

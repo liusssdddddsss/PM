@@ -268,6 +268,10 @@ const props = defineProps({
   productName: {
     type: String,
     default: ''
+  },
+  taskId: {
+    type: Number,
+    default: null
   }
 });
 
@@ -298,7 +302,7 @@ watch(() => props.status, () => {
   // 状态变化时，过滤列表会自动重新计算，因为 filteredTaskList 是计算属性
 });
 
-// 根据搜索词、标签、状态和产品名称过滤任务列表
+// 根据搜索词、标签、状态、产品名称和任务ID过滤任务列表
 const filteredTaskList = computed(() => {
   let filtered = taskList.value;
   
@@ -311,6 +315,11 @@ const filteredTaskList = computed(() => {
       // 已关闭的任务
       filtered = filtered.filter(task => task.status === '已关闭');
     }
+  }
+  
+  // 根据任务ID过滤
+  if (props.taskId !== null && props.taskId !== undefined) {
+    filtered = filtered.filter(task => task.id == props.taskId);
   }
   
   // 根据标签过滤
