@@ -10,24 +10,46 @@ public class Bug {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
+    
+    @Column(name = "title")
     private String title;
+    
+    @Column(name = "description")
     private String description;
-    private Integer projectId;
-    private Integer taskId;
-    private Integer reporterId;
-    private Integer assigneeId;
+    
+    @Column(name = "project_id")
+    private Long projectId;
+    
+    @Column(name = "task_id")
+    private Long taskId;
+    
+    @Column(name = "reporter_id")
+    private Long reporterId;
+    
+    @Column(name = "assignee_id")
+    private Long assigneeId;
+    
+    @Column(name = "severity")
     private Integer severity;
+    
+    @Column(name = "status")
     private Integer status;
+    
+    @Column(name = "bug_type")
     private String bugType;
+    
+    @Column(name = "created_at")
     private String createdAt;
+    
+    @Column(name = "resolved_at")
     private String resolvedAt;
 
     // 构造方法
     public Bug() {
     }
 
-    public Bug(Integer id, String title, String description, Integer projectId, Integer taskId, Integer reporterId, Integer assigneeId, Integer severity, Integer status, String bugType, String createdAt, String resolvedAt) {
+    public Bug(Long id, String title, String description, Long projectId, Long taskId, Long reporterId, Long assigneeId, Integer severity, Integer status, String bugType, String createdAt, String resolvedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -43,11 +65,11 @@ public class Bug {
     }
 
     // Getter 和 Setter 方法
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -67,35 +89,35 @@ public class Bug {
         this.description = description;
     }
 
-    public Integer getProjectId() {
+    public Long getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(Integer projectId) {
+    public void setProjectId(Long projectId) {
         this.projectId = projectId;
     }
 
-    public Integer getTaskId() {
+    public Long getTaskId() {
         return taskId;
     }
 
-    public void setTaskId(Integer taskId) {
+    public void setTaskId(Long taskId) {
         this.taskId = taskId;
     }
 
-    public Integer getReporterId() {
+    public Long getReporterId() {
         return reporterId;
     }
 
-    public void setReporterId(Integer reporterId) {
+    public void setReporterId(Long reporterId) {
         this.reporterId = reporterId;
     }
 
-    public Integer getAssigneeId() {
+    public Long getAssigneeId() {
         return assigneeId;
     }
 
-    public void setAssigneeId(Integer assigneeId) {
+    public void setAssigneeId(Long assigneeId) {
         this.assigneeId = assigneeId;
     }
 

@@ -79,29 +79,84 @@ const fetchBugs = async () => {
   try {
     // 从本地存储中获取用户信息
     const userStr = localStorage.getItem('user');
+    console.log('BugList - localStorage user:', userStr);
     if (userStr) {
       const user = JSON.parse(userStr);
-      const response = await request.get(`/workbench/bugs?username=${user.username}`);
-      console.log('获取Bug列表响应:', response);
-      if (response.data.code === 200) {
-        // 转换数据格式以匹配前端组件
-        tableData.value = response.data.data.map(item => ({
-          id: item.id,
-          title: item.title,
-          priority: getPriorityText(item.severity),
-          state: getStatusText(item.status),
-          sure: '已确认',
-          assignee: item.assignee_name || '未指派',
-          finishTime: item.resolvedAt
-        }));
-        console.log('Bug列表数据:', response.data.data);
-        console.log('转换后的Bug列表数据:', tableData.value);
-        console.log('转换后的Bug列表数据:', tableData.value);
-        total.value = tableData.value.length;
+      console.log('BugList - 当前用户:', user);
+      
+      // 尝试多个可能的接口地址
+      const possibleUrls = [
+        `/workbench/bugs?username=${user.username}`,
+        `/api/bug/list?assignee=${user.username}`,
+        `/dashboard/test-statistics?username=${user.username}`
+      ];
+      
+      let success = false;
+      for (const url of possibleUrls) {
+        try {
+          console.log('BugList - 尝试请求:', url);
+          const response = await request.get(url);
+          console.log('BugList - 获取Bug列表响应:', response);
+          
+          if (response.data.code === 200) {
+            const data = response.data.data;
+            console.log('BugList - 后端返回的数据:', data);
+            
+            if (data && Array.isArray(data)) {
+              // 如果是bug列表数据
+              tableData.value = data.map(item => ({
+                id: item.id,
+                title: item.title || '未命名Bug',
+                priority: getPriorityText(item.severity || item.priority),
+                state: getStatusText(item.status),
+                sure: '已确认',
+                assignee: item.assignee_name || item.assignee || '未指派',
+                assigneeId: item.assigneeId,
+                assignee_name: item.assignee_name,
+                finishTime: item.resolvedAt || item.completedAt || ''
+              }));
+              success = true;
+              break;
+            } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+              // 如果是测试统计数据，不显示列表
+              console.log('BugList - 收到的是统计数据，不是列表');
+              continue;
+            }
+          }
+        } catch (error) {
+          console.log('BugList - 请求失败:', url, error.message);
+        }
+      }
+      
+      // 使用 assigneeId 字段匹配用户（后端返回的是驼峰命名）
+      const userId = String(user.username);
+      console.log('BugList - 当前用户ID:', userId);
+      
+      // 显示所有Bug的assigneeId字段供排查
+      console.log('BugList - 所有Bug的assigneeId字段:');
+      tableData.value.forEach((bug, index) => {
+        console.log(`BugList - Bug ${index}: title=${bug.title}, assigneeId=${bug.assigneeId}, assignee_name=${bug.assignee_name}`);
+      });
+      
+      // 过滤出指派给当前用户的Bug（使用 assigneeId 字段）
+      tableData.value = tableData.value.filter(bug => {
+        const assigneeId = String(bug.assigneeId || '');
+        const matches = assigneeId === userId;
+        if (matches) {
+          console.log('BugList - 匹配到Bug:', bug.title, 'assigneeId:', assigneeId);
+        }
+        return matches;
+      });
+      
+      console.log('BugList - 过滤后的Bug列表:', tableData.value);
+      total.value = tableData.value.length;
+      
+      if (!success) {
+        console.error('BugList - 所有Bug接口都无法获取数据');
       }
     }
   } catch (error) {
-    console.error('获取Bug列表失败:', error);
+    console.error('BugList - 获取Bug列表失败:', error);
   }
 };
 

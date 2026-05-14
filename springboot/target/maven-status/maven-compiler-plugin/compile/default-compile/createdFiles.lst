@@ -1,0 +1,4 @@
+com\example\springboot\service\LoginFailureService.class
+com\example\springboot\repository\LoginFailureRepository.class
+com\example\springboot\entity\LoginFailure.class
+com\example\springboot\controller\UserController.class

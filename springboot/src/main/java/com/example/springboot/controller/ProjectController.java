@@ -62,6 +62,27 @@ public class ProjectController {
         }
     }
     
+    // 获取所有项目列表（简单版，供前端下拉选择使用）
+    @GetMapping("/projects")
+    public Result getAllProjects() {
+        try {
+            Iterable<Project> projects = projectService.findAll();
+            List<Map<String, Object>> projectList = new ArrayList<>();
+            
+            for (Project project : projects) {
+                Map<String, Object> projectMap = new HashMap<>();
+                projectMap.put("id", project.getId());
+                projectMap.put("name", project.getName());
+                projectList.add(projectMap);
+            }
+            
+            return Result.success(projectList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取项目列表失败: " + e.getMessage());
+        }
+    }
+    
     @Operation(summary = "计算并更新单个项目的进度", description = "根据项目ID计算任务完成进度并更新到数据库")
     @PostMapping("/project/calculate-progress")
     public Result calculateProjectProgress(@RequestParam("projectId") Long projectId) {

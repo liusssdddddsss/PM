@@ -2,6 +2,7 @@ package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.*;
+import com.example.springboot.repository.BugRepository;
 import com.example.springboot.repository.ProjectMemberRepository;
 import com.example.springboot.service.*;
 import com.example.springboot.utils.RolePermissionUtils;
@@ -25,6 +26,9 @@ public class DashboardController {
     private BugService bugService;
 
     @Autowired
+    private BugRepository bugRepository;
+
+    @Autowired
     private ProjectService projectService;
 
     @Autowired
@@ -45,6 +49,12 @@ public class DashboardController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private TeamService teamService;
+
+    @Autowired
+    private TeamMemberService teamMemberService;
 
     @Operation(summary = "获取测试统计数据", description = "返回测试相关的统计数据")
     @GetMapping("/test-statistics")
@@ -578,27 +588,45 @@ public class DashboardController {
             // 从数据库获取所有用户
             Iterable<User> allUsers = userService.findAll();
             
-            // 获取用户参与的项目ID列表
-            Set<Long> userProjectIds = new HashSet<>();
+            // 获取用户所在团队的成员ID列表
+            Set<String> teamMemberUsernames = new HashSet<>();
             if (username != null) {
                 try {
                     // 尝试将用户名转换为Long类型（如果用户名是数字格式）
                     Long userId = Long.parseLong(username);
-                    List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                    for (com.example.springboot.entity.ProjectMember member : projectMembers) {
-                        if (member.getProjectId() != null) {
-                            userProjectIds.add(member.getProjectId());
+                    
+                    // 获取用户所在的团队
+                    List<Team> userTeams = teamService.findTeamsByUserId(userId);
+                    System.out.println("用户 " + username + " 所在团队数量: " + userTeams.size());
+                    
+                    // 获取所有团队成员的用户名
+                    for (Team team : userTeams) {
+                        List<TeamMember> members = teamMemberService.findByTeamId(team.getId());
+                        for (TeamMember member : members) {
+                            if (member.getUserId() != null) {
+                                teamMemberUsernames.add(member.getUserId().toString());
+                            }
                         }
                     }
+                    
+                    System.out.println("团队成员数量: " + teamMemberUsernames.size());
+                    
                 } catch (NumberFormatException e) {
                     // 用户名不是数字格式，尝试通过用户名查找用户
                     User user = userService.findByUsername(username);
                     if (user != null && user.getId() != null) {
                         Long userId = user.getId().longValue();
-                        List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                        for (com.example.springboot.entity.ProjectMember member : projectMembers) {
-                            if (member.getProjectId() != null) {
-                                userProjectIds.add(member.getProjectId());
+                        
+                        // 获取用户所在的团队
+                        List<Team> userTeams = teamService.findTeamsByUserId(userId);
+                        
+                        // 获取所有团队成员的用户名
+                        for (Team team : userTeams) {
+                            List<TeamMember> members = teamMemberService.findByTeamId(team.getId());
+                            for (TeamMember member : members) {
+                                if (member.getUserId() != null) {
+                                    teamMemberUsernames.add(member.getUserId().toString());
+                                }
                             }
                         }
                     }
@@ -607,32 +635,10 @@ public class DashboardController {
             
             // 转换操作日志为前端需要的格式
             for (OperationLog log : operationLogs) {
-                // 检查是否是用户团队内的动态
-                if (username != null) {
-                    // 这里简化处理，假设操作日志中的module字段包含项目信息
-                    // 实际项目中可能需要更复杂的逻辑来判断动态是否与用户团队相关
-                    boolean isTeamRelated = false;
-                    
-                    // 1. 操作人是用户自己
-                    if (log.getUser_id() != null && log.getUser_id().equals(username)) {
-                        isTeamRelated = true;
-                    }
-                    
-                    // 2. 操作与用户参与的项目相关
-                    if (!isTeamRelated && log.getModule() != null) {
-                        // 尝试从module字段中提取项目信息
-                        // 这里简化处理，实际项目中可能需要更复杂的解析
-                        String module = log.getModule();
-                        for (Long projectId : userProjectIds) {
-                            if (module.contains(projectId.toString())) {
-                                isTeamRelated = true;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    // 如果不是团队相关的动态，跳过
-                    if (!isTeamRelated) {
+                // 检查操作人是否在用户的团队内
+                if (username != null && !teamMemberUsernames.isEmpty()) {
+                    String operatorUserId = log.getUser_id();
+                    if (operatorUserId == null || !teamMemberUsernames.contains(operatorUserId)) {
                         continue;
                     }
                 }
@@ -673,11 +679,6 @@ public class DashboardController {
                 
                 dynamicData.add(item);
             }
-            
-            // 按时间倒序排序，最新的排在前面
-            // 注意：这里排序可能有问题，因为时间格式是"MM月dd日 HH:mm"，直接按字符串比较可能不正确
-            // 我们需要按原始的Date对象排序，但在这个简化实现中，我们暂时使用字符串比较
-            // 实际上，最好在数据库层面排序
             
             return Result.success(dynamicData);
         } catch (Exception e) {
@@ -1146,6 +1147,8 @@ public class DashboardController {
     @Operation(summary = "获取未关闭的产品列表数据", description = "返回未关闭的产品列表数据")
     @GetMapping("/unclosed-products")
     public Result getUnclosedProducts(@RequestParam(required = false) String username) {
+        System.out.println("========== 调用 /dashboard/unclosed-products 接口 ==========");
+        System.out.println("  用户名参数: " + username);
         try {
             // 从数据库获取未关闭的产品列表数据
             List<Map<String, Object>> products = new ArrayList<>();
@@ -1173,8 +1176,16 @@ public class DashboardController {
             
             // 获取所有产品
             Iterable<Product> productList = productService.findAll();
+            int productCount = 0;
+            for (Product product : productList) {
+                productCount++;
+            }
+            System.out.println("  系统中产品总数: " + productCount);
+            
+            int processedCount = 0;
             for (Product product : productList) {
                 // 只返回未关闭的产品（status != 2）
+                System.out.println("  检查产品: " + product.getName() + ", 状态: " + product.getStatus());
                 if (product.getStatus() == null || product.getStatus() != 2) {
                     // 如果指定了用户名，只返回与该用户有关的产品
                     if (username != null) {
@@ -1295,47 +1306,37 @@ public class DashboardController {
                     productMap.put("iterationCount", productIterationCount);
                     productMap.put("plan", "进行中");
                     
-                    // 计算该产品相关的Bug数
+                    // 计算该产品相关的Bug数：产品下所有项目的所有Bug数量
                     int productBugCount = 0;
-                    List<Bug> bugs = bugService.findall();
-                    for (Bug bug : bugs) {
-                        // 过滤出与当前产品相关的Bug
-                    if (bug.getProjectId() != null) {
-                        // 查找Bug所属的项目，再判断项目是否属于当前产品
-                        for (Project project : allProjects) {
-                            if (project.getId().intValue() == bug.getProjectId() && 
-                                project.getProduct_id() != null && 
-                                project.getProduct_id().equals(product.getId())) {
-                                    // 如果指定了用户名，只统计与该用户有关的Bug
-                                    if (username != null) {
-                                        // 检查Bug是否指派给用户，或者项目是否与用户相关
-                                        boolean isBugRelated = false;
-                                        if (bug.getAssigneeId() != null && bug.getAssigneeId().toString().equals(username)) {
-                                            isBugRelated = true;
-                                        }
-                                        if (!isBugRelated) {
-                                            if (project.getManagerId() != null) {
-                                                Optional<User> userOptional = userService.findById(project.getManagerId().toString());
-                                                if (userOptional.isPresent() && username.equals(userOptional.get().getUsername())) {
-                                                    isBugRelated = true;
-                                                }
-                                            }
-                                            if (!isBugRelated && userProjectIds.contains(project.getId())) {
-                                                isBugRelated = true;
-                                            }
-                                        }
-                                        if (isBugRelated) {
-                                            productBugCount++;
-                                        }
-                                    } else {
-                                        productBugCount++;
-                                    }
-                                    break;
+                    
+                    // 第一步：找到该产品下的所有项目ID
+                    Set<Long> productProjectIds = new HashSet<>();
+                    for (Project project : allProjects) {
+                        if (project.getProduct_id() != null && project.getProduct_id().equals(product.getId())) {
+                            productProjectIds.add(project.getId());
+                        }
+                    }
+                    
+                    System.out.println("  产品[" + product.getName() + "]下的项目ID列表: " + productProjectIds);
+                    
+                    // 第二步：通过项目ID统计Bug数量（统计产品下所有项目的所有Bug）
+                    if (!productProjectIds.isEmpty()) {
+                        List<Bug> bugs = bugService.findall();
+                        for (Bug bug : bugs) {
+                            if (bug.getProjectId() != null) {
+                                Long bugProjectId = bug.getProjectId().longValue();
+                                
+                                // 检查Bug是否属于该产品下的项目
+                                if (productProjectIds.contains(bugProjectId)) {
+                                    productBugCount++;
+                                    System.out.println("  找到产品[" + product.getName() + "]下的Bug: ID=" + bug.getId() + ", 标题=" + bug.getTitle());
                                 }
                             }
                         }
                     }
+                    
                     productMap.put("activeBugs", productBugCount);
+                    System.out.println("  产品[" + product.getName() + "]的Bug总数: " + productBugCount);
                     productMap.put("release", "计划中");
                     
                     products.add(productMap);
@@ -2294,13 +2295,11 @@ public class DashboardController {
     @Autowired
     private RolePermissionUtils rolePermissionUtils;
     
-    @Autowired
-    private TeamService teamService;
-    
     @Operation(summary = "获取工作台统计数据", description = "返回工作台统计数据")
     @GetMapping("/statistics")
     public Result getStatistics(@RequestParam String username) {
         try {
+            System.out.println("========== 开始获取工作台统计数据，用户: " + username);
             Map<String, Object> statistics = new HashMap<>();
             
             // 1. 获取用户角色
@@ -2309,12 +2308,23 @@ public class DashboardController {
             boolean isTester = rolePermissionUtils.isTester(username);
             boolean isAdmin = rolePermissionUtils.isAdmin(username);
             
-            // 先通过username查找用户，获取用户的id
+            System.out.println("用户角色信息:");
+            System.out.println("  isAdmin: " + isAdmin);
+            System.out.println("  isProductManager: " + isProductManager);
+            System.out.println("  isDeveloper: " + isDeveloper);
+            System.out.println("  isTester: " + isTester);
+            
+            // 获取用户信息
             Integer userId = null;
+            String userUsername = null;
             if (username != null) {
                 var user = userService.findByUsername(username);
                 if (user != null) {
                     userId = user.getId();
+                    userUsername = user.getUsername();
+                    System.out.println("找到用户:");
+                    System.out.println("  user.getId(): " + user.getId());
+                    System.out.println("  user.getUsername(): " + user.getUsername());
                 }
             }
             
@@ -2328,28 +2338,38 @@ public class DashboardController {
             // 3. 获取任务数
             int taskState = 0;
             List<Task> tasks = taskService.findall();
+            System.out.println("总共任务数量: " + tasks.size());
+            
             for (Task task : tasks) {
                 if (isAdmin || isProductManager) {
                     // 管理员和产品经理可以看到所有任务
                     taskState++;
                 } else if (isDeveloper || isTester) {
                     // 开发者和测试者只能看到自己的任务
-                    if (task.getAssigneeId() != null && userId != null && task.getAssigneeId().equals(userId)) {
+                    // 注意：Task的assigneeId存储的也是用户名
+                    if (task.getAssigneeId() != null && userUsername != null && task.getAssigneeId().toString().equals(userUsername)) {
                         taskState++;
                     }
                 }
             }
+            System.out.println("统计任务数: " + taskState);
             
             // 4. 获取Bug数
             int bugState = 0;
             List<Bug> bugs = bugService.findall();
+            System.out.println("总共Bug数量: " + bugs.size());
+            
             for (Bug bug : bugs) {
+                System.out.println("检查Bug: id=" + bug.getId() + ", assigneeId=" + bug.getAssigneeId());
+                
                 if (isAdmin || isProductManager) {
                     // 管理员和产品经理可以看到所有Bug
                     bugState++;
                 } else if (isDeveloper) {
                     // 开发者只能看到指派给自己的Bug
-                    if (bug.getAssigneeId() != null && userId != null && bug.getAssigneeId().equals(userId)) {
+                    // 注意：Bug的assigneeId存储的是用户名
+                    if (bug.getAssigneeId() != null && userUsername != null && bug.getAssigneeId().toString().equals(userUsername)) {
+                        System.out.println("  -> 匹配！统计此Bug");
                         bugState++;
                     }
                 } else if (isTester) {
@@ -2357,6 +2377,7 @@ public class DashboardController {
                     bugState++;
                 }
             }
+            System.out.println("统计Bug数: " + bugState);
             
             // 5. 获取文档数（暂时模拟）
             int passageState = 0;
@@ -2470,5 +2491,73 @@ public class DashboardController {
         }
     }
     
+    @Operation(summary = "查看Bug和项目数据", description = "查看所有Bug和项目的关联关系")
+    @GetMapping("/view-bug-projects")
+    public Result viewBugProjects() {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // 获取所有Bug
+            List<Bug> bugs = bugService.findall();
+            List<Map<String, Object>> bugList = new ArrayList<>();
+            for (Bug bug : bugs) {
+                Map<String, Object> bugMap = new HashMap<>();
+                bugMap.put("id", bug.getId());
+                bugMap.put("title", bug.getTitle());
+                bugMap.put("projectId", bug.getProjectId());
+                bugList.add(bugMap);
+            }
+            result.put("bugs", bugList);
+            
+            // 获取所有项目
+            List<Project> projects = (List<Project>) projectService.findAll();
+            List<Map<String, Object>> projectList = new ArrayList<>();
+            for (Project project : projects) {
+                Map<String, Object> projectMap = new HashMap<>();
+                projectMap.put("id", project.getId());
+                projectMap.put("name", project.getName());
+                projectMap.put("productId", project.getProduct_id());
+                projectList.add(projectMap);
+            }
+            result.put("projects", projectList);
+            
+            // 统计每个产品的Bug数量
+            List<Map<String, Object>> productBugCount = new ArrayList<>();
+            List<Product> allProducts = (List<Product>) productService.findAll();
+            for (Product product : allProducts) {
+                Map<String, Object> productCount = new HashMap<>();
+                productCount.put("productId", product.getId());
+                productCount.put("productName", product.getName());
+                
+                // 找到该产品下的所有项目
+                Set<Long> productProjectIds = new HashSet<>();
+                for (Project project : projects) {
+                    if (project.getProduct_id() != null && project.getProduct_id().equals(product.getId())) {
+                        productProjectIds.add(project.getId());
+                    }
+                }
+                productCount.put("productProjectIds", productProjectIds);
+                
+                // 统计该产品下的Bug数量
+                int count = 0;
+                for (Bug bug : bugs) {
+                    if (bug.getProjectId() != null) {
+                        Long bugProjectId = bug.getProjectId().longValue();
+                        if (productProjectIds.contains(bugProjectId)) {
+                            count++;
+                        }
+                    }
+                }
+                productCount.put("bugCount", count);
+                productBugCount.add(productCount);
+            }
+            result.put("productBugCount", productBugCount);
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("查看Bug和项目数据失败: " + e.getMessage());
+        }
+    }
 
 }

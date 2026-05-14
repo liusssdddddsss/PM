@@ -309,11 +309,14 @@ const fetchUnclosedProducts = async () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
+      console.log('调用产品列表接口，用户名:', user.username);
       const response = await request.get('/dashboard/unclosed-products', {
         params: { username: user.username }
       });
+      console.log('产品列表接口返回:', response);
       if (response.data.code === 200) {
         unclosedProducts.value = response.data.data || [];
+        console.log('产品列表数据:', unclosedProducts.value);
       }
     }
   } catch (error) {

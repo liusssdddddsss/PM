@@ -19,6 +19,7 @@ public class ProjectApproval {
     private String comment;
     private String created_at;
     private String finish_time;
+    private Long feedback_id;
 
     // 构造方法
     public ProjectApproval() {
@@ -98,6 +99,14 @@ public class ProjectApproval {
 
     public void setFinish_time(String finish_time) {
         this.finish_time = finish_time;
+    }
+
+    public Long getFeedback_id() {
+        return feedback_id;
+    }
+
+    public void setFeedback_id(Long feedback_id) {
+        this.feedback_id = feedback_id;
     }
 
 }

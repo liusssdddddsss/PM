@@ -31,7 +31,7 @@
                 <p class="tasks-shu">
                   {{taskAllCount}}
                 </p>
-                <span>任务总数</span>
+                <span>任务数</span>
               </div>
               <div class="needs" @click="navigateToModule('bugs')">
                 <p class="tasks-shu">
@@ -723,6 +723,132 @@ const fetchStatistics = async () => {
   }
 };
 
+// 获取指派给当前用户的Bug数量
+const fetchBugCount = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      console.log('Dashboard - 获取Bug数量，用户:', user.username, user.name);
+      
+      // 尝试多个可能的接口获取Bug列表
+      const possibleUrls = [
+        `/workbench/bugs?username=${user.username}`,
+        `/api/bug/list?assignee=${user.username}`
+      ];
+      
+      let bugCount = 0;
+      for (const url of possibleUrls) {
+        try {
+          console.log('Dashboard - 尝试获取Bug列表:', url);
+          const response = await request.get(url);
+          console.log('Dashboard - Bug列表响应:', response);
+          
+          if (response.data.code === 200 && response.data.data && Array.isArray(response.data.data)) {
+            const bugs = response.data.data;
+            console.log('Dashboard - 获取到的Bug列表:', bugs);
+            
+            // 过滤出指派给当前用户的Bug（未关闭的）
+            const userId = String(user.username);
+            console.log('Dashboard - 用户ID:', userId);
+            
+            // 显示所有Bug的assigneeId字段供排查
+            console.log('Dashboard - 所有Bug的assigneeId字段:');
+            bugs.forEach((bug, index) => {
+              console.log(`Dashboard - Bug ${index}: title=${bug.title}, assigneeId=${bug.assigneeId}, status=${bug.status}`);
+            });
+            
+            // 使用 assigneeId 字段匹配用户（后端返回的是驼峰命名）
+            const assignedBugs = bugs.filter(bug => {
+              const assigneeId = String(bug.assigneeId || '');
+              const isAssigned = assigneeId === userId;
+              const isNotClosed = !bug.status || bug.status !== 4;
+              
+              console.log('Dashboard - Bug:', bug.title, 'assigneeId:', assigneeId, 'isAssigned:', isAssigned, 'status:', bug.status, 'isNotClosed:', isNotClosed);
+              return isAssigned && isNotClosed;
+            });
+            
+            bugCount = assignedBugs.length;
+            console.log('Dashboard - 过滤后的Bug数量:', bugCount);
+            break;
+          }
+        } catch (error) {
+          console.log('Dashboard - 请求Bug列表失败:', url, error.message);
+        }
+      }
+      
+      bugState.value = bugCount;
+      console.log('Dashboard - 最终Bug数量:', bugState.value);
+    }
+  } catch (error) {
+    console.error('Dashboard - 获取Bug数量失败:', error);
+    bugState.value = 0;
+  }
+};
+
+// 获取指派给当前用户的任务数量
+const fetchTaskCount = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      console.log('Dashboard - 获取任务数量，用户:', user.username, user.name);
+      
+      // 尝试多个可能的接口获取任务列表
+      const possibleUrls = [
+        `/workbench/tasks?username=${user.username}`,
+        `/api/task/list?assignee=${user.username}`
+      ];
+      
+      let taskCount = 0;
+      for (const url of possibleUrls) {
+        try {
+          console.log('Dashboard - 尝试获取任务列表:', url);
+          const response = await request.get(url);
+          console.log('Dashboard - 任务列表响应:', response);
+          
+          if (response.data.code === 200 && response.data.data && Array.isArray(response.data.data)) {
+            const tasks = response.data.data;
+            console.log('Dashboard - 获取到的任务列表:', tasks);
+            
+            // 过滤出指派给当前用户的任务（未完成的）
+            const userId = String(user.username);
+            console.log('Dashboard - 用户ID:', userId);
+            
+            // 显示所有任务的assignee_id字段供排查
+            console.log('Dashboard - 所有任务的assignee_id字段:');
+            tasks.forEach((task, index) => {
+              console.log(`Dashboard - 任务 ${index}: title=${task.title}, assignee_id=${task.assignee_id}, status=${task.status}`);
+            });
+            
+            // 使用 assignee_id 字段匹配用户（后端返回的是下划线命名）
+            const assignedTasks = tasks.filter(task => {
+              const assigneeId = String(task.assignee_id || task.assigneeId || '');
+              const isAssigned = assigneeId === userId;
+              const isNotCompleted = !task.status || task.status < 2;
+              
+              console.log('Dashboard - 任务:', task.title, 'assignee_id:', assigneeId, 'isAssigned:', isAssigned, 'status:', task.status, 'isNotCompleted:', isNotCompleted);
+              return isAssigned && isNotCompleted;
+            });
+            
+            taskCount = assignedTasks.length;
+            console.log('Dashboard - 过滤后的任务数量:', taskCount);
+            break;
+          }
+        } catch (error) {
+          console.log('Dashboard - 请求任务列表失败:', url, error.message);
+        }
+      }
+      
+      taskAllCount.value = taskCount;
+      console.log('Dashboard - 最终任务数量:', taskAllCount.value);
+    }
+  } catch (error) {
+    console.error('Dashboard - 获取任务数量失败:', error);
+    taskAllCount.value = 0;
+  }
+};
+
 // 页面加载时获取用户信息、统计数据和项目列表
 onMounted(async () => {
   // 从本地存储中获取用户信息
@@ -751,6 +877,12 @@ onMounted(async () => {
   
   // 从后端获取统计数据
   await fetchStatistics();
+  
+  // 获取指派给当前用户的Bug数量（覆盖之前的bugState）
+  await fetchBugCount();
+  
+  // 获取指派给当前用户的任务数量
+  await fetchTaskCount();
   
   // 从后端获取项目列表
   await fetchProjects();
@@ -1341,7 +1473,7 @@ const fetchTaskOverview = async () => {
     const response = await request.get('/dashboard/task-overview', { params });
     if (response.data.code === 200) {
       const data = response.data.data;
-      taskAllCount.value = data.taskAllCount || 0;
+      // taskAllCount 已由 fetchTaskCount() 设置，不再覆盖
       taskFinishCount.value = data.taskFinishCount || 0;
       if (data.taskDistributionData) {
         taskDistributionData.value = data.taskDistributionData;

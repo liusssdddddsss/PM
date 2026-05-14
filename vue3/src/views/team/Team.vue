@@ -236,9 +236,20 @@
               ></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="接收者">
-            <el-select v-model="createMessageForm.receiver" placeholder="请选择接收者（可选）" clearable style="width: 100%">
-              <el-option label="所有成员" value=""></el-option>
+          <el-form-item label="消息类型">
+            <el-radio-group v-model="createMessageForm.type">
+              <el-radio value="broadcast">广播</el-radio>
+              <el-radio value="private">指定用户</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="接收者" v-if="createMessageForm.type === 'private'">
+            <el-select v-model="createMessageForm.receiver" placeholder="请选择接收者" style="width: 100%">
+              <el-option
+                v-for="member in currentTeamMembers"
+                :key="member.userId"
+                :label="member.member + ' (' + member.username + ')'"
+                :value="member.username"
+              ></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="消息内容">
@@ -305,9 +316,13 @@ const inviteMemberForm = ref({
 const showCreateMessageDialog = ref(false);
 const createMessageForm = ref({
     teamId: null,
+    type: "broadcast",
     receiver: "",
     content: ""
 });
+
+// 当前团队成员列表
+const currentTeamMembers = ref([]);
 
 // 搜索用户相关
 const searchUsers = ref([]);
@@ -565,7 +580,19 @@ const openCreateMessageDialog = () => {
     if (teamObj && teamObj.id) {
         createMessageForm.value.teamId = teamObj.id;
     }
+    
+    // 加载当前团队成员列表（排除自己）
+    currentTeamMembers.value = divisionData.value.filter(member => {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            return member.username !== String(user.username);
+        }
+        return true;
+    });
+    
     // 重置表单
+    createMessageForm.value.type = "broadcast";
     createMessageForm.value.receiver = "";
     createMessageForm.value.content = "";
     showCreateMessageDialog.value = true;
@@ -577,6 +604,12 @@ const submitCreateMessage = async () => {
         // 验证内容
         if (!createMessageForm.value.content || createMessageForm.value.content.trim() === "") {
             ElMessage.error("消息内容不能为空");
+            return;
+        }
+        
+        // 如果是指定用户，需要选择接收者
+        if (createMessageForm.value.type === "private" && !createMessageForm.value.receiver) {
+            ElMessage.error("请选择接收者");
             return;
         }
 
@@ -591,7 +624,9 @@ const submitCreateMessage = async () => {
         // 创建消息对象
         const messageData = {
             sender: user.name || user.username, // 使用用户姓名或用户名
-            receiver: createMessageForm.value.receiver || null,
+            senderUsername: String(user.username), // 发送者用户名
+            receiver: createMessageForm.value.type === "broadcast" ? null : createMessageForm.value.receiver,
+            type: createMessageForm.value.type,
             content: createMessageForm.value.content,
             teamId: createMessageForm.value.teamId
         };
@@ -624,7 +659,17 @@ const fetchMessages = async () => {
       const teamObj = teams.value.find(t => t.name === currentTeam.value);
       if (teamObj && teamObj.id) {
         console.log('开始获取消息数据，团队ID:', teamObj.id);
-        const response = await request.get(`/teams/messages/by-team?teamId=${teamObj.id}`);
+        
+        // 获取当前登录用户的用户名
+        const userStr = localStorage.getItem("user");
+        let username = "";
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          username = String(user.username);
+        }
+        
+        // 传递用户名参数，只获取该用户可见的消息
+        const response = await request.get(`/teams/messages/by-team?teamId=${teamObj.id}&username=${username}`);
         console.log('获取消息数据响应:', response);
         if (response.data && response.data.code === 200) {
           console.log('消息数据:', response.data.data);
@@ -635,6 +680,8 @@ const fetchMessages = async () => {
               id: msg.id || Math.random(),
               sender: msg.sender || '系统',
               content: msg.content || '',
+              type: msg.type || 'broadcast',
+              receiver: msg.receiver || '',
               time: msg.createdAt ? new Date(msg.createdAt).toLocaleString('zh-CN') : '',
               read: msg.isRead === 1
             }));

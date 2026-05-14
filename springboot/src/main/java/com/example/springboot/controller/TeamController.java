@@ -95,19 +95,32 @@ public class TeamController {
     @Operation(summary = "根据团队ID获取消息", description = "根据团队ID获取消息列表")
     @GetMapping("/messages/by-team")
     @PostMapping("/messages/by-team")
-    public Result getMessagesByTeam(@RequestParam(name = "teamId") Integer teamId, @RequestParam(name = "teamld", required = false) Integer teamld) {
+    public Result getMessagesByTeam(@RequestParam(name = "teamId") Integer teamId, 
+                                     @RequestParam(name = "teamld", required = false) Integer teamld,
+                                     @RequestParam(name = "username", required = false) String username) {
         try {
             System.out.println("===== getMessagesByTeam 方法被调用 =====");
             System.out.println("teamId: " + teamId);
             System.out.println("teamld: " + teamld);
+            System.out.println("username: " + username);
             // 使用teamId，如果teamld存在则使用teamld
             Integer finalTeamId = teamId != null ? teamId : (teamld != null ? teamld : 0);
             System.out.println("finalTeamId: " + finalTeamId);
-            List<Message> messages = messageService.findByTeamId(finalTeamId);
-            System.out.println("根据团队ID " + finalTeamId + " 获取到的消息数量: " + messages.size());
+            
+            List<Message> messages;
+            if (username != null && !username.isEmpty()) {
+                // 如果提供了用户名，只返回该用户可见的消息（广播消息 + 指定给该用户的消息）
+                messages = messageService.findByTeamIdAndUsername(finalTeamId, username);
+                System.out.println("根据团队ID " + finalTeamId + " 和用户 " + username + " 获取到的消息数量: " + messages.size());
+            } else {
+                // 否则返回该团队的所有消息
+                messages = messageService.findByTeamId(finalTeamId);
+                System.out.println("根据团队ID " + finalTeamId + " 获取到的消息数量: " + messages.size());
+            }
+            
             // 打印每条消息的详细信息
             for (Message msg : messages) {
-                System.out.println("消息ID: " + msg.getId() + ", 发送者: " + msg.getSender() + ", 接收者: " + msg.getReceiver() + ", 内容: " + msg.getContent() + ", 团队ID: " + msg.getTeamId());
+                System.out.println("消息ID: " + msg.getId() + ", 类型: " + msg.getType() + ", 发送者: " + msg.getSender() + ", 接收者: " + msg.getReceiver() + ", 内容: " + msg.getContent() + ", 团队ID: " + msg.getTeamId());
             }
             return Result.success(messages);
         } catch (Exception e) {

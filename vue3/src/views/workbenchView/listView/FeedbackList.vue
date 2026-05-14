@@ -108,6 +108,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import request from "@/utils/request.js";
+import { recordOperationLog } from "@/utils/operationLog.js";
 
 // 获取用户角色
 const userRole = ref(null);
@@ -324,6 +325,9 @@ const handleDelete = async (id) => {
     const response = await request.delete(`/api/feedback/delete/${id}`);
     if (response.data.code === 200) {
       console.log('删除反馈成功:', id);
+      // 记录操作日志
+      const feedback = feedbackList.value.find(f => f.id === id);
+      await recordOperationLog('删除反馈', '反馈管理', id, feedback?.title || '');
       // 重新获取反馈列表
       await fetchFeedbacks();
     } else {
@@ -344,6 +348,8 @@ const confirmClose = async () => {
     });
     if (response.data.code === 200) {
       console.log('关闭反馈成功:', currentFeedback.value.id);
+      // 记录操作日志
+      await recordOperationLog('关闭反馈', '反馈管理', currentFeedback.value.id, currentFeedback.value.title);
       dialogVisible.value = false;
       // 重新获取反馈列表
       await fetchFeedbacks();

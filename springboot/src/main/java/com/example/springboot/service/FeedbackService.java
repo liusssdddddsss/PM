@@ -82,6 +82,10 @@ public class FeedbackService {
         feedbackRepository.deleteById(id);
     }
 
+    public Feedback findEntityById(Long id) {
+        return feedbackRepository.findById(id).orElse(null);
+    }
+
     // 内部类，用于扩展Feedback，添加assigneeName字段
     public static class FeedbackWithAssigneeName {
         private Long id;
@@ -110,7 +114,16 @@ public class FeedbackService {
             this.description = feedback.getDescription();
             this.priority = feedback.getPriority();
             this.status = feedback.getStatus();
-            this.type = feedback.getType();
+            
+            // 将类型转换为中文显示
+            if ("suggestion".equals(feedback.getType())) {
+                this.type = "功能建议";
+            } else if ("user".equals(feedback.getType())) {
+                this.type = "用户需求";
+            } else {
+                this.type = feedback.getType();
+            }
+            
             this.assigneeId = feedback.getAssigneeId();
             this.solution = feedback.getSolution();
             this.creatorId = feedback.getCreatorId();

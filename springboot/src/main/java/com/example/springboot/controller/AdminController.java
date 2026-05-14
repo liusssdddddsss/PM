@@ -8,6 +8,7 @@ import com.example.springboot.repository.AdminRepository;
 import com.example.springboot.repository.LoginLogRepository;
 import com.example.springboot.repository.UserRepository;
 import com.example.springboot.service.AdminService;
+import com.example.springboot.service.LoginFailureService;
 import com.example.springboot.util.AESUtil;
 import com.example.springboot.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,10 +44,13 @@ public class AdminController {
     AdminService adminService;
     
     @Resource
-    LoginLogRepository loginLogRepository;
+    private LoginLogRepository loginLogRepository;
     
     @Resource
-    UserRepository userRepository;
+    private UserRepository userRepository;
+    
+    @Resource
+    private LoginFailureService loginFailureService;
     
     @Resource
     AdminRepository adminRepository;
@@ -100,6 +104,14 @@ public class AdminController {
             return Result.error("用户名和密码不能为空");
         }
         
+        // 检查账号是否被锁定
+        if (loginFailureService.isAccountLocked(username)) {
+            long remainingMinutes = loginFailureService.getRemainingLockMinutes(username);
+            String errorMsg = "账号已被锁定，请在" + remainingMinutes + "分钟后再试";
+            System.out.println("账号被锁定: " + username + ", 剩余锁定时间: " + remainingMinutes + "分钟");
+            return Result.error(errorMsg);
+        }
+        
         Admin admin = null;
         String errorMessage = "用户名或密码错误";
         
@@ -120,10 +132,24 @@ public class AdminController {
                 loginLog.setUser_id(admin.getUsername().toString());
                 loginLog.setStatus(1); // 1表示成功
                 System.out.println("登录成功，记录日志，用户: " + admin.getUsername());
+                
+                // 登录成功，清除失败记录
+                loginFailureService.clearFailures(username);
             } else {
                 loginLog.setUser_id(username != null ? username : "1"); // 使用管理员账号作为未知用户的标识
                 loginLog.setStatus(0); // 0表示失败
                 System.out.println("登录失败，记录日志，用户: " + username + "，错误信息: " + errorMessage);
+                
+                // 记录登录失败
+                boolean isLocked = loginFailureService.recordFailure(username);
+                if (isLocked) {
+                    errorMessage = "密码错误次数过多，账号已被锁定30分钟";
+                } else {
+                    int remainingAttempts = 5 - loginFailureService.getFailureCount(username);
+                    if (remainingAttempts > 0 && remainingAttempts <= 3) {
+                        errorMessage = "用户名或密码错误，还有" + remainingAttempts + "次尝试机会";
+                    }
+                }
             }
             loginLog.setIp_address(getClientIp(request));
             loginLog.setUser_agent(request.getHeader("User-Agent"));

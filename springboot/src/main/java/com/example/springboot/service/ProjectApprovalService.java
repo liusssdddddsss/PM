@@ -23,4 +23,8 @@ public class ProjectApprovalService {
     public ProjectApproval save(ProjectApproval projectApproval) {
         return projectApprovalRepository.save(projectApproval);
     }
+
+    public ProjectApproval findByFeedbackId(Long feedbackId) {
+        return projectApprovalRepository.findByFeedbackId(feedbackId);
+    }
 }

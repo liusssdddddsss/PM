@@ -34,6 +34,23 @@ public class MessageService {
         query.setParameter("teamId", teamId);
         return query.getResultList();
     }
+    
+    // 根据团队ID和用户名获取消息（包含广播消息和指定给该用户的消息）
+    public List<Message> findByTeamIdAndUsername(Integer teamId, String username) {
+        try {
+            String jpql = "SELECT m FROM Message m WHERE m.teamId = :teamId " +
+                    "AND (m.type = 'broadcast' OR m.receiver = :username OR m.receiver IS NULL) " +
+                    "ORDER BY m.createdAt DESC";
+            Query query = entityManager.createQuery(jpql);
+            query.setParameter("teamId", teamId);
+            query.setParameter("username", username);
+            return query.getResultList();
+        } catch (Exception e) {
+            // 如果查询出错，返回该团队的所有消息
+            System.out.println("查询消息出错: " + e.getMessage());
+            return findByTeamId(teamId);
+        }
+    }
 
     // 获取未读消息
     public List<Message> findUnreadByReceiver(String receiver) {

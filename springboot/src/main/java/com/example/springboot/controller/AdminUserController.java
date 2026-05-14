@@ -273,9 +273,9 @@ public class AdminUserController {
         if (isAdmin != null && isAdmin == 1) return "管理员";
         if (roleId == null) return "普通用户";
         return switch (roleId.intValue()) {
-            case 1, 2 -> "产品经理";
-            case 3 -> "开发者";
-            case 4 -> "测试者";
+            case 1 -> "产品经理";
+            case 2 -> "开发者";
+            case 3 -> "测试者";
             default -> "普通用户";
         };
     }
@@ -290,15 +290,15 @@ public class AdminUserController {
             }
             case "产品经理" -> {
                 u.setIs_admin(0);
-                u.setRole_id(1L);
+                u.setRole_id(1L); // 与数据库一致
             }
             case "开发者" -> {
                 u.setIs_admin(0);
-                u.setRole_id(2L);
+                u.setRole_id(2L); // 与数据库一致
             }
             case "测试者" -> {
                 u.setIs_admin(0);
-                u.setRole_id(3L);
+                u.setRole_id(3L); // 与数据库一致
             }
             default -> {
                 u.setIs_admin(0);

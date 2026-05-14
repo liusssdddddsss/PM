@@ -35,11 +35,34 @@ const router = useRouter();
 
 const dynamicData = ref([]);
 
-// 从后端获取最新动态数据
+// 当前用户信息
+const currentUser = ref(null);
+
+// 获取当前用户信息
+const getCurrentUser = () => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      currentUser.value = JSON.parse(userStr);
+    } catch (e) {
+      console.error('解析用户信息失败:', e);
+    }
+  }
+};
+
+// 从后端获取最新动态数据（只显示同团队内的操作日志）
 const fetchDynamicData = async () => {
   try {
-    // 最新动态改为全员可见，不传递用户名参数
-    const response = await request.get('/dashboard/dynamic');
+    // 获取当前用户信息
+    getCurrentUser();
+    
+    let url = '/dashboard/dynamic';
+    // 如果有当前用户，传递用户名获取同团队的操作日志
+    if (currentUser.value && currentUser.value.username) {
+      url += `?username=${currentUser.value.username}`;
+    }
+    
+    const response = await request.get(url);
     if (response.data.code === 200) {
       dynamicData.value = response.data.data || [];
     }
@@ -141,8 +164,9 @@ const getActionText = (action, link) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-height: 600px;
+  max-height: 550px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 8px;
   width: 100%;
   box-sizing: border-box;
