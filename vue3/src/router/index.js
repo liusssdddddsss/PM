@@ -16,7 +16,6 @@ const router = createRouter({
             ]
         },
         children:[
-        {path:'style',component:()=>import('@/views/Style.vue')},
         {path:'dashboard',component:()=>import('@/views/workbenchView/Dashboard.vue')},
         {path:'approveList',component:()=>import('@/views/workbenchView/listView/ApproveList.vue')},
         {path:'taskList',component:()=>import('@/views/workbenchView/listView/TaskList.vue')},
@@ -100,7 +99,6 @@ const router = createRouter({
           children:[
               {path:'taskList',component:()=>import('@/views/task/TList.vue')},
       {path:'taskBorder',component:()=>import('@/views/task/TaskBorder.vue')},
-      {path:'addTask',component:()=>import('@/views/task/AddTask.vue')},
       {path:'addTaskForm',component:()=>import('@/views/task/AddTaskForm.vue')},
       {path:'taskEdit',component:()=>import('@/views/task/TaskEdit.vue')},
       {path:'taskCreate',component:()=>import('@/views/task/TaskCreate.vue')},
@@ -112,7 +110,6 @@ const router = createRouter({
       {path:'/feedbacks',component:()=>import('@/views/home/Home.vue'),
           children:[
               {path:'feedback',component:()=>import('@/views/feedbacks/FeedBack.vue')},
-              {path:'workOrder',component:()=>import('@/views/feedbacks/WorkOrder.vue')},
               {path:'edit',component:()=>import('@/views/feedbacks/FeedbackEdit.vue')},
               {path:'edit/:id',component:()=>import('@/views/feedbacks/FeedbackEdit.vue')},
 
