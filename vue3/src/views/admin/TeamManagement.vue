@@ -1,7 +1,7 @@
 <template>
   <div class="team-management">
     <!-- 团队管理卡片 -->
-    <el-card style="max-width: 100%; margin-bottom: 10px">
+    <el-card style="max-width: 100%">
       <div class="card-header">
         <h3>团队管理</h3>
         <div class="header-actions">
@@ -14,14 +14,14 @@
           <el-button type="primary" @click="showAddTeamDialog">创建团队</el-button>
         </div>
       </div>
-      <el-table :data="teamList" style="width: 100%">
-        <el-table-column prop="teamId" label="团队编号" width="100">
+      <el-table :data="pagedTeamList" style="width: 100%">
+        <el-table-column prop="teamId" label="团队编号" width="80">
           <template #default="scope">
             <el-button type="text" @click="showTeamDetail(scope.row)">{{scope.row.teamId}}</el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="teamName" label="团队名称" width="150" />
-        <el-table-column prop="leader" label="领导人员" width="120" />
+        <el-table-column prop="teamName" label="团队名称" width="120" />
+        <el-table-column prop="leader" label="领导人员" width="100" />
         <el-table-column label="团队成员" width="200">
           <template #default="scope">
             <div v-if="scope.row.members && scope.row.members.length > 0" class="member-grid">
@@ -46,7 +46,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="项目名称" width="250">
+        <el-table-column label="项目名称" width="150">
           <template #default="scope">
             <div v-if="scope.row.projectName">
               <el-dropdown v-if="scope.row.projectName.includes('、')" trigger="click">
@@ -84,6 +84,16 @@
           </template>
         </el-table-column>
       </el-table>
+      <!-- 分页 -->
+      <div class="pagination">
+        <el-pagination
+          layout="prev, pager, next"
+          :total="teamList.length"
+          :page-size="15"
+          :current-page="teamsCurrentPage"
+          @current-change="handleTeamsPageChange"
+        />
+      </div>
     </el-card>
   </div>
   
@@ -214,6 +224,9 @@ const getRoleName = (roleId) => {
 // 搜索关键词
 const searchQuery = ref('');
 
+// 分页
+const teamsCurrentPage = ref(1);
+
 // 原始团队列表
 const originalTeamList = ref([]);
 
@@ -230,6 +243,17 @@ const teamList = computed(() => {
     team.projectName.toLowerCase().includes(query)
   );
 });
+
+// 分页后的团队列表
+const pagedTeamList = computed(() => {
+  const start = (teamsCurrentPage.value - 1) * 15;
+  return teamList.value.slice(start, start + 15);
+});
+
+// 团队列表分页处理
+const handleTeamsPageChange = (page) => {
+  teamsCurrentPage.value = page;
+};
 
 // 对话框状态
 const teamDialogVisible = ref(false);
@@ -426,6 +450,13 @@ onMounted(() => {
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
   margin-bottom: 0;
+}
+
+/* 分页 */
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 </style>

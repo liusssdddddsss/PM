@@ -42,7 +42,6 @@ import request from "@/utils/request.js";
 
 const tabs = ref([
   {name:'全部',type:'all'},
-  {name:'待处理',type:'pending'},
   {name:'处理中',type:'processing'},
   {name:'已解决',type:'resolved'}
 ]);

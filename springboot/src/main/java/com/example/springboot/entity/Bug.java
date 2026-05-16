@@ -44,6 +44,15 @@ public class Bug {
     
     @Column(name = "resolved_at")
     private String resolvedAt;
+    
+    @Column(name = "solution")
+    private String solution;
+    
+    @Column(name = "project_name")
+    private String projectName;
+    
+    @Column(name = "deadline")
+    private String deadline;
 
     // 构造方法
     public Bug() {
@@ -159,6 +168,30 @@ public class Bug {
 
     public void setResolvedAt(String resolvedAt) {
         this.resolvedAt = resolvedAt;
+    }
+
+    public String getSolution() {
+        return solution;
+    }
+
+    public void setSolution(String solution) {
+        this.solution = solution;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    public String getDeadline() {
+        return deadline;
+    }
+
+    public void setDeadline(String deadline) {
+        this.deadline = deadline;
     }
 
 }

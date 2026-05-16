@@ -120,7 +120,7 @@
         <template #header>
           <div class="card-header">
             <span>团队消息</span>
-            <el-button type="primary" size="small" @click="openCreateMessageDialog">
+            <el-button v-if="isProductManager" type="primary" size="small" @click="openCreateMessageDialog">
               创建消息
             </el-button>
           </div>
@@ -425,6 +425,12 @@ const hasOperationPermission = computed(() => {
   // 角色ID：1=超级管理员，2=产品经理，3=开发者，4=测试者
   // 只有超级管理员和产品经理有操作权限
   return userRole.value === 1 || userRole.value === 2;
+});
+
+// 判断用户是否为产品经理
+const isProductManager = computed(() => {
+  // 角色ID：2=产品经理
+  return userRole.value === 2;
 });
 
 // 从后端获取团队概览和所属团队（仅限当前登录用户）

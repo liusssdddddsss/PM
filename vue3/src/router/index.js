@@ -110,12 +110,6 @@ const router = createRouter({
 
           ]},
       {path:'/feedbacks',component:()=>import('@/views/home/Home.vue'),
-          // meta:{
-          //     tabs:[
-          //         {name:'反馈',route:'/feedbacks/feedback'},
-          //         // {name:'工单',route:'/feedbacks/workOrder'},
-          //     ]
-          // },
           children:[
               {path:'feedback',component:()=>import('@/views/feedbacks/FeedBack.vue')},
               {path:'workOrder',component:()=>import('@/views/feedbacks/WorkOrder.vue')},

@@ -44,51 +44,52 @@
     <!-- 搜索和筛选 -->
     <el-card style="max-width: 100%; margin: 10px 0">
       <div class="search-filter">
-        <el-input
-          v-model="searchQuery"
-          placeholder="搜索反馈内容或用户"
-          style="width: 300px; margin-right: 10px"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <el-select
-          v-model="typeFilter"
-          placeholder="选择反馈类型"
-          style="width: 150px; margin-right: 10px"
-        >
-          <el-option label="全部类型" value="" />
-          <el-option label="功能建议" value="功能建议" />
-          <el-option label="bug报告" value="bug报告" />
-          <el-option label="使用问题" value="使用问题" />
-          <el-option label="其他" value="其他" />
-        </el-select>
-        <el-select
-          v-model="statusFilter"
-          placeholder="选择状态"
-          style="width: 150px; margin-right: 10px"
-        >
-          <el-option label="全部状态" value="" />
-          <el-option label="未处理" value="未处理" />
-          <el-option label="处理中" value="处理中" />
-          <el-option label="已处理" value="已处理" />
-        </el-select>
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          style="width: 300px"
-        />
-      </div>
-    </el-card>
+                <el-input
+                  v-model="searchQuery"
+                  placeholder="搜索反馈内容或用户"
+                  style="width: 300px; margin-right: 10px"
+                >
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </el-input>
+                <el-select
+                  v-model="typeFilter"
+                  placeholder="选择反馈类型"
+                  style="width: 150px; margin-right: 10px"
+                >
+                  <el-option label="全部类型" value="" />
+                  <el-option label="功能建议" value="功能建议" />
+                  <el-option label="bug报告" value="bug报告" />
+                  <el-option label="使用问题" value="使用问题" />
+                  <el-option label="其他" value="其他" />
+                </el-select>
+                <el-select
+                  v-model="statusFilter"
+                  placeholder="选择状态"
+                  style="width: 150px; margin-right: 10px"
+                >
+                  <el-option label="全部状态" value="" />
+                  <el-option label="未处理" value="未处理" />
+                  <el-option label="处理中" value="处理中" />
+                  <el-option label="已处理" value="已处理" />
+                  <el-option label="已完成" value="已完成" />
+                </el-select>
+                <el-date-picker
+                  v-model="dateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  style="width: 300px"
+                />
+              </div>
+            </el-card>
 
-    <!-- 反馈列表 -->
-    <el-card style="max-width: 100%; margin: 10px 0">
-      <h3>反馈列表</h3>
-      <el-table :data="filteredFeedbacks" style="width: 100%">
+            <!-- 反馈列表 -->
+            <el-card style="max-width: 100%; margin: 10px 0">
+              <h3>反馈列表</h3>
+              <el-table :data="pagedFeedbacks" style="width: 100%">
         <el-table-column prop="id" label="反馈ID" width="80" />
         <el-table-column prop="userName" label="用户" width="100" />
         <el-table-column prop="userId" label="工号" width="80" />
@@ -112,7 +113,12 @@
         <el-table-column label="操作" width="150">
           <template #default="scope">
             <el-button size="small" type="primary" @click="viewFeedback(scope.row)">查看</el-button>
-            <el-button size="small" type="success" @click="processFeedback(scope.row)">处理</el-button>
+            <el-button 
+              size="small" 
+              type="success" 
+              @click="processFeedback(scope.row)"
+              :disabled="!canProcess(scope.row)"
+            >处理</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -121,7 +127,7 @@
         <el-pagination
           layout="prev, pager, next"
           :total="filteredFeedbacks.length"
-          :page-size="10"
+          :page-size="15"
           :current-page="currentPage"
           @current-change="handleCurrentChange"
         />
@@ -217,6 +223,13 @@
             <el-button type="primary">点击上传</el-button>
           </el-upload>
         </el-form-item>
+        <el-form-item label="状态" required>
+          <el-select v-model="currentFeedback.status" placeholder="请选择状态">
+            <el-option label="处理中" value="处理中" />
+            <el-option label="已处理" value="已处理" />
+            <el-option label="已完成" value="已完成" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="处理回复" required>
           <el-input v-model="currentFeedback.reply" type="textarea" :rows="3" placeholder="请输入处理回复" />
         </el-form-item>
@@ -233,8 +246,9 @@
 
 <script setup>
 import {ref, computed, onMounted} from "vue";
-import axios from 'axios';
+import request from "@/utils/request.js";
 import { Search } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 
 // 统计数据
 const totalFeedbacks = ref(0);
@@ -255,13 +269,18 @@ const feedbacks = ref([]);
 // 获取反馈列表和统计数据
 const fetchFeedbacks = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/admin/feedback');
+    console.log('开始获取反馈列表');
+    const response = await request.get('/admin/feedback');
+    console.log('获取反馈列表响应:', response);
     if (response.data.code === 200) {
       feedbacks.value = response.data.data || [];
+      console.log('反馈列表数据:', feedbacks.value);
+      console.log('反馈ID 11的状态:', feedbacks.value.find(f => f.id === 11)?.status);
       calculateStatistics();
     }
   } catch (error) {
     console.error('获取反馈列表失败:', error);
+    ElMessage.error('获取反馈列表失败');
   }
 };
 
@@ -278,7 +297,7 @@ const calculateStatistics = () => {
   data.forEach(fb => {
     if (fb.status === '未处理' || fb.status === '待处理') {
       pending++;
-    } else if (fb.status === '已处理' || fb.status === '处理中') {
+    } else if (fb.status === '已处理' || fb.status === '处理中' || fb.status === '已完成') {
       processed++;
     }
     
@@ -335,6 +354,12 @@ const filteredFeedbacks = computed(() => {
   return result;
 });
 
+// 分页后的反馈
+const pagedFeedbacks = computed(() => {
+  const start = (currentPage.value - 1) * 15;
+  return filteredFeedbacks.value.slice(start, start + 15);
+});
+
 // 当前反馈
 const currentFeedback = ref({});
 const viewDialogVisible = ref(false);
@@ -348,31 +373,47 @@ const viewFeedback = (feedback) => {
 
 // 处理反馈
 const processFeedback = (feedback) => {
+  // 功能建议类型只可查看不可处理
+  if (feedback.type === '功能建议' || feedback.type === 'suggestion') {
+    ElMessage.warning('功能建议类型的反馈不可处理，只能查看');
+    return;
+  }
+  
   currentFeedback.value = {...feedback};
+  // 点击处理按钮时，默认设置为已完成
+  currentFeedback.value.status = '已完成';
   processDialogVisible.value = true;
 };
 
 // 保存反馈
 const saveFeedback = async () => {
   try {
-    // 确保状态设置为处理中
-    currentFeedback.value.status = '处理中';
-    
-    await axios.put(`http://localhost:8080/admin/feedback/${currentFeedback.value.id}/process`, {
-      reply: currentFeedback.value.reply,
-      status: currentFeedback.value.status
-    });
-    
-    // 更新本地数据
-    const index = feedbacks.value.findIndex(f => f.id === currentFeedback.value.id);
-    if (index !== -1) {
-      feedbacks.value[index] = {...currentFeedback.value};
-      calculateStatistics();
+    if (!currentFeedback.value.status) {
+      ElMessage.warning('请选择状态');
+      return;
     }
     
+    const url = `/admin/feedback/${currentFeedback.value.id}/process`;
+    const payload = {
+      reply: currentFeedback.value.reply,
+      status: currentFeedback.value.status
+    };
+    console.log('发送处理反馈请求 - URL:', url, '参数:', payload);
+    
+    const response = await request.put(url, payload);
+    
+    console.log('后端响应:', response);
+    
+    console.log('处理反馈成功，重新获取数据');
+    // 重新从后端获取数据
+    await fetchFeedbacks();
+    
     processDialogVisible.value = false;
+    ElMessage.success('处理成功');
   } catch (error) {
     console.error('保存反馈失败:', error);
+    if (error.response && console.error('错误响应:', error.response));
+    ElMessage.error('保存反馈失败');
   }
 };
 
@@ -380,10 +421,13 @@ const saveFeedback = async () => {
 const getTagType = (type) => {
   switch (type) {
     case '功能建议':
+    case 'suggestion':
       return 'primary';
     case 'bug报告':
+    case 'bug':
       return 'danger';
     case '使用问题':
+    case 'question':
       return 'warning';
     default:
       return 'default';
@@ -399,10 +443,17 @@ const getStatusType = (status) => {
     case '处理中':
       return 'warning';
     case '已处理':
+    case '已完成':
       return 'success';
     default:
       return 'default';
   }
+};
+
+// 判断是否可以处理
+const canProcess = (feedback) => {
+  // 功能建议类型不可处理
+  return feedback.type !== '功能建议' && feedback.type !== 'suggestion';
 };
 
 // 分页处理

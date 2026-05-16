@@ -2,7 +2,7 @@
   <div class="bug-table-container">
     <div class="table-container">
       <el-table
-          :data="bugList"
+          :data="pagedBugList"
           style="width: 100%"
           class="BugTable"
           :row-style="{height: '45px'}"
@@ -36,17 +36,20 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="80">
           <template #default="scope">
-            <span :class="getStatusClass(scope.row.status)">{{ scope.row.status }}</span>
+            <span :class="getStatusClass(scope.row.status)">{{ getStatusText(scope.row.status) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="deadline" label="截止时间" width="120"></el-table-column>
-        <el-table-column prop="progress" label="进度" width="80">
+        <el-table-column prop="deadline" label="截止时间" width="120">
           <template #default="scope">
-            <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
+            {{ formatDate(scope.row.deadline) }}
           </template>
         </el-table-column>
-        <el-table-column prop="workTime" label="工时" width="80"></el-table-column>
-        <el-table-column prop="remainingTime" label="剩余工时" width="80"></el-table-column>
+        <el-table-column prop="creator" label="创建人" width="100"></el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" width="120">
+          <template #default="scope">
+            {{ formatDate(scope.row.createdAt) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200">
             <template #default="scope">
               <span class="action-text edit-action" @click.stop="handleEdit(scope.row)">编辑</span>
@@ -55,6 +58,20 @@
             </template>
           </el-table-column>
       </el-table>
+    </div>
+    
+    <!-- 分页 -->
+    <div class="pagination-container">
+      <span class="total-count">共 {{ bugList.length }} 项</span>
+      <el-pagination
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="bugList.length"
+        :page-size="pageSize"
+        :current-page="currentPage"
+        :page-sizes="[10, 20, 30]"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
     </div>
 
     <!-- Bug详情对话框 -->
@@ -286,14 +303,16 @@ const router = useRouter();
 // 原始Bug数据
 const allBugList = ref([]);
 
+// 分页
+const currentPage = ref(1);
+const pageSize = ref(20);
+
 // 根据activeTab和searchQuery筛选显示的数据
 const bugList = computed(() => {
   // 首先根据activeTab筛选
   let filteredList = [];
   if (props.activeTab === 'all') {
     filteredList = allBugList.value;
-  } else if (props.activeTab === 'pending') {
-    filteredList = allBugList.value.filter(bug => bug.status === '待处理');
   } else if (props.activeTab === 'processing') {
     filteredList = allBugList.value.filter(bug => bug.status === '处理中');
   } else if (props.activeTab === 'resolved') {
@@ -312,6 +331,43 @@ const bugList = computed(() => {
   return filteredList;
 });
 
+// 分页后的Bug列表
+const pagedBugList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return bugList.value.slice(start, start + pageSize.value);
+});
+
+// 分页事件处理
+const handlePageChange = (page) => {
+  currentPage.value = page;
+};
+
+// 每页条数变更处理
+const handleSizeChange = (size) => {
+  pageSize.value = size;
+  currentPage.value = 1;
+};
+
+// 获取状态的文本
+const getStatusText = (status) => {
+  if (typeof status === 'string') {
+    return status;
+  }
+  switch (status) {
+    case 0:
+    case '待处理':
+      return '待处理';
+    case 1:
+    case '处理中':
+      return '处理中';
+    case 2:
+    case '已解决':
+      return '已解决';
+    default:
+      return '待处理';
+  }
+};
+
 // 从后端获取Bug列表数据
 onMounted(() => {
   fetchBugs();
@@ -322,27 +378,51 @@ const fetchBugs = async () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      // 注意：后端使用username查询，因为bugs表的assignee_id存储的是username
-      const response = await request.get(`/dashboard/user-bugs?username=${user.username}`);
+      // 使用正确的后端接口 /workbench/bugs
+      // 这个接口会自动判断用户角色并返回相应的Bug列表
+      const response = await request.get(`/workbench/bugs?username=${user.username}`);
+      
       if (response.data.code === 200 && Array.isArray(response.data.data)) {
         // 转换数据格式以匹配前端组件
+        // 后端返回字段：id, title, description, projectId, reporterId, assigneeId, severity, status, bugType, createdAt, resolvedAt, assignee_name, project_name, creator_name
+        if (response.data.data.length > 0) {
+          console.log('后端返回的Bug数据完整字段:', Object.keys(response.data.data[0]));
+          console.log('后端返回的Bug数据完整内容:', response.data.data[0]);
+        }
         allBugList.value = response.data.data.map(item => ({
           id: item.id,
-          projectName: item.project || '未知项目',
-          name: item.name || item.title,
-          assignee: item.assignee || '未知',
-          priority: item.priority,
-          status: item.status,
-          deadline: item.deadline || '',
-          progress: item.progress || 0,
-          workTime: '-',
-          remainingTime: '-',
-          description: ''
+          projectName: item.project_name || '未知项目',
+          name: item.title,
+          assignee: item.assignee_name || '未指派',
+          priority: getPriorityText(item.severity),
+          status: getStatusText(item.status),
+          deadline: item.createdAt || '',
+          creator: item.creator_name || item.reporter_name || '未知',
+          createdAt: item.createdAt || '',
+          description: item.description || ''
         }));
+        console.log('映射后的Bug数据:', allBugList.value[0]);
       }
     }
   } catch (error) {
     console.error('获取Bug列表失败:', error);
+  }
+};
+
+// 将数字优先级转换为文本
+const getPriorityText = (priority) => {
+  if (typeof priority === 'string') {
+    return priority;
+  }
+  switch (priority) {
+    case 1:
+      return '紧急';
+    case 2:
+      return '一般';
+    case 3:
+      return '正常';
+    default:
+      return '正常';
   }
 };
 
@@ -363,15 +443,29 @@ const getPriorityClass = (priority) => {
 // 获取状态的类名
 const getStatusClass = (status) => {
   switch (status) {
-    case '处理中':
-      return 'status-in-progress';
-    case '已解决':
-      return 'status-completed';
+    case 0:
     case '待处理':
       return 'status-pending';
+    case 1:
+    case '处理中':
+      return 'status-in-progress';
+    case 2:
+    case '已解决':
+      return 'status-completed';
     default:
       return '';
   }
+};
+
+// 格式化日期，只显示到天
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 // Bug详情对话框
@@ -472,7 +566,7 @@ const confirmEdit = async () => {
     
     // 这里可以添加编辑Bug的逻辑，例如调用后端API
     // 模拟API调用
-    const response = await request.put('/bug/update', {
+    const response = await request.put('/api/bugs/update', {
       bugId: currentBug.value.id,
       name: editForm.value.name,
       projectName: editForm.value.projectName,
@@ -504,7 +598,7 @@ const confirmResolve = async () => {
     
     // 这里可以添加解决Bug的逻辑，例如调用后端API
     // 模拟API调用，包含附件数据
-    const response = await request.post('/bug/resolve', {
+    const response = await request.post('/api/bugs/resolve', {
       bugId: currentBug.value.id,
       solution: resolveForm.value.solution,
       resolveTime: resolveForm.value.resolveTime,
@@ -531,7 +625,7 @@ const confirmDelete = async () => {
       console.log('确认删除Bug:', currentDeleteId.value);
       // 这里可以添加删除Bug的逻辑，例如调用后端API
       // 模拟API调用
-      const response = await request.delete(`/bug/${currentDeleteId.value}`);
+      const response = await request.delete(`/api/bugs/${currentDeleteId.value}`);
       if (response.data.code === 200) {
         console.log('删除Bug成功:', currentDeleteId.value);
         // 记录操作日志
@@ -552,11 +646,27 @@ const confirmDelete = async () => {
   padding: 0;
   background-color: #fff;
   overflow-x: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-container {
   width: 100%;
   min-width: 800px;
+  flex: 1;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+.total-count {
+  font-size: 14px;
+  color: #606266;
 }
 
 .BugTable {

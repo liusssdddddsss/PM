@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, computed} from "vue";
+import {ref, onMounted, onUnmounted, computed} from "vue";
 import request from "@/utils/request.js";
 import { recordOperationLog } from "@/utils/operationLog.js";
 
@@ -147,7 +147,23 @@ onMounted(async () => {
   if (hasPermission.value) {
     await fetchApprovals();
   }
+  
+  // 监听反馈列表删除或关闭事件，刷新审批列表
+  window.addEventListener('refreshApproval', handleRefreshApproval);
 });
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  window.removeEventListener('refreshApproval', handleRefreshApproval);
+});
+
+// 处理审批列表刷新事件
+const handleRefreshApproval = async () => {
+  console.log('收到刷新审批列表事件');
+  if (hasPermission.value) {
+    await fetchApprovals();
+  }
+};
 
 // 获取状态对应的按钮类型
 const getStatusType = (status) => {
@@ -202,14 +218,19 @@ const handleApprove = async () => {
         console.log('更新后的tableData:', tableData.value);
       }
       
-      // 同步更新反馈表状态为"处理中"
-      await updateFeedbackStatus(currentApproval.value.feedbackId, '处理中');
+      // 同步更新反馈表状态为"已完成"（显示为"已审批"）
+      console.log('即将更新反馈状态，currentApproval:', currentApproval.value);
+      console.log('feedbackId:', currentApproval.value.feedbackId);
+      await updateFeedbackStatus(currentApproval.value.feedbackId, '已完成');
       
       // 记录操作日志
       await recordOperationLog('审批通过了', '审批', currentApproval.value.id, currentApproval.value.title);
       
       // 触发全局事件，通知其他组件刷新最新动态
       window.dispatchEvent(new CustomEvent('refreshDynamic'));
+      
+      // 触发反馈列表刷新事件
+      window.dispatchEvent(new CustomEvent('refreshFeedback'));
     }
   } catch (error) {
     console.error('审批操作失败:', error);
@@ -262,6 +283,9 @@ const handleReject = async () => {
       
       // 触发全局事件，通知其他组件刷新最新动态
       window.dispatchEvent(new CustomEvent('refreshDynamic'));
+      
+      // 触发反馈列表刷新事件
+      window.dispatchEvent(new CustomEvent('refreshFeedback'));
     }
   } catch (error) {
     console.error('审批操作失败:', error);
@@ -275,17 +299,21 @@ const handleReject = async () => {
 
 // 更新反馈表状态
 const updateFeedbackStatus = async (feedbackId, status) => {
+  console.log('updateFeedbackStatus - feedbackId:', feedbackId, 'status:', status);
   if (!feedbackId) {
     console.log('没有反馈ID，跳过更新反馈状态');
     return;
   }
   
   try {
+    console.log('开始更新反馈状态，请求URL:', `/api/feedback/update-status/${feedbackId}`);
     const response = await request.put(`/api/feedback/update-status/${feedbackId}`, {
       status: status
     });
     console.log('更新反馈状态响应:', response);
-    if (response.data.code !== 200) {
+    if (response.data.code === 200) {
+      console.log('更新反馈状态成功');
+    } else {
       console.error('更新反馈状态失败:', response.data.message);
     }
   } catch (error) {

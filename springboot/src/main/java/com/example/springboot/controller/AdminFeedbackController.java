@@ -26,10 +26,13 @@ public class AdminFeedbackController {
             List<FeedbackService.FeedbackWithAssigneeName> feedbacks = feedbackService.findAll();
             List<Map<String, Object>> result = new ArrayList<>();
             for (FeedbackService.FeedbackWithAssigneeName item : feedbacks) {
-                result.add(toFrontendRow(item));
+                Map<String, Object> row = toFrontendRow(item);
+                System.out.println("反馈ID: " + item.getId() + ", 后端状态: " + item.getStatus() + ", 前端状态: " + row.get("status"));
+                result.add(row);
             }
             return Result.success(result);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.error("查询反馈失败: " + e.getMessage());
         }
     }
@@ -37,19 +40,27 @@ public class AdminFeedbackController {
     @PutMapping("/{id}/process")
     public Result processFeedback(@PathVariable Long id, @RequestBody AdminFeedbackProcessRequest req) {
         try {
+            System.out.println("处理反馈请求 - ID: " + id + ", 状态: " + (req != null ? req.status : "null") + ", 回复: " + (req != null ? req.reply : "null"));
             if (req == null) return Result.error("参数不能为空");
 
             Feedback feedback = feedbackRepository.findById(id).orElse(null);
             if (feedback == null) return Result.error("反馈不存在");
+            
+            System.out.println("找到反馈 - 原状态: " + feedback.getStatus());
 
             // reply -> solution
             feedback.setSolution(req.reply);
-            feedback.setStatus(mapStatusToBackend(req.status));
+            String newStatus = mapStatusToBackend(req.status);
+            feedback.setStatus(newStatus);
             feedback.setUpdatedAt(new Date());
+            
+            System.out.println("设置反馈 - 新状态: " + newStatus);
 
             Feedback saved = feedbackRepository.save(feedback);
+            System.out.println("保存反馈成功 - 最终状态: " + saved.getStatus());
             return Result.success(saved);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.error("处理反馈失败: " + e.getMessage());
         }
     }
@@ -76,6 +87,7 @@ public class AdminFeedbackController {
         if ("处理中".equals(backendStatus)) return "处理中";
         if ("待处理".equals(backendStatus)) return "未处理";
         if ("已处理".equals(backendStatus)) return "已处理";
+        if ("已完成".equals(backendStatus)) return "已完成";
         if ("待关闭".equals(backendStatus)) return "已处理";
         return "未处理";
     }
@@ -84,6 +96,7 @@ public class AdminFeedbackController {
         if (frontendStatus == null) return "待处理";
         if ("处理中".equals(frontendStatus)) return "处理中";
         if ("已处理".equals(frontendStatus)) return "已处理";
+        if ("已完成".equals(frontendStatus)) return "已完成";
         if ("未处理".equals(frontendStatus)) return "待处理";
         return "待处理";
     }

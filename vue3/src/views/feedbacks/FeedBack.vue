@@ -15,9 +15,9 @@
       <div class="content-header">
         <el-tabs v-model="activeTab" class="feedback-tabs">
           <el-tab-pane label="全部" name="all"></el-tab-pane>
-          <el-tab-pane label="待处理" name="pending"></el-tab-pane>
+          <el-tab-pane label="功能建议" name="pending"></el-tab-pane>
           <el-tab-pane label="处理中" name="processing"></el-tab-pane>
-          <el-tab-pane label="待关闭" name="toClose"></el-tab-pane>
+          <el-tab-pane label="用户建议" name="toClose"></el-tab-pane>
 
         </el-tabs>
 

@@ -4,6 +4,7 @@ import com.example.springboot.entity.ProjectApproval;
 import com.example.springboot.repository.ProjectApprovalRepository;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -26,5 +27,10 @@ public class ProjectApprovalService {
 
     public ProjectApproval findByFeedbackId(Long feedbackId) {
         return projectApprovalRepository.findByFeedbackId(feedbackId);
+    }
+
+    @Transactional
+    public void deleteByFeedbackId(Long feedbackId) {
+        projectApprovalRepository.deleteByFeedbackId(feedbackId);
     }
 }

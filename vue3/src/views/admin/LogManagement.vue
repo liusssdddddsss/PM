@@ -94,7 +94,7 @@
     <!-- 日志列表 -->
     <el-card style="max-width: 100%; margin: 10px 0">
       <h3>日志记录</h3>
-      <el-table :data="filteredLogs" style="width: 100%">
+      <el-table :data="pagedLogs" style="width: 100%">
         <el-table-column prop="logType" label="日志类型" width="120">
           <template #default="scope">
             <el-tag :type="scope.row.logType === '登录日志' ? 'info' : 'primary'">
@@ -129,7 +129,7 @@
         <el-pagination
           layout="prev, pager, next"
           :total="filteredLogs.length"
-          :page-size="10"
+          :page-size="15"
           :current-page="currentPage"
           @current-change="handleCurrentChange"
         />
@@ -254,6 +254,12 @@ const filteredLogs = computed(() => {
   }
   
   return result;
+});
+
+// 分页后的日志
+const pagedLogs = computed(() => {
+  const start = (currentPage.value - 1) * 15;
+  return filteredLogs.value.slice(start, start + 15);
 });
 
 // 获取标签类型

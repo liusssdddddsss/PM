@@ -28,7 +28,7 @@
       </div>
     </div>
     <div class="list">
-      <TestCaseList :activeTab="activeTab" :search-query="searchQuery" />
+      <TestCaseList :activeTab="activeTab" :search-query="searchQuery" :role="roleFromUrl" />
     </div>
   </div>
 </template>
@@ -48,6 +48,7 @@ const tabs = ref([
 ]);
 const activeTab=ref('all');
 const searchQuery=ref('');
+const roleFromUrl = ref('');
 
 const router =useRouter();
 const route = useRoute();
@@ -91,6 +92,15 @@ onMounted(() => {
   const search = route.query.search;
   if (search) {
     searchQuery.value = search;
+  }
+  // 检查URL参数中的role
+  const role = route.query.role;
+  if (role) {
+    roleFromUrl.value = role;
+    // 如果是产品经理或测试者，默认显示"待测试"
+    if (role === 'productManager' || role === 'tester') {
+      activeTab.value = 'stayingTest';
+    }
   }
   fetchTestCaseStats();
 });

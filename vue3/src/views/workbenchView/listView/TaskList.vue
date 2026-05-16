@@ -126,6 +126,7 @@
     >
       <div class="dialog-content">
         <h4>{{ currentTask.name }}</h4>
+        
         <div class="form-item">
           <label>代码仓库链接：</label>
           <el-input
@@ -152,6 +153,29 @@
           />
         </div>
         <div class="form-item">
+          <label>提交进度：</label>
+          <div class="progress-slider-container">
+            <el-slider
+              v-model="codeForm.progress"
+              :min="5"
+              :max="100"
+              :step="5"
+              :show-input="true"
+              :input-size="small"
+              :format-tooltip="(val) => `+${val}%`"
+            />
+            <div class="slider-labels">
+              <span>5%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+          </div>
+          <div class="progress-info">
+            当前进度：{{ currentTask.progress || 0 }}%，提交后：{{ Math.min((currentTask.progress || 0) + (codeForm.progress || 0), 100) }}%
+            <span v-if="(currentTask.progress || 0) + (codeForm.progress || 0) >= 100" class="complete-text">（任务自动完成）</span>
+          </div>
+        </div>
+        <div class="form-item">
           <label>代码文件：</label>
           <el-upload
             class="upload-demo"
@@ -159,6 +183,7 @@
             :on-change="handleFileChange"
             :limit="5"
             :file-list="codeForm.files"
+            action="#"
           >
             <el-button type="primary">选择文件</el-button>
             <template #tip>
@@ -206,6 +231,12 @@ const userRole = ref(null);
 const isDeveloperOrTester = computed(() => {
   const roleId = Number(userRole.value);
   return roleId === 3 || roleId === 4;
+});
+
+// 检查是否为产品经理
+const isProductManager = computed(() => {
+  const roleId = Number(userRole.value);
+  return roleId === 2;
 });
 
 // 获取用户角色
@@ -441,11 +472,16 @@ const fetchTasks = async () => {
         }
       }
       
-      // 确保只显示指派给当前用户的任务
-      const userId = parseInt(user.username);
-      taskList.value = taskList.value.filter(task => 
-        task.assignee === user.name || task.assignee === user.username || task.assignee_id == userId
-      );
+      // 确保只显示指派给当前用户的任务，或者如果是产品经理则显示所有任务
+      if (!isProductManager.value) {
+        const userId = parseInt(user.username);
+        taskList.value = taskList.value.filter(task => 
+          task.assignee === user.name || task.assignee === user.username || task.assignee_id == userId
+        );
+      } else {
+        // 产品经理可以看到自己管理产品项目下的所有任务，不需要过滤
+        console.log('产品经理可以看到所有任务');
+      }
       
       console.log('TaskList - 过滤后的任务列表:', taskList.value);
       total.value = taskList.value.length;
@@ -516,8 +552,12 @@ const codeForm = ref({
   repositoryUrl: '',
   branch: '',
   commitMessage: '',
+  progress: 5,
   files: []
 });
+
+// 进度选项（以5%递增）
+const progressOptions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
 
 // 获取优先级的类名
 const getPriorityClass = (priority) => {
@@ -668,30 +708,21 @@ const confirmClose = async () => {
 
 // 处理代码提交
 const handleSubmitCode = (task) => {
-  ElMessageBox.confirm(
-    '确定要提交代码吗？',
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
-    }
-  )
-  .then(async () => {
-    try {
-      // 这里可以添加代码提交的逻辑
-      console.log('提交代码:', task);
-      // 记录操作日志
-      await recordOperationLog('提交了代码', '任务', task.id, task.name);
-      ElMessage.success('代码提交成功');
-    } catch (error) {
-      console.error('提交代码失败:', error);
-      ElMessage.error('提交代码失败');
-    }
-  })
-  .catch(() => {
-    // 取消提交
-  });
+  currentTask.value = { ...task };
+  
+  // 从localStorage读取上次保存的值
+  const savedRepoUrl = localStorage.getItem('codeSubmit_repositoryUrl') || '';
+  const savedBranch = localStorage.getItem('codeSubmit_branch') || '';
+  
+  // 初始化表单，使用上次保存的值
+  codeForm.value = {
+    repositoryUrl: savedRepoUrl,
+    branch: savedBranch,
+    commitMessage: '',
+    progress: 5,
+    files: []
+  };
+  codeDialogVisible.value = true;
 };
 
 // 处理文件选择
@@ -705,25 +736,53 @@ const confirmSubmitCode = async () => {
     console.log('确认提交代码:', currentTask.value.id);
     console.log('代码提交表单:', codeForm.value);
     
-    // 这里可以添加代码提交的逻辑，例如调用后端API
-    // 模拟API调用
+    // 保存输入的值到localStorage
+    localStorage.setItem('codeSubmit_repositoryUrl', codeForm.value.repositoryUrl || '');
+    localStorage.setItem('codeSubmit_branch', codeForm.value.branch || '');
+    
+    // 计算新进度
+    const currentProgress = currentTask.value.progress || 0;
+    const addedProgress = codeForm.value.progress || 5;
+    const newProgress = Math.min(currentProgress + addedProgress, 100);
+    
+    // 调用后端API提交代码并更新进度
     const response = await request.post('/task/submit-code', {
       taskId: currentTask.value.id,
       repositoryUrl: codeForm.value.repositoryUrl,
       branch: codeForm.value.branch,
       commitMessage: codeForm.value.commitMessage,
-      // 注意：文件上传需要特殊处理，这里只是示例
+      progress: addedProgress,
+      newProgress: newProgress,
     });
     
     if (response.data.code === 200) {
       console.log('代码提交成功');
+      
+      // 更新本地任务进度
+      const task = taskList.value.find(t => t.id === currentTask.value.id);
+      if (task) {
+        task.progress = newProgress;
+        // 如果进度达到100%，自动更新状态为已完成
+        if (newProgress >= 100) {
+          task.status = '已完成';
+        }
+      }
+      
       // 记录操作日志
       await recordOperationLog('提交代码', 'task', currentTask.value.id, currentTask.value.name);
+      
+      // 显示成功提示
+      if (newProgress >= 100) {
+        ElMessage.success('代码提交成功，任务已自动完成');
+      } else {
+        ElMessage.success('代码提交成功');
+      }
+      
       codeDialogVisible.value = false;
-      // 可以添加成功提示
     }
   } catch (error) {
     console.error('代码提交失败:', error);
+    ElMessage.error('代码提交失败');
   }
 };
 </script>
@@ -823,6 +882,28 @@ const confirmSubmitCode = async () => {
   margin-bottom: 8px;
   font-size: 14px;
   color: #606266;
+}
+
+.progress-slider-container {
+  margin-bottom: 10px;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+}
+
+.progress-info {
+  font-size: 13px;
+  color: #606266;
+}
+
+.complete-text {
+  color: #67C23A;
+  font-weight: bold;
 }
 
 .history-section {

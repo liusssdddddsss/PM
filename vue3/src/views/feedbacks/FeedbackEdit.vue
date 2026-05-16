@@ -119,7 +119,9 @@ const getCurrentUser = () => {
       currentUser.value = user;
       // 自动设置反馈者为当前登录用户
       feedbackForm.value.reporter = user.name || user.username;
-      feedbackForm.value.creatorId = user.id || user.username;
+      // 使用 username 作为 creatorId（数据库中用户表的主键是 username）
+      feedbackForm.value.creatorId = user.username;
+      console.log('设置创建者ID:', feedbackForm.value.creatorId);
     } catch (e) {
       console.error('解析用户信息失败:', e);
     }

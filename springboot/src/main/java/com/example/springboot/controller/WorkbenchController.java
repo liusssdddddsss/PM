@@ -140,6 +140,9 @@ public class WorkbenchController {
                 String action = approval.getAction() != null ? approval.getAction() : "待审批";
                 approvalMap.put("action", action);
                 
+                // 添加反馈ID，用于审批操作后同步更新反馈状态
+                approvalMap.put("feedback_id", approval.getFeedback_id());
+                
                 approvalList.add(approvalMap);
             }
             
@@ -148,6 +151,20 @@ public class WorkbenchController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取审批列表失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "根据反馈ID删除审批记录", description = "当反馈被删除或关闭时，删除相关的审批记录")
+    @DeleteMapping("/approvals/delete-by-feedback/{feedbackId}")
+    public Result deleteApprovalByFeedbackId(@PathVariable Long feedbackId) {
+        try {
+            System.out.println("删除与反馈相关的审批记录，反馈ID: " + feedbackId);
+            projectApprovalService.deleteByFeedbackId(feedbackId);
+            System.out.println("删除与反馈相关的审批记录成功");
+            return Result.success("删除成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除审批记录失败: " + e.getMessage());
         }
     }
 
@@ -160,8 +177,8 @@ public class WorkbenchController {
             System.out.println("获取到的任务数量: " + tasks.size());
             List<Map<String, Object>> taskList = new ArrayList<>();
             
-            // 获取用户参与的项目ID列表（如果是产品经理）
-            List<Long> userProjectIds = new ArrayList<>();
+            // 获取用户管理的产品项目ID列表（如果是产品经理）
+            Set<Long> userManagedProjectIds = new HashSet<>();
             boolean isProductManager = false;
             
             if (username != null && !username.isEmpty()) {
@@ -176,7 +193,26 @@ public class WorkbenchController {
                             System.out.println("用户角色id不为null，值为: " + user.getRole_id());
                             if (user.getRole_id().equals(1L) || user.getRole_id().equals(2L)) {
                                 isProductManager = true;
-                                System.out.println("用户角色id为" + user.getRole_id() + "，返回所有任务");
+                                System.out.println("用户角色id为" + user.getRole_id() + "，获取管理的产品项目下的任务");
+                                
+                                // 如果是产品经理，获取自己管理的产品下的所有项目ID
+                                Iterable<Product> allProducts = productService.findAll();
+                                for (Product product : allProducts) {
+                                    // 检查产品是否由该用户负责
+                                    if (product.getOwner_id() != null && 
+                                        (product.getOwner_id().toString().equals(username) || 
+                                         (user.getId() != null && product.getOwner_id().equals(user.getId().longValue())))) {
+                                        // 找到该产品下的所有项目
+                                        Iterable<Project> allProjects = projectService.findAll();
+                                        for (Project project : allProjects) {
+                                            if (project.getProduct_id() != null && project.getProduct_id().equals(product.getId())) {
+                                                userManagedProjectIds.add(project.getId());
+                                                System.out.println("产品经理管理的产品[" + product.getName() + "]下的项目: " + project.getName());
+                                            }
+                                        }
+                                    }
+                                }
+                                System.out.println("产品经理管理的项目ID列表: " + userManagedProjectIds);
                             } else {
                                 System.out.println("用户角色id为" + user.getRole_id() + "，需要筛选任务");
                             }
@@ -202,9 +238,16 @@ public class WorkbenchController {
                         
                         // 如果是产品经理
                         if (isProductManager) {
-                            // 产品经理可以看到所有任务，包括projectId为null的任务
-                            // 不需要过滤，直接显示所有任务
-                            System.out.println("产品经理看到任务: " + task.getTitle());
+                            // 产品经理只看到自己管理产品项目下的任务
+                            if (task.getProjectId() != null && userManagedProjectIds.contains(task.getProjectId().longValue())) {
+                                System.out.println("产品经理看到管理项目下的任务: " + task.getTitle());
+                            } else if (task.getProjectId() == null) {
+                                // projectId为null的任务也显示
+                                System.out.println("产品经理看到无项目任务: " + task.getTitle());
+                            } else {
+                                System.out.println("跳过任务: " + task.getTitle() + "，不在管理项目下");
+                                continue; // 跳过不在管理项目下的任务
+                            }
                         } else {
                             // 非产品经理，只返回被指派给当前用户的任务
                             if (task.getAssigneeId() == null || !task.getAssigneeId().equals(userId)) {
@@ -213,7 +256,7 @@ public class WorkbenchController {
                             }
                         }
                     } catch (NumberFormatException e) {
-                        // 用户名不是数字格式，如果是产品经理，仍然显示所有任务
+                        // 用户名不是数字格式，如果是产品经理，仍然显示管理项目下的任务
                         System.out.println("用户名不是数字格式: " + e.getMessage());
                         if (!isProductManager) {
                             System.out.println("非产品经理，跳过任务");
@@ -469,6 +512,21 @@ public class WorkbenchController {
                         System.out.println("Bug ID: " + bug.getId() + "，负责人ID为null");
                     }
                     bugMap.put("assignee_name", assigneeName);
+                    
+                    // 添加创建人姓名
+                    String creatorName = "未知";
+                    if (bug.getReporterId() != null) {
+                        try {
+                            Optional<User> reporterOpt = userService.findById(bug.getReporterId().toString());
+                            if (reporterOpt.isPresent()) {
+                                User reporter = reporterOpt.get();
+                                creatorName = reporter.getName() != null ? reporter.getName() : reporter.getUsername();
+                            }
+                        } catch (Exception e) {
+                            System.out.println("获取创建人信息失败: " + e.getMessage());
+                        }
+                    }
+                    bugMap.put("creator_name", creatorName);
                     
                     // 获取项目名称
                     String projectName = "未知项目";

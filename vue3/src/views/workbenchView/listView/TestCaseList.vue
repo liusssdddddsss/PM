@@ -411,10 +411,19 @@ const props = defineProps({
   searchQuery: {
     type: String,
     default: ''
+  },
+  role: {
+    type: String,
+    default: ''
   }
 });
 
 const router = useRouter();
+
+// 当前登录用户
+const currentUser = ref(null);
+// 当前用户所在团队的成员ID
+const teamMemberIds = ref(new Set());
 
 // 原始测试用例数据
 const allTestCaseList = ref([]);
@@ -445,6 +454,23 @@ const testCaseList = computed(() => {
     );
   }
   
+  // 最后根据role筛选
+  if (props.role === 'productManager') {
+    // 产品经理：显示团队成员负责的所有测试用例
+    if (teamMemberIds.value.size > 0) {
+      filteredList = filteredList.filter(tc => {
+        return teamMemberIds.value.has(Number(tc.assigneeId));
+      });
+    }
+  } else if (props.role === 'tester') {
+    // 测试者：显示与自己有关的（自己负责的）
+    if (currentUser.value && currentUser.value.id) {
+      filteredList = filteredList.filter(tc => {
+        return Number(tc.assigneeId) === currentUser.value.id;
+      });
+    }
+  }
+  
   return filteredList;
 });
 
@@ -468,9 +494,66 @@ const handleCurrentChange = (current) => {
 
 // 从后端获取测试用例列表数据
 onMounted(async () => {
+  await fetchCurrentUser();
   await fetchUserRole();
+  if (props.role === 'productManager') {
+    await fetchTeamMembers();
+  }
   await fetchTestCases();
 });
+
+// 获取当前登录用户信息
+const fetchCurrentUser = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const username = user.username;
+      const userRes = await request.get(`/admin/findAll`);
+      if (userRes.data.code === 200 && Array.isArray(userRes.data.data)) {
+        const foundUser = userRes.data.data.find(u => u.username == String(username));
+        if (foundUser) {
+          currentUser.value = foundUser;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取当前用户信息失败:', error);
+  }
+};
+
+// 获取团队成员ID列表
+const fetchTeamMembers = async () => {
+  try {
+    if (!currentUser.value || !currentUser.value.id) return;
+    
+    const response = await request.get(`/teams/user-teams/${currentUser.value.id}`);
+    if (response.data.code === 200) {
+      const teams = response.data.data || [];
+      const memberIds = new Set();
+      
+      for (const team of teams) {
+        try {
+          const memberRes = await request.get(`/teams/${team.id}/members`);
+          if (memberRes.data.code === 200) {
+            const members = memberRes.data.data || [];
+            members.forEach(member => {
+              if (member.userId) {
+                memberIds.add(Number(member.userId));
+              }
+            });
+          }
+        } catch (e) {
+          console.error('获取团队成员失败:', e);
+        }
+      }
+      
+      teamMemberIds.value = memberIds;
+    }
+  } catch (error) {
+    console.error('获取团队成员失败:', error);
+  }
+};
 
 const fetchTestCases = async () => {
   try {
@@ -478,18 +561,19 @@ const fetchTestCases = async () => {
     console.log('获取测试用例列表响应:', response);
     if (response.data.code === 200) {
       // 转换数据格式以匹配前端组件
-        allTestCaseList.value = response.data.data.map(item => ({
-          id: item.id,
-          projectName: item.project_name,
-          name: item.name || item.title,
-          priority: getPriorityText(item.priority),
-          status: getStatusText(item.status),
-          deadline: item.due_date,
-          progress: item.progress || 0,
-          createdAt: item.created_at || '',
-          assignee: item.assignee || '',
-          description: ''
-        }));
+      allTestCaseList.value = response.data.data.map(item => ({
+        id: item.id,
+        projectName: item.project_name,
+        name: item.name || item.title,
+        priority: getPriorityText(item.priority),
+        status: getStatusText(item.status),
+        deadline: item.due_date,
+        progress: item.progress || 0,
+        createdAt: item.created_at || '',
+        assignee: item.assignee || '',
+        assigneeId: item.assignee_id || item.assigneeId,
+        description: ''
+      }));
       console.log('转换后的测试用例列表数据:', allTestCaseList.value);
       total.value = allTestCaseList.value.length;
     }

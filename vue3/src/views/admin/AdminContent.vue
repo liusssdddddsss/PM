@@ -48,10 +48,10 @@
         <div style="span:1">
           <el-card style="max-width: 98%; margin-top: 10px">
             <h3>最近操作</h3>
-            <el-table :data="recentActivities" style="width: 100%">
-              <el-table-column prop="time" label="时间" width="180" />
+            <el-table :data="pagedRecentActivities" style="width: 100%">
+              <el-table-column prop="time" label="时间" width="140" />
               <el-table-column prop="action" label="操作" />
-              <el-table-column prop="user" label="用户" width="120" />
+              <el-table-column prop="user" label="用户" width="100" />
               <el-table-column prop="status" label="状态" width="100">
                 <template #default="scope">
                   <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'">
@@ -60,6 +60,16 @@
                 </template>
               </el-table-column>
             </el-table>
+            <!-- 分页 -->
+            <div class="pagination">
+              <el-pagination
+                layout="prev, pager, next"
+                :total="recentActivities.length"
+                :page-size="15"
+                :current-page="activitiesCurrentPage"
+                @current-change="handleActivitiesPageChange"
+              />
+            </div>
           </el-card>
         </div>
         <div style="sapn:2">
@@ -77,7 +87,7 @@
                   <el-button type="primary" @click="showAddUserDialog">添加用户</el-button>
                 </div>
               </div>
-            <el-table :data="userList" style="width: 100%">
+            <el-table :data="pagedUserList" style="width: 100%">
               <el-table-column prop="userId" label="工号" width="80">
                 <template #default="scope">
                   <el-button type="text" @click="showUserDetail(scope.row)">{{scope.row.userId}}</el-button>
@@ -106,6 +116,16 @@
                 </template>
               </el-table-column>
             </el-table>
+            <!-- 分页 -->
+            <div class="pagination">
+              <el-pagination
+                layout="prev, pager, next"
+                :total="userList.length"
+                :page-size="15"
+                :current-page="usersCurrentPage"
+                @current-change="handleUsersPageChange"
+              />
+            </div>
           </el-card>
         </div>
       </div>
@@ -268,6 +288,10 @@ const feedbackCount = ref(0);
 
 // 最近操作
 const recentActivities = ref([]);
+const activitiesCurrentPage = ref(1);
+
+// 用户管理分页
+const usersCurrentPage = ref(1);
 
 // 从后端获取管理员面板数据
 const fetchDashboardData = async () => {
@@ -324,6 +348,28 @@ const userList = computed(() => {
     user.position.toLowerCase().includes(query)
   );
 });
+
+// 分页后的最近操作
+const pagedRecentActivities = computed(() => {
+  const start = (activitiesCurrentPage.value - 1) * 15;
+  return recentActivities.value.slice(start, start + 15);
+});
+
+// 分页后的用户列表
+const pagedUserList = computed(() => {
+  const start = (usersCurrentPage.value - 1) * 15;
+  return userList.value.slice(start, start + 15);
+});
+
+// 最近操作分页处理
+const handleActivitiesPageChange = (page) => {
+  activitiesCurrentPage.value = page;
+};
+
+// 用户列表分页处理
+const handleUsersPageChange = (page) => {
+  usersCurrentPage.value = page;
+};
 
 // 对话框状态
 const userDialogVisible = ref(false);
@@ -582,16 +628,19 @@ const confirmDeleteUser = async (user) => {
   margin-top: 10px;
 }
 
+/* 分页 */
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* 卡片头部样式 */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
-}
-
-.card-header h3 {
-  margin: 0;
 }
 
 .header-actions {

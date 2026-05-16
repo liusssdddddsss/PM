@@ -3,7 +3,7 @@
     <!-- 顶部状态栏 -->
     <header class="admin-header">
       <div class="title">
-        <h1>管理员控制台</h1>
+        <h1 style="margin-left:20px">管理员控制台</h1>
       </div>
       <div class="tags">
         <!-- 顶部状态栏暂时为空 -->

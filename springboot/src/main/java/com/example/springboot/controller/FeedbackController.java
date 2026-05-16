@@ -323,4 +323,32 @@ public class FeedbackController {
             return Result.error("获取反馈详情失败: " + e.getMessage());
         }
     }
+
+    // 更新反馈状态（用于审批操作同步）
+    @PutMapping("/update-status/{id}")
+    public Result updateFeedbackStatus(@PathVariable Long id, @RequestBody Map<String, Object> requestBody) {
+        try {
+            System.out.println("更新反馈状态请求: ID=" + id + ", 数据=" + requestBody);
+            
+            Feedback existingFeedback = feedbackService.findEntityById(id);
+            if (existingFeedback == null) {
+                return Result.error("反馈不存在");
+            }
+            
+            if (requestBody.containsKey("status")) {
+                String status = (String) requestBody.get("status");
+                existingFeedback.setStatus(status);
+                System.out.println("更新反馈状态为: " + status);
+            }
+            
+            existingFeedback.setUpdatedAt(new Date());
+            feedbackService.save(existingFeedback);
+            
+            System.out.println("更新反馈状态成功");
+            return Result.success("更新成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新反馈状态失败: " + e.getMessage());
+        }
+    }
 }

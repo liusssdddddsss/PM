@@ -153,6 +153,7 @@ public class TeamController {
     // 创建消息
     @Operation(summary = "创建消息", description = "创建新的消息")
     @PostMapping("/messages")
+    @Transactional
     public Result createMessage(@RequestBody Message message) {
         try {
             message.setCreatedAt(new Date());

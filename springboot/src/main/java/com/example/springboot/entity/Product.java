@@ -23,6 +23,12 @@ public class Product {
     private Long owner_id;
     @Column(name = "status")
     private Integer status;
+    @Column(name = "release_status")
+    private String releaseStatus;
+    @Column(name = "team_id")
+    private Integer teamId;
+    @Column(name = "description")
+    private String description;
     @Column(name = "created_at")
     private Date created_at;
 
@@ -65,6 +71,30 @@ public class Product {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getReleaseStatus() {
+        return releaseStatus;
+    }
+
+    public void setReleaseStatus(String releaseStatus) {
+        this.releaseStatus = releaseStatus;
+    }
+
+    public Integer getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(Integer teamId) {
+        this.teamId = teamId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Date getCreated_at() {

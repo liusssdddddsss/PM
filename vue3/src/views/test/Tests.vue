@@ -70,16 +70,19 @@
         </el-card>
 
         <!-- 底部：待测试的测试单 -->
-        <el-card v-if="!isDeveloper" style="max-width: 98%;margin-top: 10px">
-          <div class="pending-tests">
+        <el-card style="max-width: 98%;margin-top: 10px;flex: 1;display: flex;flex-direction: column;">
+          <div class="pending-tests" style="flex: 1;display: flex;flex-direction: column;">
             <div class="pending-header">
               <h3>待测试的测试单</h3>
-              <el-button type="text" icon="el-icon-setting"
+              <el-button v-if="!isDeveloper" type="text" icon="el-icon-setting"
                          @click="goToTestList"
               >更多</el-button>
             </div>
-            <div class="card-content">
-              <el-table :data="pendingTestCases" stripe style="width: 100%">
+            <div class="card-content" style="flex: 1;overflow-y: auto;">
+              <div v-if="isDeveloper" class="no-permission-text">
+                无查看权限
+              </div>
+              <el-table v-else :data="pendingTestCases" stripe style="width: 100%;height: 100%;">
                 <el-table-column prop="name" label="测试单名称" min-width="200" />
                 <el-table-column prop="priority" label="优先级" width="100">
                   <template #default="scope">
@@ -98,8 +101,8 @@
       <!-- 右侧内容 -->
       <div class="right-content">
         <!-- 指派给我的Bug列表 -->
-        <el-card style="max-width: 98%">
-        <div class="assigned-bugs">
+        <el-card style="max-width: 100%;flex: 1;display: flex;flex-direction: column;">
+        <div class="assigned-bugs" style="flex: 1;display: flex;flex-direction: column;">
           <div class="section-header">
             <h3>指派给我的Bug列表</h3>
             <div style="display: flex; gap: 10px;">
@@ -107,8 +110,8 @@
               <el-button type="text" icon="el-icon-setting" @click="goToBugList">更多</el-button>
             </div>
           </div>
-          <div class="card-content">
-            <el-table :data="assignedBugs" stripe style="width: 100%">
+          <div class="card-content" style="flex: 1;overflow-y: auto;">
+            <el-table :data="assignedBugs" stripe style="width: 100%;height: 100%;">
               <el-table-column prop="name" label="Bug名称" min-width="200" />
               <el-table-column prop="priority" label="优先级" width="100">
                 <template #default="scope">
@@ -126,29 +129,29 @@
         </el-card>
 
         <!-- 指派给我的用例列表 -->
-        <el-card style="max-width: 98%;margin-top: 10px">
-        <div class="assigned-cases">
-          <div class="section-header">
-            <h3>指派给我的用例列表</h3>
-          </div>
-          <div class="card-content">
-            <el-table :data="assignedTestCases" stripe style="width: 100%">
-              <el-table-column prop="name" label="用例名称" min-width="180" />
-              <el-table-column prop="priority" label="优先级" width="100">
-                <template #default="scope">
-                  <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="status" label="状态" width="100">
-                <template #default="scope">
-                  <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="project" label="所属项目" min-width="150" />
-            </el-table>
-          </div>
-        </div>
-        </el-card>
+<!--        <el-card style="max-width: 98%;margin-top: 10px">-->
+<!--        <div class="assigned-cases">-->
+<!--          <div class="section-header">-->
+<!--            <h3>指派给我的用例列表</h3>-->
+<!--          </div>-->
+<!--          <div class="card-content">-->
+<!--            <el-table :data="assignedTestCases" stripe style="width: 100%">-->
+<!--              <el-table-column prop="name" label="用例名称" min-width="180" />-->
+<!--              <el-table-column prop="priority" label="优先级" width="100">-->
+<!--                <template #default="scope">-->
+<!--                  <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>-->
+<!--                </template>-->
+<!--              </el-table-column>-->
+<!--              <el-table-column prop="status" label="状态" width="100">-->
+<!--                <template #default="scope">-->
+<!--                  <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>-->
+<!--                </template>-->
+<!--              </el-table-column>-->
+<!--              <el-table-column prop="project" label="所属项目" min-width="150" />-->
+<!--            </el-table>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        </el-card>-->
       </div>
     </div>
   </div>
@@ -203,8 +206,16 @@ const isDeveloperOrTester = computed(() => {
 });
 
 const router = useRouter();
-const goToTestList =()=>{
-  router.push('/test/testList');
+const goToTestList = () => {
+  // 根据角色传递不同的查询参数
+  const role = Number(userRole.value);
+  if (role === 2) { // 产品经理
+    router.push('/test/testList?role=productManager');
+  } else if (role === 4) { // 测试者
+    router.push('/test/testList?role=tester');
+  } else {
+    router.push('/test/testList');
+  }
 };
 
 const goToBugList =()=>{
@@ -228,6 +239,24 @@ const selectModule = async (moduleName) => {
   await fetchModuleBugStats(moduleName);
 };
 
+// 获取用户参与的项目列表
+const fetchUserProjects = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const response = await request.get(`/dashboard/user-projects?username=${user.username}`);
+      if (response.data.code === 200 && Array.isArray(response.data.data)) {
+        return response.data.data.map(project => project.name || project.projectName || project);
+      }
+    }
+    return [];
+  } catch (error) {
+    console.error('获取用户参与的项目失败:', error);
+    return [];
+  }
+};
+
 // 获取测试统计数据
 const fetchTestStatistics = async (projectName = '') => {
   try {
@@ -238,40 +267,23 @@ const fetchTestStatistics = async (projectName = '') => {
     try {
       const userRes = await request.get(`/admin/findAll`);
       if (userRes.data.code === 200 && Array.isArray(userRes.data.data)) {
-        // 从User列表中查找当前用户，处理不同类型的username
         const currentUser = userRes.data.data.find(u => {
-          // 尝试不同的匹配方式
           return u.username == String(username) || u.username == username;
         });
-        console.log('找到的当前用户:', currentUser);
         if (currentUser) {
-          console.log('当前用户的所有属性:', Object.keys(currentUser));
-          console.log('当前用户的role_id:', currentUser.role_id);
-          console.log('当前用户的roleId:', currentUser.roleId); // 检查驼峰命名的字段
-          console.log('当前用户的role_id类型:', typeof currentUser.role_id);
           if (currentUser.role_id !== undefined && currentUser.role_id !== null) {
             userRole.value = currentUser.role_id;
-            console.log('当前用户角色ID:', userRole.value);
-            console.log('是否为开发者:', isDeveloper.value);
-            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
           } else if (currentUser.roleId !== undefined && currentUser.roleId !== null) {
-            // 处理驼峰命名的情况
             userRole.value = currentUser.roleId;
-            console.log('当前用户角色ID (roleId):', userRole.value);
-            console.log('是否为开发者:', isDeveloper.value);
-            console.log('是否为开发者或测试者:', isDeveloperOrTester.value);
-          } else {
-            console.error('当前用户没有role_id字段或role_id为null/undefined:', currentUser);
           }
-        } else {
-          console.error('未找到用户角色信息:', currentUser);
         }
-      } else {
-        console.error('获取用户列表失败:', userRes.data);
       }
     } catch (error) {
       console.error('获取用户角色失败:', error);
     }
+    
+    // 先获取用户参与的项目列表
+    const userProjects = await fetchUserProjects();
     
     let url = '/dashboard/test-statistics';
     let params = {};
@@ -286,12 +298,10 @@ const fetchTestStatistics = async (projectName = '') => {
     if (response.data.code === 200) {
       const data = response.data.data;
       
-      // 计算修复率
       const totalBugs = data.validBugs || 0;
       const fixedBugs = data.fixedBugs || 0;
       const percentage = totalBugs > 0 ? Math.round((fixedBugs / totalBugs) * 100) : 0;
       
-      // 更新Bug统计数据
       bugStats.value = {
         youXiaoBug: totalBugs,
         bugRepair: fixedBugs,
@@ -306,20 +316,40 @@ const fetchTestStatistics = async (projectName = '') => {
         ]
       };
       
-      // 更新未关闭的测试单
       unclosedTestCases.value = data.testLists || [];
-      
-      // 更新待测试的测试单
-      pendingTestCases.value = data.pendingTests || [];
-      
-      // 更新近期模块审核列表
-      testList.value = data.modules || [];
-      
-      // 默认选中第一个模块
-      if (testList.value.length > 0 && !selectedModule.value) {
-        selectedModule.value = testList.value[0];
-        await fetchModuleBugStats(selectedModule.value);
-      }
+            pendingTestCases.value = data.pendingTests || [];
+            
+            console.log('后端返回的 pendingTests:', data.pendingTests);
+            console.log('当前 pendingTestCases:', pendingTestCases.value);
+            
+            // 如果没有待测试的测试单，添加一些示例数据
+            if (pendingTestCases.value.length === 0) {
+                console.log('没有待测试的测试单，添加示例数据');
+                pendingTestCases.value = [
+                    { name: '登录功能测试', priority: '紧急', product: '智慧教室系统', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 86400000).toISOString().split('T')[0] },
+                    { name: '数据导出测试', priority: '一般', product: '教务考试系统', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 172800000).toISOString().split('T')[0] },
+                    { name: '权限管理测试', priority: '正常', product: '电子班牌系统', startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 259200000).toISOString().split('T')[0] }
+                ];
+            }
+            
+            // 如果没有未关闭的测试单，添加一些示例数据
+            if (unclosedTestCases.value.length === 0) {
+                unclosedTestCases.value = ['家长端功能测试', '班牌系统回归测试', '数据大屏验收测试'];
+            }
+            
+            // 使用用户参与的项目列表，如果后端没有返回模块数据
+            const modulesFromBackend = data.modules || [];
+            testList.value = (modulesFromBackend.length > 0) ? modulesFromBackend : userProjects;
+            
+            // 如果都没有数据，使用默认数据
+            if (testList.value.length === 0) {
+                testList.value = ['智慧教室_智慧云盘', '实践教学管理平台', '电子班牌管理系统', '教务考试系统', '家校互通平台'];
+            }
+            
+            if (testList.value.length > 0 && !selectedModule.value) {
+                selectedModule.value = testList.value[0];
+                await fetchModuleBugStats(selectedModule.value);
+            }
     }
   } catch (error) {
     console.error('获取测试统计数据失败:', error);
@@ -346,13 +376,15 @@ const fetchTestStatistics = async (projectName = '') => {
       { name: '测试单1', priority: '一般', product: '测试产品', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] },
       { name: '测试单2', priority: '严重', product: '测试产品', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] }
     ];
-    testList.value = ['家长端功能测试', '班牌系统回归测试', '数据大屏验收测试', '教务考试系统压力测试', '终端教师端咨询评分标准'];
     
-    // 默认选中第一个模块
-    if (testList.value.length > 0 && !selectedModule.value) {
-      selectedModule.value = testList.value[0];
-      await fetchModuleBugStats(selectedModule.value);
-    }
+    // 使用用户参与的项目或默认数据
+    fetchUserProjects().then(projects => {
+      testList.value = projects.length > 0 ? projects : ['智慧教室_智慧云盘', '实践教学管理平台', '电子班牌管理系统', '教务考试系统', '家校互通平台'];
+      if (testList.value.length > 0 && !selectedModule.value) {
+        selectedModule.value = testList.value[0];
+        fetchModuleBugStats(selectedModule.value);
+      }
+    });
   }
 };
 
@@ -571,9 +603,10 @@ const getStatusType = (status) => {
 }
 
 .left-content {
-  flex: 3;
+  flex: 2;
   display: flex;
   flex-direction: column;
+  height: calc(100vh - 60px);
 }
 
 .right-content {
@@ -581,6 +614,7 @@ const getStatusType = (status) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: calc(100vh - 60px);
 }
 
 .test-view{
@@ -816,7 +850,6 @@ const getStatusType = (status) => {
 /* 待测试的测试单样式 */
 .pending-tests {
   background-color: #fff;
-  max-height: 400px;
   display: flex;
   flex-direction: column;
 }
@@ -841,10 +874,8 @@ const getStatusType = (status) => {
 }
 
 /* 右侧内容样式 */
-.assigned-bugs,
-.assigned-cases {
+.assigned-bugs{
   background-color: #fff;
-  max-height: 300px;
   display: flex;
   flex-direction: column;
 }
@@ -879,5 +910,14 @@ const getStatusType = (status) => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+}
+
+.no-permission-text {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #909399;
+  font-size: 14px;
 }
 </style>

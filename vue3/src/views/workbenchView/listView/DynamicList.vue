@@ -98,34 +98,42 @@ const navigateToModule = (link) => {
   if (!link) return;
   
   // 根据link内容跳转到不同模块
-  if (link.includes('project')) {
+  if (link.includes('项目集') || link.includes('project')) {
     console.log('Navigating to project module');
-    // 跳转到项目集模块
     router.push('/itemSet/itemList');
-  } else if (link.includes('approval')) {
+  } else if (link.includes('审批') || link.includes('approval')) {
     console.log('Navigating to approval module');
-    // 跳转到审批模块
-    router.push('/workbench/approval');
-  } else if (link.includes('bug')) {
+    router.push('/workbench/dashboard');
+  } else if (link.includes('Bug') || link.includes('bug')) {
     console.log('Navigating to bug module');
-    // 跳转到Bug模块
-    router.push('/test/bugList');
-  } else if (link.includes('task')) {
+    router.push('/test/tests');
+  } else if (link.includes('任务') || link.includes('task')) {
     console.log('Navigating to task module');
-    // 跳转到任务模块
     router.push('/task/taskList');
-  } else if (link.includes('user')) {
+  } else if (link.includes('用户') || link.includes('user')) {
     console.log('Navigating to user module');
-    // 跳转到用户模块
-    router.push('/admin/userManagement');
-  } else if (link.includes('product')) {
+    router.push('/workbench/dashboard');
+  } else if (link.includes('产品') || link.includes('product')) {
     console.log('Navigating to product module');
-    // 跳转到产品模块
-    router.push('/productResearch/productList');
+    router.push('/productResearch/productDashboard');
+  } else if (link.includes('迭代') || link.includes('iteration')) {
+    console.log('Navigating to iteration module');
+    router.push('/iteration/iterationList');
+  } else if (link.includes('团队') || link.includes('team')) {
+    console.log('Navigating to team module');
+    router.push('/teams/team');
+  } else if (link.includes('测试') || link.includes('test')) {
+    console.log('Navigating to test module');
+    router.push('/test/tests');
+  } else if (link.includes('AI') || link.includes('assistant')) {
+    console.log('Navigating to AI module');
+    router.push('/AI/assistant');
+  } else if (link.includes('反馈') || link.includes('feedback')) {
+    console.log('Navigating to feedback module');
+    router.push('/feedbacks/feedback');
   } else {
     console.log('Navigating to default workbench');
-    // 默认跳转到工作台
-    router.push('/workbench');
+    router.push('/workbench/dashboard');
   }
 };
 

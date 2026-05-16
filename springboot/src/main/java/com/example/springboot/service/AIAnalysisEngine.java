@@ -61,17 +61,17 @@ public class AIAnalysisEngine {
         try {
             // 分析项目风险
             Map<String, Object> projectResult = aiAnalysisService.analyzeProjectsRisk();
-            totalProjectsScanned = (int) projectResult.get("totalProjects");
-            highRiskProjects = (int) projectResult.get("highRiskProjects");
-            mediumRiskProjects = (int) projectResult.get("mediumRiskProjects");
-            lowRiskProjects = (int) projectResult.get("lowRiskProjects");
+            totalProjectsScanned = ((Number) projectResult.get("totalProjects")).intValue();
+            highRiskProjects = ((Number) projectResult.get("highRiskProjects")).intValue();
+            mediumRiskProjects = ((Number) projectResult.get("mediumRiskProjects")).intValue();
+            lowRiskProjects = ((Number) projectResult.get("lowRiskProjects")).intValue();
 
             // 分析产品风险
             Map<String, Object> productResult = aiAnalysisService.analyzeProductsRisk();
-            totalProductsScanned = (int) productResult.get("totalProducts");
-            highRiskProducts = (int) productResult.get("highRiskProducts");
-            mediumRiskProducts = (int) productResult.get("mediumRiskProducts");
-            lowRiskProducts = (int) productResult.get("lowRiskProducts");
+            totalProductsScanned = ((Number) productResult.get("totalProducts")).intValue();
+            highRiskProducts = ((Number) productResult.get("highRiskProducts")).intValue();
+            mediumRiskProducts = ((Number) productResult.get("mediumRiskProducts")).intValue();
+            lowRiskProducts = ((Number) productResult.get("lowRiskProducts")).intValue();
 
             // 生成扫描报告消息
             createScanReport();

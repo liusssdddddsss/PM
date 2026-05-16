@@ -56,7 +56,7 @@
                   {{ tab.name }}
                 </span>
               </div>
-              <el-button type="primary" @click="showCreateProductDialog = true">创建产品</el-button>
+              <el-button v-if="isProductManager" type="primary" @click="showCreateProductDialog = true">创建产品</el-button>
             </div>
             <div class="tab-content">
               <!-- 产品发布列表 -->
@@ -81,7 +81,9 @@
                 <el-table :data="unclosedProducts" stripe style="width: 100%">
                   <el-table-column prop="projectName" label="产品名称" min-width="200">
                     <template #default="scope">
-                      <a href="#" class="project-link">{{ scope.row.projectName }}</a>
+                      <span class="project-name" style="cursor: pointer; color: #409EFF;" @click="openProductDetail(scope.row)">
+                        {{ scope.row.projectName }}
+                      </span>
                     </template>
                   </el-table-column>
                   <el-table-column prop="manager" label="负责人" min-width="100" />
@@ -142,13 +144,22 @@
       <el-form-item label="产品代码" prop="code">
         <el-input v-model="newProduct.code" placeholder="请输入产品代码" />
       </el-form-item>
-      <el-form-item label="负责人ID" prop="owner_id">
-        <el-input v-model="newProduct.owner_id" type="number" placeholder="请输入负责人ID" />
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-select v-model="newProduct.status" placeholder="请选择状态">
-          <el-option label="活跃" value="1" />
-          <el-option label="已关闭" value="0" />
+      <el-form-item label="负责人" prop="owner_id">
+        <el-select 
+          v-model="newProduct.owner_id" 
+          placeholder="请输入负责人姓名搜索" 
+          filterable 
+          remote 
+          :remote-method="searchUsers"
+          :loading="userLoading"
+          style="width: 100%;"
+        >
+          <el-option 
+            v-for="user in userOptions" 
+            :key="user.userId" 
+            :label="user.name" 
+            :value="user.userId" 
+          />
         </el-select>
       </el-form-item>
     </el-form>
@@ -156,6 +167,135 @@
       <span class="dialog-footer">
         <el-button @click="showCreateProductDialog = false">取消</el-button>
         <el-button type="primary" @click="createProduct">确定</el-button>
+      </span>
+    </template>
+  </el-dialog>
+
+  <!-- 产品详情对话框 -->
+  <el-dialog
+    v-model="showProductDetailDialog"
+    :title="isEditing ? '编辑产品' : ''"
+    width="700px"
+  >
+    <div class="product-detail-content">
+      <!-- 编辑模式 -->
+      <div v-if="isEditing">
+        <el-form :model="editingProduct" :rules="editProductRules" ref="editProductForm" label-width="100px">
+          <el-form-item label="产品名称" prop="name">
+            <el-input v-model="editingProduct.name" placeholder="请输入产品名称" />
+          </el-form-item>
+          <el-form-item label="产品代码" prop="code">
+            <el-input v-model="editingProduct.code" placeholder="请输入产品代码" />
+          </el-form-item>
+          <el-form-item label="负责人" prop="owner_id">
+            <el-select 
+              v-model="editingProduct.owner_id" 
+              placeholder="请输入负责人姓名搜索" 
+              filterable 
+              remote 
+              :remote-method="searchUsers"
+              :loading="userLoading"
+              style="width: 100%;"
+            >
+              <el-option 
+                v-for="user in userOptions" 
+                :key="user.userId" 
+                :label="user.name" 
+                :value="user.userId" 
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="状态" prop="status">
+            <el-select v-model="editingProduct.status" style="width: 100%;">
+              <el-option label="进行中" :value="1" />
+              <el-option label="已完成" :value="0" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="描述" prop="description">
+            <el-input v-model="editingProduct.description" type="textarea" :rows="3" placeholder="请输入产品描述" />
+          </el-form-item>
+        </el-form>
+      </div>
+      
+      <!-- 查看模式 -->
+      <div v-else>
+        <div class="product-detail-header">
+          <h3 class="product-detail-name">{{ productDetail.name }}</h3>
+        </div>
+        <div class="product-detail-body">
+          <div class="product-basic-info">
+            <h4>产品基本信息</h4>
+            <div class="basic-info-grid">
+              <div class="info-item">
+                <span class="info-label">产品代码</span>
+                <span class="info-value">{{ productDetail.code || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">负责人</span>
+                <span class="info-value">{{ productDetail.manager || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">状态</span>
+                <span class="info-value">{{ getProductStatusText(productDetail.status) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="product-projects">
+            <h4>关联项目</h4>
+            <div class="project-list-container">
+              <div v-if="!productDetail.projects || productDetail.projects.length === 0" class="no-projects">
+                暂无关联项目
+              </div>
+              <div v-else>
+                <div 
+                  v-for="project in productDetail.projects" 
+                  :key="project.id" 
+                  class="project-item-row"
+                  @click="goToProject(project)"
+                >
+                  <div class="project-info">
+                    <div class="project-title">{{ project.name }}</div>
+                  </div>
+                  <div class="project-meta">
+                    <div class="project-manager">{{ project.manager || '-' }}</div>
+                    <div class="project-team">{{ project.team || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="product-iterations">
+            <h4>关联迭代</h4>
+            <div class="iteration-list-container">
+              <div v-if="!productDetail.iterations || productDetail.iterations.length === 0" class="no-data">
+                暂无关联迭代
+              </div>
+              <div v-else>
+                <div 
+                  v-for="iteration in productDetail.iterations" 
+                  :key="iteration.id" 
+                  class="iteration-item-row"
+                >
+                  <div class="iteration-info">
+                    <div class="iteration-title">{{ iteration.name }}</div>
+                    <div class="iteration-project" style="font-size: 12px;color: #909399;">
+                      所属项目: {{ iteration.projectName }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="handleProductDetailCancel">取消</el-button>
+        <el-button v-if="!isEditing" @click="startEditing">编辑</el-button>
+        <el-button v-if="isEditing" type="primary" @click="saveProduct">保存</el-button>
       </span>
     </template>
   </el-dialog>
@@ -179,6 +319,21 @@ console.log('Request baseURL:', request.defaults.baseURL);
 // 选择的年份
 const selectedYear = ref('2023');
 
+// 判断用户是否为产品经理
+const isProductManager = ref(false);
+
+// 获取用户角色
+const getUserRole = () => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    // 角色ID为2表示产品经理
+    if (user.role_id && user.role_id === 2) {
+      isProductManager.value = true;
+    }
+  }
+};
+
 // 未关闭的产品列表数据
 const unclosedProducts = ref([]);
 
@@ -198,7 +353,7 @@ const selectedPeriodProducts = ref([]);
 const activeTab = ref(0);
 const tabs = ref([
   { name: '产品列表' },
-  { name: '未关闭列表' }
+  { name: '未完成的产品' }
 ]);
 
 // 创建产品相关
@@ -218,9 +373,73 @@ const createProductRules = ref({
     { required: true, message: '请输入产品代码', trigger: 'blur' }
   ],
   owner_id: [
-    { required: true, message: '请输入负责人ID', trigger: 'blur' }
+    { required: true, message: '请选择负责人', trigger: 'blur' }
   ]
 });
+
+// 产品详情相关
+const showProductDetailDialog = ref(false);
+const isEditing = ref(false);
+const currentProductId = ref(null);
+const productDetail = ref({
+  id: null,
+  name: '',
+  code: '',
+  manager: '',
+  status: 1,
+  projects: [],
+  iterations: []
+});
+const editingProduct = ref({
+  id: null,
+  name: '',
+  code: '',
+  owner_id: '',
+  status: 1,
+  description: ''
+});
+const editProductForm = ref(null);
+const editProductRules = ref({
+  name: [
+    { required: true, message: '请输入产品名称', trigger: 'blur' }
+  ],
+  code: [
+    { required: true, message: '请输入产品代码', trigger: 'blur' }
+  ],
+  owner_id: [
+    { required: true, message: '请选择负责人', trigger: 'blur' }
+  ],
+  status: [
+    { required: true, message: '请选择状态', trigger: 'change' }
+  ]
+});
+
+// 用户搜索相关
+const userOptions = ref([]);
+const userLoading = ref(false);
+
+// 搜索用户
+const searchUsers = async (keyword) => {
+  if (!keyword) {
+    userOptions.value = [];
+    return;
+  }
+  
+  userLoading.value = true;
+  try {
+    const response = await request.get('/admin/users/search', {
+      params: { keyword: keyword }
+    });
+    if (response.data.code === 200) {
+      userOptions.value = response.data.data || [];
+    }
+  } catch (error) {
+    console.error('搜索用户失败:', error);
+    userOptions.value = [];
+  } finally {
+    userLoading.value = false;
+  }
+};
 
 // 创建产品
 const createProduct = async () => {
@@ -255,6 +474,115 @@ const createProduct = async () => {
   }
 };
 
+// 打开产品详情
+const openProductDetail = async (productRow) => {
+  try {
+    // 从本地存储中获取用户信息
+    const userStr = localStorage.getItem('user');
+    const username = userStr ? JSON.parse(userStr).username : null;
+    
+    // 从产品列表数据中查找产品ID
+    let productId = productRow.id;
+    if (!productId && productRow.projectName) {
+      // 如果没有ID，尝试通过名称查找
+      const foundProduct = unclosedProducts.value.find(p => p.projectName === productRow.projectName);
+      if (foundProduct) {
+        productId = foundProduct.id;
+      }
+    }
+    
+    if (!productId) {
+      ElMessage.error('无法获取产品信息');
+      return;
+    }
+    
+    currentProductId.value = productId;
+    
+    // 获取产品详情
+    const response = await request.get(`/api/products/${productId}/detail`, {
+      params: { username }
+    });
+    
+    if (response.data.code === 200) {
+      productDetail.value = response.data.data;
+      isEditing.value = false;
+      showProductDetailDialog.value = true;
+    } else {
+      ElMessage.error('获取产品详情失败: ' + response.data.msg);
+    }
+  } catch (error) {
+    console.error('打开产品详情失败:', error);
+    ElMessage.error('获取产品详情失败');
+  }
+};
+
+// 获取产品状态文本
+const getProductStatusText = (status) => {
+  // 确保status是数字类型
+  const statusNum = Number(status);
+  const statusMap = {
+    0: '已完成',
+    1: '进行中'
+  };
+  console.log('产品状态原始值:', status, '转换后:', statusNum);
+  return statusMap[statusNum] || '未知';
+};
+
+// 开始编辑
+const startEditing = () => {
+  editingProduct.value = {
+    id: productDetail.value.id,
+    name: productDetail.value.name,
+    code: productDetail.value.code,
+    owner_id: productDetail.value.owner_id,
+    status: productDetail.value.status || 1,
+    description: productDetail.value.description || ''
+  };
+  isEditing.value = true;
+};
+
+// 取消产品详情编辑
+const handleProductDetailCancel = () => {
+  if (isEditing.value) {
+    isEditing.value = false;
+  } else {
+    showProductDetailDialog.value = false;
+  }
+};
+
+// 保存产品
+const saveProduct = async () => {
+  if (!editProductForm.value) return;
+  
+  try {
+    await editProductForm.value.validate();
+    
+    const response = await request.put(`/api/products/${currentProductId.value}`, editingProduct.value);
+    
+    if (response.data.code === 200) {
+      ElMessage.success('产品保存成功');
+      isEditing.value = false;
+      
+      // 重新获取产品详情
+      await openProductDetail({ id: currentProductId.value });
+      
+      // 重新获取产品列表
+      await fetchUnclosedProducts();
+      await fetchProductOverview();
+      await initCharts();
+    } else {
+      ElMessage.error('产品保存失败: ' + response.data.msg);
+    }
+  } catch (error) {
+    console.error('保存产品失败:', error);
+    ElMessage.error('产品保存失败，请稍后重试');
+  }
+};
+
+// 跳转到项目
+const goToProject = (project) => {
+  router.push(`/Workbench/ProjectList?projectId=${project.id}`);
+};
 
 
 // 从后端获取产品总览数据
@@ -264,16 +592,19 @@ const fetchProductOverview = async () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      const response = await request.get('/dashboard/product-overview', {
+      
+      // 获取产品总览基础数据
+      const overviewResponse = await request.get('/dashboard/product-overview', {
         params: { username: user.username }
       });
-      if (response.data.code === 200) {
-        const data = response.data.data;
+      
+      if (overviewResponse.data.code === 200) {
+        const data = overviewResponse.data.data;
         ovCount.value = [
           { name: '产品总数', count: data.productCount || 0 },
           { name: '未完成计划数', count: data.unfinishedPlanCount || 0 },
           { name: '项目总数', count: data.unclosedNeedCount || 0 },
-          { name: '激活Bug数', count: data.activeBugCount || 0 },
+          { name: '总Bug数', count: data.activeBugCount || 0 },
           { name: '迭代项目总数', count: data.iterationProjectCount || 0 }
         ];
       }
@@ -491,6 +822,8 @@ const initCharts = async () => {
 
 // 在数据加载后初始化图表
 onMounted(async () => {
+  // 获取用户角色
+  getUserRole();
   await fetchProductOverview();
   await fetchProductProgress();
   await fetchUnclosedProducts();
@@ -998,5 +1331,174 @@ h3{
 
 .tab-content {
   min-height: 300px;
+}
+
+/* 产品详情弹窗样式 */
+.product-detail-header {
+  border-bottom: 1px solid #ebeef5;
+  margin-bottom: 20px;
+}
+
+.product-detail-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+}
+
+.product-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.product-basic-info h4,
+.product-projects h4 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.basic-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #909399;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #303133;
+}
+
+.project-list-container {
+  background-color: #fafafa;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.project-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background-color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.project-item-row:hover {
+  background-color: #f5f7fa;
+}
+
+.project-item-row:last-child {
+  margin-bottom: 0;
+}
+
+.project-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.project-iteration {
+  font-size: 12px;
+  color: #909399;
+}
+
+.project-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.project-manager {
+  font-size: 13px;
+  color: #606266;
+}
+
+.project-team {
+  font-size: 12px;
+  color: #909399;
+}
+
+.no-projects {
+  padding: 40px;
+  text-align: center;
+  color: #909399;
+  background-color: #fff;
+  border-radius: 4px;
+}
+
+.product-iterations h4 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.iteration-list-container {
+  background-color: #fafafa;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.iteration-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background-color: #fff;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.iteration-item-row:last-child {
+  margin-bottom: 0;
+}
+
+.iteration-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.iteration-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.no-data {
+  padding: 40px;
+  text-align: center;
+  color: #909399;
+  background-color: #fff;
+  border-radius: 4px;
 }
 </style>
