@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const request = axios.create({
-    baseURL: '',//使用相对路径，通过vite代理访问后端服务
+    baseURL: 'http://localhost:8080',//使用相对路径，通过vite代理访问后端服务
     timeout: 30000,//后台接口超时时间
 })
 //request拦截器
