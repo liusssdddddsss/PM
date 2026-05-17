@@ -8,22 +8,14 @@
     <div class="comment">
       <div class="ing">
         <div class="ing-title">
-          <p>进行中({{ingProjectList.length}})</p>
+          <p>进行中({{ingList.length}})</p>
         </div>
         <div class="ing-com">
           <div class="left">
             <p>进行中的项目</p>
             <ul class="item-list">
-              <li v-for="(item,index) in ingProjectList " :key="index">
+              <li v-for="(item,index) in ingList" :key="index">
                 {{item.projectName}}
-              </li>
-            </ul>
-          </div>
-          <div class="right">
-            <p>进行中的任务</p>
-            <ul class="item-list">
-              <li v-for="(item,index) in ingTaskList " :key="index">
-                {{item}}
               </li>
             </ul>
           </div>
@@ -32,7 +24,7 @@
       <div class="no-begin">
         <p>未开始({{noBeginList.length}})</p>
         <ul class="item-list">
-          <li v-for="(item,index) in noBeginList " :key="index">
+          <li v-for="(item,index) in noBeginList" :key="index">
             {{item.projectName}}
           </li>
         </ul>
@@ -40,7 +32,7 @@
       <div class="close">
         <p>已关闭({{closeList.length}})</p>
         <ul class="item-list">
-          <li v-for="(item,index) in closeList " :key="index">
+          <li v-for="(item,index) in closeList" :key="index">
             {{item.projectName}}
           </li>
         </ul>
@@ -66,8 +58,7 @@ const isDeveloperOrTester = computed(() => {
   return userRole.value === 3 || userRole.value === 4;
 });
 
-const ingProjectList = ref([]);
-const ingTaskList = ref([]);
+const ingList = ref([]);
 const noBeginList = ref([]);
 const closeList = ref([]);
 
@@ -107,21 +98,19 @@ const fetchUserProjects = async () => {
       const projects = response.data.data;
       console.log('获取到的项目列表:', projects);
       // 清空现有列表
-      ingProjectList.value = [];
+      ingList.value = [];
       noBeginList.value = [];
       closeList.value = [];
       
       // 根据项目状态分配到不同列表
       projects.forEach(project => {
         console.log('项目信息:', project);
-        console.log('project.degree:', project.degree);
-        console.log('typeof project.degree:', typeof project.degree);
         // 首先根据status字段判断项目状态
         if (project.status === 0) {
           noBeginList.value.push(project);
           console.log('添加到未开始列表:', project.projectName);
         } else if (project.status === 1) {
-          ingProjectList.value.push(project);
+          ingList.value.push(project);
           console.log('添加到进行中列表:', project.projectName);
         } else if (project.status === 2) {
           closeList.value.push(project);
@@ -129,7 +118,7 @@ const fetchUserProjects = async () => {
         } else {
           // 如果没有status字段，根据progress字段判断
           if (project.degree > 0 && project.degree < 100) {
-            ingProjectList.value.push(project);
+            ingList.value.push(project);
             console.log('添加到进行中列表:', project.projectName);
           } else if (project.degree === 0) {
             noBeginList.value.push(project);
@@ -144,8 +133,8 @@ const fetchUserProjects = async () => {
       });
       
       console.log('分配后的列表:');
-      console.log('进行中列表长度:', ingProjectList.value.length);
-      console.log('进行中:', ingProjectList.value);
+      console.log('进行中列表长度:', ingList.value.length);
+      console.log('进行中:', ingList.value);
       console.log('未开始列表长度:', noBeginList.value.length);
       console.log('未开始:', noBeginList.value);
       console.log('已关闭列表长度:', closeList.value.length);
@@ -159,19 +148,8 @@ const fetchUserProjects = async () => {
   }
 };
 
-// 模拟获取进行中的任务
-const fetchIngTasks = () => {
-  ingTaskList.value = [
-    '家长端，界面优化调整，新增功能：授权监...',
-    '班牌PC端管理界面调整，样式统一，菜单归类',
-    '班牌模板调整，参考海康，增加竖版',
-    '家校互通留言台'
-  ];
-};
-
 onMounted(() => {
   fetchUserProjects();
-  fetchIngTasks();
 });
 </script>
 

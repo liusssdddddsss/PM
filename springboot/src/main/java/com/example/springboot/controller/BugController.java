@@ -133,6 +133,30 @@ public class BugController {
         return ResponseEntity.ok(response);
     }
 
+    // 创建Bug
+    @PostMapping("/create")
+    public ResponseEntity<Map<String, Object>> createBug(@RequestBody Bug bug) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            System.out.println("创建Bug请求: " + bug);
+            
+            // 保存Bug
+            Bug savedBug = bugRepository.save(bug);
+            
+            response.put("code", 200);
+            response.put("message", "Bug创建成功");
+            response.put("data", savedBug);
+            System.out.println("Bug创建成功 - ID: " + savedBug.getId());
+        } catch (Exception e) {
+            response.put("code", 500);
+            response.put("message", "创建Bug失败: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+    
     // 删除Bug
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteBug(@PathVariable Integer id) {

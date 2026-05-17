@@ -448,71 +448,55 @@
                 <ProjectList @project-click="handleTestProjectClick"/>
               </div>
             </div>
-            <!-- 右侧：Bug统计-->
-            <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff; min-height: 200px;">
-              <div class="bug-statistics">
-                <h3>Bug统计</h3>
-                <div class="bug-stat-item">
-                  <div class="bug-stat-label">昨天新增</div>
-                  <div class="bug-stat-value">{{testStatistics.yesterdayNew}}</div>
-                  <el-progress :percentage="testStatistics.yesterdayNew * 100 / 200" />
-                </div>
-                <div class="bug-stat-item">
-                  <div class="bug-stat-label">今日新增</div>
-                  <div class="bug-stat-value">{{testStatistics.todayNew}}</div>
-                  <el-progress :percentage="testStatistics.todayNew * 100 / 200" />
-                </div>
-                <div class="bug-stat-item">
-                  <div class="bug-stat-label">昨天解决</div>
-                  <div class="bug-stat-value">{{testStatistics.yesterdaySolved}}</div>
-                  <el-progress :percentage="testStatistics.yesterdaySolved * 100 / 200" />
-                </div>
-                <div class="bug-stat-item">
-                  <div class="bug-stat-label">今日解决</div>
-                  <div class="bug-stat-value">{{testStatistics.todaySolved}}</div>
-                  <el-progress :percentage="testStatistics.todaySolved * 100 / 200" />
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- 下排：Bug修复率和待测试的测试单 -->
-          <div style="display: flex; gap: 20px; margin-top: 20px;">
-            <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff;">
-              <div class="bug-repair">
-                <h3>Bug修复率</h3>
-                <el-progress type="circle" :percentage="testStatistics.bugRepairRate" />
-                <div class="bug-repair-stats">
-                  <span>
-                    <div class="stat-value">{{testStatistics.validBugs}}</div>
-                    <div class="stat-label">有效Bug</div>
-                  </span>
-                  <span>
-                    <div class="stat-value">{{testStatistics.fixedBugs}}</div>
-                    <div class="stat-label">已修复</div>
-                  </span>
-                  <span>
-                    <div class="stat-value">{{testStatistics.unclosedBugs}}</div>
-                    <div class="stat-label">未关闭</div>
-                  </span>
+            <!-- 右侧：Bug统计和Bug修复率竖排显示 -->
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+              <!-- Bug统计 -->
+              <div style="border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff; min-height: 200px;">
+                <div class="bug-statistics">
+                  <h3>Bug统计</h3>
+                  <div class="bug-stat-item">
+                    <div class="bug-stat-label">昨天新增</div>
+                    <div class="bug-stat-value">{{testStatistics.yesterdayNew}}</div>
+                    <el-progress :percentage="testStatistics.yesterdayNew * 100 / 200" />
+                  </div>
+                  <div class="bug-stat-item">
+                    <div class="bug-stat-label">今日新增</div>
+                    <div class="bug-stat-value">{{testStatistics.todayNew}}</div>
+                    <el-progress :percentage="testStatistics.todayNew * 100 / 200" />
+                  </div>
+                  <div class="bug-stat-item">
+                    <div class="bug-stat-label">昨天解决</div>
+                    <div class="bug-stat-value">{{testStatistics.yesterdaySolved}}</div>
+                    <el-progress :percentage="testStatistics.yesterdaySolved * 100 / 200" />
+                  </div>
+                  <div class="bug-stat-item">
+                    <div class="bug-stat-label">今日解决</div>
+                    <div class="bug-stat-value">{{testStatistics.todaySolved}}</div>
+                    <el-progress :percentage="testStatistics.todaySolved * 100 / 200" />
+                  </div>
                 </div>
               </div>
-            </div>
-            <div style="flex: 1; border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff;">
-              <div class="staying-test-list">
-                <h3>待测试的测试单</h3>
-                <ul class="test-list" v-if="!isDeveloper">
-                  <li v-for="(item, index) in testStatistics.testLists" :key="index">
-                    <a href="#" style="cursor: pointer;" @click.prevent="handleTestClick(item)">{{item}}</a>
-                  </li>
-                  <li v-if="testStatistics.testLists.length === 0">
-                    <span style="color: #909399;">暂无待测试的测试单</span>
-                  </li>
-                </ul>
-                <div v-else style="display: flex; justify-content: center; align-items: center; height: 100px; color: #909399;">
-                  无权限查看
+              <!-- Bug修复率 -->
+              <div style="border: 1px solid #ebeef5; border-radius: 8px; padding: 15px; background-color: #ffffff;">
+                <div class="bug-repair">
+                  <h3>Bug修复率</h3>
+                  <el-progress type="circle" :percentage="testStatistics.bugRepairRate" />
+                  <div class="bug-repair-stats">
+                    <span>
+                      <div class="stat-value">{{testStatistics.validBugs}}</div>
+                      <div class="stat-label">有效Bug</div>
+                    </span>
+                    <span>
+                      <div class="stat-value">{{testStatistics.fixedBugs}}</div>
+                      <div class="stat-label">已修复</div>
+                    </span>
+                    <span>
+                      <div class="stat-value">{{testStatistics.unclosedBugs}}</div>
+                      <div class="stat-label">未关闭</div>
+                    </span>
+                  </div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>

@@ -12,12 +12,30 @@
             <el-input v-model="iterationForm.name" placeholder="请输入迭代名称" :readonly="isEdit && false" />
           </el-form-item>
           <el-form-item label="所属项目">
-            <el-select v-model="iterationForm.projectId" placeholder="请选择项目" :disabled="isEdit">
+            <el-select v-model="iterationForm.projectId" placeholder="请选择项目" :disabled="isEdit" @change="onProjectChange">
               <el-option
                   v-for="project in projects"
                   :key="project.id"
                   :label="project.projectName"
                   :value="project.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="所属产品">
+            <el-input
+                :value="currentProductName"
+                disabled
+                placeholder="选择项目后自动获取"
+            />
+            <el-input type="hidden" v-model="iterationForm.productId" />
+          </el-form-item>
+          <el-form-item label="所属团队">
+            <el-select v-model="iterationForm.teamId" placeholder="请选择团队" :disabled="isEdit">
+              <el-option
+                  v-for="team in teams"
+                  :key="team.id"
+                  :label="team.name"
+                  :value="team.id"
               />
             </el-select>
           </el-form-item>
@@ -73,6 +91,7 @@ import {ref, onMounted} from 'vue';
 import {useRouter, useRoute} from 'vue-router';
 import { ElMessage } from 'element-plus';
 import request from '@/utils/request.js';
+import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
 const route = useRoute();
@@ -83,6 +102,8 @@ const iterationForm = ref({
   name: '',
   description: '',
   projectId: '',
+  productId: '',
+  teamId: '',
   startDate: '',
   endDate: '',
   status: 0,
@@ -90,13 +111,17 @@ const iterationForm = ref({
 });
 
 const projects = ref([]);
+const teams = ref([]);
+const currentProductName = ref('');
 
 // 获取项目列表
 const fetchProjects = async () => {
   try {
-    // 传递username参数，使用固定值202201
+    const userStr = localStorage.getItem('user');
+    const username = userStr ? JSON.parse(userStr).username : '202201';
+    
     const response = await request.get('/workbench/projects', {
-      params: { username: '202201' }
+      params: { username: username }
     });
     if (response.data.code === 200) {
       projects.value = response.data.data;
@@ -104,6 +129,62 @@ const fetchProjects = async () => {
   } catch (error) {
     console.error('获取项目列表失败:', error);
   }
+};
+
+// 获取用户所在团队列表
+const fetchUserTeams = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    const username = userStr ? JSON.parse(userStr).username : '202201';
+    
+    const response = await request.get(`/teams/user-teams/${username}`);
+    if (response.data.code === 200 && response.data.data) {
+      teams.value = response.data.data.map(team => ({
+        id: team.id,
+        name: team.name
+      }));
+    }
+  } catch (error) {
+    console.error('获取团队列表失败:', error);
+  }
+};
+
+// 根据项目ID获取产品信息
+const fetchProductByProject = async (projectId) => {
+  if (!projectId) {
+    iterationForm.value.productId = '';
+    currentProductName.value = '';
+    return;
+  }
+  
+  try {
+    const response = await request.get(`/api/projects/${projectId}`);
+    if (response.data.code === 200 && response.data.data) {
+      const project = response.data.data;
+      if (project.product_id) {
+        iterationForm.value.productId = project.product_id;
+        // 获取产品名称
+        const productRes = await request.get(`/api/productResearch/products/${project.product_id}`);
+        if (productRes.data.code === 200 && productRes.data.data) {
+          currentProductName.value = productRes.data.data.name || '';
+        } else {
+          currentProductName.value = '未知产品';
+        }
+      } else {
+        iterationForm.value.productId = '';
+        currentProductName.value = '';
+      }
+    }
+  } catch (error) {
+    console.error('获取产品信息失败:', error);
+    iterationForm.value.productId = '';
+    currentProductName.value = '';
+  }
+};
+
+// 项目选择变化时触发
+const onProjectChange = (projectId) => {
+  fetchProductByProject(projectId);
 };
 
 // 获取迭代详情
@@ -126,12 +207,20 @@ const saveIteration = async () => {
     let response;
     if (isEdit.value) {
       response = await request.put('/iteration/update', iterationForm.value);
+      if (response.data.code === 200) {
+        ElMessage.success('迭代更新成功');
+        // 记录操作日志
+        await recordOperationLog('编辑了', '迭代', null, iterationForm.value.name);
+        router.push('/iteration/iterationList');
+      }
     } else {
       response = await request.post('/iteration/create', iterationForm.value);
-    }
-    if (response.data.code === 200) {
-      ElMessage.success(isEdit.value ? '迭代更新成功' : '迭代创建成功');
-      router.push('/iteration/iterationList');
+      if (response.data.code === 200) {
+        ElMessage.success('迭代创建成功');
+        // 记录操作日志
+        await recordOperationLog('创建了', '迭代', null, iterationForm.value.name);
+        router.push('/iteration/iterationList');
+      }
     }
   } catch (error) {
     console.error('保存迭代失败:', error);
@@ -147,6 +236,7 @@ const cancel = () => {
 // 初始加载
 onMounted(() => {
   fetchProjects();
+  fetchUserTeams();
   fetchIterationDetail();
 });
 </script>

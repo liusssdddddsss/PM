@@ -39,12 +39,13 @@ public class AIAnalysisEngine {
     private int mediumRiskProducts = 0;
     private int lowRiskProducts = 0;
 
-    // 定时扫描，每6小时执行一次
-    @Scheduled(cron = "0 0 */6 * * *")
+    // 定时扫描，每6小时执行一次 - 已注释，关闭自动扫描
+    // @Scheduled(cron = "0 0 */6 * * *")
     public void scheduledScan() {
-        if (!isScanning.get()) {
-            scanAll();
-        }
+        // if (!isScanning.get()) {
+        //     scanAll();
+        // }
+        System.out.println("AI分析引擎：定时扫描功能已关闭");
     }
 
     // 手动触发扫描

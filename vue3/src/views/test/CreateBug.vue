@@ -6,21 +6,47 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="所属项目">
-              <el-select v-model="bugForm.projectId" placeholder="请选择">
-                <el-option label="智慧教室 智慧云盘" value="1" />
-                <el-option label="实践教学管理平台" value="2" />
-                <el-option label="电子班牌管理系统" value="3" />
-                <el-option label="家长端应用" value="8" />
+              <el-select
+                v-model="bugForm.projectId"
+                placeholder="请选择项目（与迭代二选一）"
+                filterable
+                remote
+                reserve-keyword
+                :remote-method="searchProjects"
+                :loading="projectLoading"
+                style="width: 100%"
+                @change="onProjectSelect"
+                @focus="onProjectFocus"
+              >
+                <el-option
+                  v-for="item in projectOptions"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="所属任务">
-              <el-select v-model="bugForm.taskId" placeholder="请选择">
-                <el-option label="家长端，界面优化调整" value="1" />
-                <el-option label="班牌PC端管理界面调整" value="2" />
-                <el-option label="班牌模板调整" value="3" />
-                <el-option label="家长端授权功能" value="5" />
+            <el-form-item label="所属迭代">
+              <el-select
+                v-model="bugForm.iterationId"
+                placeholder="请选择迭代（与项目二选一）"
+                filterable
+                remote
+                reserve-keyword
+                :remote-method="searchIterations"
+                :loading="iterationLoading"
+                style="width: 100%"
+                @focus="onIterationFocus"
+                @change="onIterationSelect"
+              >
+                <el-option
+                  v-for="item in iterationOptions"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -28,8 +54,17 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="当前状态">
+              <el-select v-model="bugForm.status" placeholder="请选择" style="width: 100%">
+                <el-option label="待处理" value="0" />
+                <el-option label="处理中" value="1" />
+                <el-option label="已解决" value="2" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="Bug类型">
-              <el-select v-model="bugForm.bugType" placeholder="请选择">
+              <el-select v-model="bugForm.bugType" placeholder="请选择" style="width: 100%">
                 <el-option label="代码错误" value="代码错误" />
                 <el-option label="界面问题" value="界面问题" />
                 <el-option label="逻辑错误" value="逻辑错误" />
@@ -38,9 +73,12 @@
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="严重程度">
-              <el-select v-model="bugForm.severity" placeholder="请选择">
+              <el-select v-model="bugForm.severity" placeholder="请选择" style="width: 100%">
                 <el-option label="紧急" value="1" />
                 <el-option label="一般" value="2" />
                 <el-option label="正常" value="3" />
@@ -52,32 +90,33 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="报告人">
-              <el-select v-model="bugForm.reporterId" placeholder="请选择">
-                <el-option label="202204" value="202204" />
-                <el-option label="202205" value="202205" />
-                <el-option label="202202" value="202202" />
-              </el-select>
+              <el-input
+                :value="currentUserName"
+                disabled
+                placeholder="当前登录用户"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="负责人">
-              <el-select v-model="bugForm.assigneeId" placeholder="请选择">
-                <el-option label="202205" value="202205" />
-                <el-option label="202203" value="202203" />
-                <el-option label="202202" value="202202" />
-                <el-option label="202201" value="202201" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="当前状态">
-              <el-select v-model="bugForm.status" placeholder="请选择">
-                <el-option label="待处理" value="0" />
-                <el-option label="处理中" value="1" />
-                <el-option label="已解决" value="2" />
+              <el-select
+                v-model="bugForm.assigneeId"
+                placeholder="请选择负责人"
+                filterable
+                remote
+                reserve-keyword
+                :remote-method="searchUsers"
+                :loading="userLoading"
+                style="width: 100%"
+                @focus="onUserFocus"
+              >
+                <el-option
+                  v-for="item in userOptions"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -105,24 +144,28 @@
         </el-row>
 
         <el-row :gutter="20">
-          <el-col :span="24">
-            <el-form-item label="附件">
-              <el-upload
-                  class="upload-demo"
-                  action="#"
-                  :auto-upload="false"
-                  :on-change="handleFileChange"
-                  :file-list="fileList"
-                  drag
-              >
-                <i class="el-icon-upload"></i>
-                <div class="el-upload__text">选择文件</div>
-                <template #tip>
-                  <div class="el-upload__tip">
-                    可点击添加或拖拽上传，不超过100.0MB
-                  </div>
-                </template>
-              </el-upload>
+          <el-col :span="12">
+            <el-form-item label="创建时间">
+              <el-date-picker
+                v-model="bugForm.createdAt"
+                type="datetime"
+                placeholder="选择创建时间"
+                style="width: 100%"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DD HH:mm:ss"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="截止时间">
+              <el-date-picker
+                v-model="bugForm.deadline"
+                type="date"
+                placeholder="选择截止时间"
+                style="width: 100%"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -141,68 +184,348 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import request from '@/utils/request.js';
+import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
 
-// Bug表单数据
 const bugForm = ref({
   title: '',
   description: '',
   projectId: '',
-  taskId: '',
+  iterationId: '',
   reporterId: '',
   assigneeId: '',
   severity: '',
-  status: '0', // 默认待处理
-  bugType: ''
+  status: '0',
+  bugType: '',
+  createdAt: '',
+  deadline: ''
 });
 
-// 文件列表
-const fileList = ref([]);
+const currentUser = ref(null);
+const currentUserName = ref('');
 
-// 处理文件选择
-const handleFileChange = (file, fileList) => {
-  console.log('文件变化:', file, fileList);
+const projectOptions = ref([]);
+const iterationOptions = ref([]);
+const userOptions = ref([]);
+
+const projectLoading = ref(false);
+const iterationLoading = ref(false);
+const userLoading = ref(false);
+
+const teamMemberIds = ref(new Set());
+const userProjectIds = ref(new Set());
+
+const loadCurrentUser = () => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      currentUser.value = JSON.parse(userStr);
+      currentUserName.value = currentUser.value.name || currentUser.value.username;
+      bugForm.value.reporterId = currentUser.value.username;
+    } catch (e) {
+      console.error('解析用户信息失败:', e);
+    }
+  }
 };
 
-// 保存Bug
+const getCurrentDateTime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+const loadTeamMembers = async () => {
+  if (!currentUser.value) return;
+  
+  try {
+    const projectRes = await request.get(`/dashboard/user-projects?username=${currentUser.value.username}`);
+    if (projectRes.data.code === 200 && Array.isArray(projectRes.data.data)) {
+      const projectIds = new Set();
+      projectRes.data.data.forEach(project => {
+        if (project.id) {
+          projectIds.add(Number(project.id));
+        }
+      });
+      userProjectIds.value = projectIds;
+    }
+    
+    const userIdForTeam = currentUser.value.username;
+    const teamRes = await request.get(`/teams/user-teams/${userIdForTeam}`);
+    if (teamRes.data.code === 200 && teamRes.data.data) {
+      const memberIds = new Set();
+      
+      for (const team of teamRes.data.data) {
+        try {
+          const memberRes = await request.get(`/teams/${team.id}/members`);
+          if (memberRes.data.code === 200 && memberRes.data.data) {
+            memberRes.data.data.forEach(member => {
+              if (member.userId) {
+                memberIds.add(Number(member.userId));
+              }
+            });
+          }
+        } catch (e) {
+          console.error('获取团队成员失败:', e);
+        }
+      }
+      
+      teamMemberIds.value = memberIds;
+    }
+  } catch (error) {
+    console.error('加载团队成员失败:', error);
+  }
+};
+
+const searchProjects = async (query) => {
+  if (query) {
+    projectLoading.value = true;
+    try {
+      const res = await request.get('/api/projects');
+      if (res.data.code === 200) {
+        projectOptions.value = res.data.data
+          .filter(item => userProjectIds.value.has(Number(item.id)))
+          .filter(item => 
+            item.name.toLowerCase().includes(query.toLowerCase())
+          )
+          .map(item => ({
+            id: item.id,
+            name: item.name
+          }));
+      }
+    } catch (error) {
+      console.error('搜索项目失败:', error);
+    } finally {
+      projectLoading.value = false;
+    }
+  } else {
+    loadProjects();
+  }
+};
+
+const onProjectSelect = () => {
+  if (bugForm.value.projectId) {
+    bugForm.value.iterationId = '';
+  }
+};
+
+const onProjectFocus = () => {
+  if (projectOptions.value.length === 0) {
+    loadProjects();
+  }
+};
+
+const onIterationSelect = () => {
+  if (bugForm.value.iterationId) {
+    const selectedIteration = iterationOptions.value.find(i => i.id === bugForm.value.iterationId);
+    if (selectedIteration && selectedIteration.projectId) {
+      bugForm.value.projectId = selectedIteration.projectId;
+    }
+  }
+};
+
+const onIterationFocus = () => {
+  if (iterationOptions.value.length === 0) {
+    loadIterations();
+  }
+};
+
+const onUserFocus = () => {
+  if (userOptions.value.length === 0) {
+    loadUsers();
+  }
+};
+
+const searchIterations = async (query) => {
+  if (query) {
+    iterationLoading.value = true;
+    try {
+      const res = await request.get('/iteration/list');
+      if (res.data.code === 200 && Array.isArray(res.data.data)) {
+        let iterations = res.data.data;
+        
+        iterations = iterations.filter(item => userProjectIds.value.has(Number(item.projectId)));
+        
+        iterationOptions.value = iterations
+          .filter(item => 
+            item.name && item.name.toLowerCase().includes(query.toLowerCase())
+          )
+          .map(item => ({
+            id: item.id,
+            name: item.name,
+            projectId: item.projectId
+          }));
+      }
+    } catch (error) {
+      console.error('搜索迭代失败:', error);
+    } finally {
+      iterationLoading.value = false;
+    }
+  } else {
+    loadIterations();
+  }
+};
+
+const loadIterations = async () => {
+  try {
+    const res = await request.get('/iteration/list');
+    if (res.data.code === 200 && Array.isArray(res.data.data)) {
+      let iterations = res.data.data;
+      
+      iterations = iterations.filter(item => userProjectIds.value.has(Number(item.projectId)));
+      
+      iterationOptions.value = iterations.map(item => ({
+        id: item.id,
+        name: item.name,
+        projectId: item.projectId
+      }));
+    }
+  } catch (error) {
+    console.error('加载迭代失败:', error);
+  }
+};
+
+const searchUsers = async (query) => {
+  if (query) {
+    userLoading.value = true;
+    try {
+      const res = await request.get('/admin/findAll');
+      if (res.data.code === 200) {
+        let filteredUsers = res.data.data;
+        
+        if (teamMemberIds.value.size > 0) {
+          filteredUsers = filteredUsers.filter(item => 
+            teamMemberIds.value.has(Number(item.username))
+          );
+        }
+        
+        userOptions.value = filteredUsers
+          .map(item => ({
+            id: item.username,
+            name: item.name || item.username,
+            username: item.username
+          }))
+          .filter(item => 
+            (item.name && item.name.toLowerCase().includes(query.toLowerCase())) ||
+            (item.username && item.username.toLowerCase().includes(query.toLowerCase()))
+          );
+      }
+    } catch (error) {
+      console.error('搜索用户失败:', error);
+    } finally {
+      userLoading.value = false;
+    }
+  } else {
+    loadUsers();
+  }
+};
+
+const loadProjects = async () => {
+  try {
+    const res = await request.get('/api/projects');
+    if (res.data.code === 200) {
+      projectOptions.value = res.data.data
+        .filter(item => userProjectIds.value.has(Number(item.id)))
+        .map(item => ({
+          id: item.id,
+          name: item.name
+        }));
+    }
+  } catch (error) {
+    console.error('加载项目失败:', error);
+  }
+};
+
+const loadUsers = async () => {
+  try {
+    const res = await request.get('/admin/findAll');
+    if (res.data.code === 200) {
+      let filteredUsers = res.data.data;
+      
+      if (teamMemberIds.value.size > 0) {
+        filteredUsers = filteredUsers.filter(item => 
+          teamMemberIds.value.has(Number(item.username))
+        );
+      }
+      
+      userOptions.value = filteredUsers.map(item => ({
+        id: item.username,
+        name: item.name || item.username,
+        username: item.username
+      }));
+    }
+  } catch (error) {
+    console.error('加载用户失败:', error);
+  }
+};
+
 const saveBug = async () => {
   try {
-    // 构建请求数据
+    if (!bugForm.value.title) {
+      alert('请输入Bug标题');
+      return;
+    }
+    if (!bugForm.value.projectId) {
+      alert('请选择所属项目');
+      return;
+    }
+    if (!bugForm.value.assigneeId) {
+      alert('请选择负责人');
+      return;
+    }
+    
     const bugData = {
       title: bugForm.value.title,
       description: bugForm.value.description,
-      project_id: bugForm.value.projectId,
-      task_id: bugForm.value.taskId,
-      reporter_id: bugForm.value.reporterId,
-      assignee_id: bugForm.value.assigneeId,
+      projectId: bugForm.value.projectId,
+      iterationId: bugForm.value.iterationId,
+      reporterId: bugForm.value.reporterId,
+      assigneeId: bugForm.value.assigneeId,
       severity: bugForm.value.severity,
       status: bugForm.value.status,
-      bug_type: bugForm.value.bugType
+      bugType: bugForm.value.bugType,
+      createdAt: bugForm.value.createdAt,
+      deadline: bugForm.value.deadline
     };
     
     console.log('保存Bug:', bugData);
     
-    // 这里可以添加保存逻辑，调用后端API
-    // 暂时模拟保存成功
-    // const response = await request.post('/bug/create', bugData);
-    // if (response.data.code === 200) {
+    const response = await request.post('/api/bugs/create', bugData);
+    if (response.data.code === 200) {
       console.log('Bug创建成功');
-      // 保存成功后返回
+      // 记录操作日志
+      await recordOperationLog('创建了', 'Bug', null, bugForm.value.title);
+      alert('Bug创建成功');
       goBack();
-    // }
+    } else {
+      alert('创建Bug失败: ' + response.data.message);
+    }
   } catch (error) {
     console.error('保存Bug失败:', error);
+    alert('创建Bug失败');
   }
 };
 
-// 返回上一页
 const goBack = () => {
   router.push('/test/bugList');
 };
+
+onMounted(async () => {
+  loadCurrentUser();
+  bugForm.value.createdAt = getCurrentDateTime();
+  await loadTeamMembers();
+  await loadProjects();
+  await loadIterations();
+  await loadUsers();
+});
 </script>
 
 <style scoped>
@@ -229,23 +552,5 @@ h3 {
   margin-top: 20px;
   justify-content: center;
   align-items: center;
-}
-
-.upload-demo {
-  border: 1px dashed #d9d9d9;
-  border-radius: 4px;
-  padding: 20px;
-  text-align: center;
-}
-
-.el-upload__text {
-  color: #409eff;
-  margin-top: 10px;
-}
-
-.el-upload__tip {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #909399;
 }
 </style>

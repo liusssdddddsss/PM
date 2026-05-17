@@ -1131,6 +1131,51 @@ public class WorkbenchController {
         }
     }
 
+    @Operation(summary = "提交代码", description = "提交代码并更新任务进度")
+    @PostMapping("/task/submit-code")
+    public Result submitCode(@RequestBody Map<String, Object> request) {
+        try {
+            Integer taskId = (Integer) request.get("taskId");
+            String repositoryUrl = (String) request.get("repositoryUrl");
+            String branch = (String) request.get("branch");
+            String commitMessage = (String) request.get("commitMessage");
+            Integer progress = (Integer) request.get("progress");
+            Integer newProgress = (Integer) request.get("newProgress");
+            
+            System.out.println("提交代码请求, 任务ID: " + taskId + ", 进度: " + progress + ", 新进度: " + newProgress);
+            
+            // 查找任务是否存在
+            List<Task> tasks = taskService.findall();
+            Task existingTask = null;
+            for (Task t : tasks) {
+                if (t.getId().equals(taskId)) {
+                    existingTask = t;
+                    break;
+                }
+            }
+            
+            if (existingTask == null) {
+                return Result.error("任务不存在");
+            }
+            
+            // 更新任务进度
+            existingTask.setProgress(newProgress);
+            
+            // 如果进度达到100%，设置任务状态为已完成
+            if (newProgress != null && newProgress >= 100) {
+                existingTask.setStatus(3); // 3表示已完成
+            }
+            
+            Task updatedTask = taskService.save(existingTask);
+            System.out.println("代码提交成功，任务进度更新为: " + updatedTask.getProgress());
+            
+            return Result.success("代码提交成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("代码提交失败: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "获取项目详情", description = "根据ID获取项目详情")
     @GetMapping("/projects/{id}")
     public Result getProjectById(@PathVariable Long id) {

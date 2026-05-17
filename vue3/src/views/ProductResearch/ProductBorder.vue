@@ -14,15 +14,7 @@
           <div class="left">
             <p>进行中的产品</p>
             <ul class="item-list">
-              <li v-for="(item,index) in ingProjectList " :key="index">
-                {{item}}
-              </li>
-            </ul>
-          </div>
-          <div class="right">
-            <p>进行中的任务</p>
-            <ul class="item-list">
-              <li v-for="(item,index) in ingTaskList " :key="index">
+              <li v-for="(item,index) in ingList " :key="index">
                 {{item}}
               </li>
             </ul>
@@ -60,13 +52,12 @@ const goToProductEdit = () => {
 };
 
 // 产品数据
-const ingProjectList = ref([]);
-const ingTaskList = ref([]);
+const ingList = ref([]);
 const noBeginList = ref([]);
 const closeList = ref([]);
 
 // 计算属性
-const ingCount = computed(() => ingProjectList.value.length);
+const ingCount = computed(() => ingList.value.length);
 const noBeginCount = computed(() => noBeginList.value.length);
 const closeCount = computed(() => closeList.value.length);
 
@@ -77,34 +68,25 @@ onMounted(() => {
 
 const fetchProductData = async () => {
   try {
-    // 从本地存储中获取用户信息
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      // 获取项目列表
-      const projectResponse = await request.get(`/workbench/projects?username=${user.username}`);
-      if (projectResponse.data.code === 200) {
-        const projects = projectResponse.data.data;
-        // 分类项目
-        ingProjectList.value = projects
-          .filter(project => project.status === 1)
-          .map(project => project.projectName);
-        noBeginList.value = projects
-          .filter(project => project.status === 0)
-          .map(project => project.projectName);
-        closeList.value = projects
-          .filter(project => project.status === 2)
-          .map(project => project.projectName);
-      }
+    // 获取所有产品列表
+    const productResponse = await request.get('/api/products');
+    if (productResponse.data.code === 200) {
+      const products = productResponse.data.data;
+      console.log('获取到的产品数据:', products);
       
-      // 获取任务列表
-      const taskResponse = await request.get(`/workbench/tasks?username=${user.username}`);
-      if (taskResponse.data.code === 200) {
-        const tasks = taskResponse.data.data;
-        ingTaskList.value = tasks
-          .filter(task => task.status === 2)
-          .map(task => task.name);
-      }
+      // 根据状态分类产品
+      // status: 0=未开始, 1=进行中, 2=已关闭
+      noBeginList.value = products
+        .filter(product => product.status === 0)
+        .map(product => product.name);
+      
+      ingList.value = products
+        .filter(product => product.status === 1)
+        .map(product => product.name);
+      
+      closeList.value = products
+        .filter(product => product.status === 2)
+        .map(product => product.name);
     }
   } catch (error) {
     console.error('获取产品数据失败:', error);
@@ -169,10 +151,6 @@ const fetchProductData = async () => {
 }
 .left{
   flex: 1;
-}
-.right{
-  flex: 1;
-  margin-left: 2px;
 }
 .no-begin{
   flex: 1;

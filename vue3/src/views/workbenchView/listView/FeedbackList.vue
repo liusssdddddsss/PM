@@ -162,6 +162,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessageBox } from 'element-plus';
 import request from "@/utils/request.js";
 import { recordOperationLog } from "@/utils/operationLog.js";
 
@@ -487,8 +488,38 @@ const historyList = ref([
 
 // 处理操作
 const handleClose = (feedback) => {
-  currentFeedback.value = feedback;
-  dialogVisible.value = true;
+  console.log('点击关闭按钮:', feedback);
+  
+  ElMessageBox.confirm(
+    '确定要关闭这个反馈吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    // 用户点击确定，直接关闭反馈
+    try {
+      const response = await request.post(`/api/feedback/close/${feedback.id}`, {
+        expectedCompleteTime: null,
+        actualCompleteTime: null,
+        remark: null
+      });
+      if (response.data.code === 200) {
+        console.log('关闭反馈成功:', feedback.id);
+        await fetchFeedbacks();
+        window.dispatchEvent(new CustomEvent('refreshApproval'));
+      } else {
+        console.error('关闭反馈失败:', response.data.message);
+      }
+    } catch (error) {
+      console.error('关闭反馈失败:', error);
+    }
+  }).catch(() => {
+    // 用户点击取消，不做任何操作
+    console.log('用户取消关闭反馈');
+  });
 };
 
 const handleEdit = (id) => {
@@ -537,31 +568,10 @@ const deleteRelatedApproval = async (feedbackId) => {
 
 // 确认关闭反馈
 const confirmClose = async () => {
-  try {
-    const response = await request.post(`/api/feedback/close/${currentFeedback.value.id}`, {
-      expectedCompleteTime: closeForm.value.expectedCompleteTime,
-      actualCompleteTime: closeForm.value.actualCompleteTime,
-      remark: closeForm.value.remark
-    });
-    if (response.data.code === 200) {
-      console.log('关闭反馈成功:', currentFeedback.value.id);
-      // 记录操作日志
-      await recordOperationLog('关闭反馈', '反馈管理', currentFeedback.value.id, currentFeedback.value.title);
-      
-      // 关闭反馈后，同时删除对应的审批记录（隐藏审批显示）
-      await deleteRelatedApproval(currentFeedback.value.id);
-      
-      dialogVisible.value = false;
-      // 重新获取反馈列表
-      await fetchFeedbacks();
-      
-      // 触发全局事件，通知审批列表刷新
-      window.dispatchEvent(new CustomEvent('refreshApproval'));
-    } else {
-      console.error('关闭反馈失败:', response.data.message);
-    }
-  } catch (error) {
-    console.error('关闭反馈失败:', error);
+  // 只提示是否关闭，不执行实际关闭操作
+  if (confirm('确定要关闭此反馈吗？')) {
+    console.log('用户确认关闭反馈:', currentFeedback.value.id);
+    dialogVisible.value = false;
   }
 };
 </script>

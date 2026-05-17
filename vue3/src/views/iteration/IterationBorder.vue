@@ -15,17 +15,9 @@
         </div>
         <div class="ing-com">
           <div class="left">
-            <p>进行中的产品</p>
+            <p>进行中的迭代</p>
             <ul class="item-list">
-              <li v-for="(item,index) in ingProjectList " :key="index">
-                {{item}}
-              </li>
-            </ul>
-          </div>
-          <div class="right">
-            <p>进行中的任务</p>
-            <ul class="item-list">
-              <li v-for="(item,index) in ingTaskList " :key="index">
+              <li v-for="(item,index) in ingList " :key="index">
                 {{item}}
               </li>
             </ul>
@@ -50,13 +42,12 @@ import {ref, computed, onMounted} from "vue";
 import request from "@/utils/request";
 
 // 迭代数据
-const ingProjectList = ref([]);
-const ingTaskList = ref([]);
+const ingList = ref([]);
 const noBeginList = ref([]);
 const closeList = ref([]);
 
 // 计算属性
-const ingCount = computed(() => ingProjectList.value.length);
+const ingCount = computed(() => ingList.value.length);
 const noBeginCount = computed(() => noBeginList.value.length);
 const closeCount = computed(() => closeList.value.length);
 
@@ -67,34 +58,25 @@ onMounted(() => {
 
 const fetchIterationData = async () => {
   try {
-    // 从本地存储中获取用户信息
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      // 获取项目列表
-      const projectResponse = await request.get(`/workbench/projects?username=${user.username}`);
-      if (projectResponse.data.code === 200) {
-        const projects = projectResponse.data.data;
-        // 分类项目
-        ingProjectList.value = projects
-          .filter(project => project.status === 1)
-          .map(project => project.projectName);
-        noBeginList.value = projects
-          .filter(project => project.status === 0)
-          .map(project => project.projectName);
-        closeList.value = projects
-          .filter(project => project.status === 2)
-          .map(project => project.projectName);
-      }
+    // 获取所有迭代列表
+    const iterationResponse = await request.get('/iteration/list');
+    if (iterationResponse.data.code === 200) {
+      const iterations = iterationResponse.data.data;
+      console.log('获取到的迭代数据:', iterations);
       
-      // 获取任务列表
-      const taskResponse = await request.get(`/workbench/tasks?username=${user.username}`);
-      if (taskResponse.data.code === 200) {
-        const tasks = taskResponse.data.data;
-        ingTaskList.value = tasks
-          .filter(task => task.status === 2)
-          .map(task => task.name);
-      }
+      // 根据状态分类迭代
+      // status: 0=未开始, 1=进行中, 2=已关闭
+      noBeginList.value = iterations
+        .filter(iteration => iteration.status === 0)
+        .map(iteration => iteration.name);
+      
+      ingList.value = iterations
+        .filter(iteration => iteration.status === 1)
+        .map(iteration => iteration.name);
+      
+      closeList.value = iterations
+        .filter(iteration => iteration.status === 2)
+        .map(iteration => iteration.name);
     }
   } catch (error) {
     console.error('获取迭代数据失败:', error);

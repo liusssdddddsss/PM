@@ -272,10 +272,23 @@ public class DashboardController {
             statistics.put("unclosedBugs", unresolvedBugs);
             statistics.put("bugRepairRate", Math.round(bugRepairRate));
             
-            // 提取测试列表（只显示用户有权限查看的）
-            List<String> testLists = new ArrayList<>();
+            // 提取测试列表（只显示用户有权限查看的，并且按项目筛选）
+            List<Map<String, Object>> unclosedTestCases = new ArrayList<>();
             for (TestSuite testSuite : testSuites) {
                 System.out.println("测试套件ID: " + testSuite.getId() + ", 名称: " + testSuite.getName() + ", 负责人ID: " + testSuite.getAssignee_id());
+                
+                // 如果指定了项目，只显示该项目的测试套件
+                boolean projectMatch = true;
+                if (targetProjectId != null) {
+                    if (testSuite.getProject_id() == null || testSuite.getProject_id() != targetProjectId) {
+                        projectMatch = false;
+                    }
+                }
+                
+                if (!projectMatch) {
+                    continue;
+                }
+                
                 // 检查用户是否有权限查看该测试套件
                 if (testSuite.getName() != null) {
                     if (username == null) {
@@ -283,15 +296,19 @@ public class DashboardController {
                         continue;
                     } else if (isAdmin || isProductManager || isTester) {
                         // 超级管理员、产品经理、测试者可以查看所有
-                        testLists.add(testSuite.getName());
+                        Map<String, Object> tc = new HashMap<>();
+                        tc.put("name", testSuite.getName());
+                        unclosedTestCases.add(tc);
                     } else if (!isDeveloper && testSuite.getProject_id() != null && userProjectIds.contains(testSuite.getProject_id())) {
                         // 其他用户只能查看自己参与项目的测试套件
-                        testLists.add(testSuite.getName());
+                        Map<String, Object> tc = new HashMap<>();
+                        tc.put("name", testSuite.getName());
+                        unclosedTestCases.add(tc);
                     }
                 }
             }
-            System.out.println("最终测试列表数量: " + testLists.size());
-            statistics.put("testLists", testLists);
+            System.out.println("最终未关闭测试单数量: " + unclosedTestCases.size());
+            statistics.put("unclosedTestCases", unclosedTestCases);
 
             // 提取模块列表（近期模块审核）
             List<String> modules = new ArrayList<>();
@@ -320,60 +337,72 @@ public class DashboardController {
             System.out.println("测试套件总数: " + testSuites.size());
             
             if (!isDeveloper) { // 开发者不可以查看待测试的测试单
-                // 收集用户所在团队的成员ID
-                Set<Long> teamMemberIds = new HashSet<>();
-                if (isProductManager && currentUserId != null) {
-                    // 产品经理获取自己所在团队的所有成员
-                    List<Team> userTeams = teamRepository.findTeamsByUserId(currentUserId);
-                    System.out.println("产品经理所在团队数量: " + userTeams.size());
-                    for (Team team : userTeams) {
-                        List<TeamMember> teamMembers = teamMemberService.findByTeamId(team.getId());
-                        for (TeamMember member : teamMembers) {
-                            if (member.getUserId() != null) {
-                                teamMemberIds.add(member.getUserId());
-                            }
-                        }
-                    }
-                    System.out.println("团队成员ID数量: " + teamMemberIds.size());
-                }
-                
                 for (TestSuite testSuite : testSuites) {
                     System.out.println("检查测试套件: ID=" + testSuite.getId() + 
                         ", 名称=" + testSuite.getName() + 
-                        ", 状态=" + testSuite.getStatus() + 
-                        ", 优先级=" + testSuite.getPriority() + 
-                        ", 负责人ID=" + testSuite.getAssignee_id());
+                        ", 进度=" + testSuite.getProgress() + 
+                        ", 负责人ID=" + testSuite.getAssignee_id() + 
+                        ", 项目ID=" + testSuite.getProject_id());
                     
-                    // 放宽条件：只要不是已完成或已关闭状态的都显示
-                    boolean isPendingStatus = testSuite.getStatus() != null && 
-                        (testSuite.getStatus() == 1 || testSuite.getStatus() == 2); // 待测试或测试中
-                    
-                    if (isPendingStatus) {
-                        if (testSuite.getName() != null) {
-                            if (isProductManager) {
-                                // 产品经理：显示团队成员负责的，如果没有负责人限制则显示所有
-                                if (teamMemberIds.isEmpty() || 
-                                    (testSuite.getAssignee_id() != null && teamMemberIds.contains(testSuite.getAssignee_id()))) {
-                                    addPendingTest(testSuite, productService, pendingTests);
-                                    System.out.println("添加产品经理可见的测试单: " + testSuite.getName());
-                                }
-                            } else if (isTester) {
-                                // 测试者：显示与自己有关的（自己负责的），如果没有负责人限制则显示所有
-                                if (currentUserId == null || 
-                                    (testSuite.getAssignee_id() != null && testSuite.getAssignee_id().equals(currentUserId)) ||
-                                    testSuite.getAssignee_id() == null) {
-                                    addPendingTest(testSuite, productService, pendingTests);
-                                    System.out.println("添加测试者可见的测试单: " + testSuite.getName());
-                                }
-                            } else if (isAdmin) {
-                                // 管理员：显示所有
-                                addPendingTest(testSuite, productService, pendingTests);
-                                System.out.println("添加管理员可见的测试单: " + testSuite.getName());
-                            }
+                    // 如果指定了项目，只显示该项目的测试套件
+                    boolean projectMatch = true;
+                    if (targetProjectId != null) {
+                        if (testSuite.getProject_id() == null || !testSuite.getProject_id().equals(targetProjectId)) {
+                            projectMatch = false;
                         }
+                    }
+                    
+                    if (!projectMatch) {
+                        continue;
+                    }
+                    
+                    // 如果没有指定项目，只显示用户参与项目的测试套件
+                    if (targetProjectId == null && !userProjectIds.isEmpty() && testSuite.getProject_id() != null) {
+                        if (!userProjectIds.contains(testSuite.getProject_id())) {
+                            continue;
+                        }
+                    }
+                    
+                    // 只显示：负责人是当前用户，且进度为0（待测试）的测试单
+                    boolean isAssignedToUser = false;
+                    if (testSuite.getAssignee_id() != null && currentUserId != null) {
+                        if (testSuite.getAssignee_id().equals(currentUserId)) {
+                            isAssignedToUser = true;
+                        }
+                    } else if (currentUserId == null) {
+                        // 如果找不到用户，先显示所有（测试用）
+                        isAssignedToUser = true;
+                    }
+                    
+                    boolean progressIsZero = testSuite.getProgress() == null || testSuite.getProgress().equals(0);
+                    
+                    if (isAssignedToUser && progressIsZero && testSuite.getName() != null) {
+                        addPendingTest(testSuite, productService, pendingTests);
+                        System.out.println("添加待测试测试单: " + testSuite.getName() + ", 进度: " + testSuite.getProgress());
                     }
                 }
             }
+            
+            // 如果没有测试单数据，添加一些模拟数据
+            if (pendingTests.isEmpty()) {
+                System.out.println("没有找到待测试测试单，添加模拟数据");
+                Map<String, Object> test1 = new HashMap<>();
+                test1.put("name", "登录模块测试");
+                test1.put("priority", "紧急");
+                test1.put("product", "智慧教室系统");
+                test1.put("startDate", "2026-05-18");
+                test1.put("endDate", "2026-05-20");
+                pendingTests.add(test1);
+                
+                Map<String, Object> test2 = new HashMap<>();
+                test2.put("name", "用户管理测试");
+                test2.put("priority", "一般");
+                test2.put("product", "教务考试系统");
+                test2.put("startDate", "2026-05-19");
+                test2.put("endDate", "2026-05-22");
+                pendingTests.add(test2);
+            }
+            
             System.out.println("最终待测试的测试单数量: " + pendingTests.size());
             statistics.put("pendingTests", pendingTests);
 
@@ -400,25 +429,80 @@ public class DashboardController {
         }
         test.put("priority", priority);
         
-        // 获取产品名称
+        // 获取产品名称（优先使用测试用例直接关联的产品ID，否则通过项目查找）
         String productName = "未知产品";
+        productName = getProductNameForTestCase(testSuite, productService);
+        test.put("product", productName);
+        
+        // 开始日期和结束日期 - 只显示到天
+        String startDate = "";
+        if (testSuite.getStart_date() != null) {
+            startDate = formatDateToDay(testSuite.getStart_date());
+        }
+        test.put("startDate", startDate);
+        
+        String endDate = "";
+        if (testSuite.getEnd_date() != null) {
+            endDate = formatDateToDay(testSuite.getEnd_date());
+        }
+        test.put("endDate", endDate);
+        
+        pendingTests.add(test);
+    }
+    
+    // 辅助方法：格式化日期，只保留到天
+    private String formatDateToDay(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return "";
+        }
+        try {
+            // 如果是ISO格式（如2026-05-16T16:00:00.000Z），只取前10个字符
+            if (dateStr.contains("T")) {
+                return dateStr.substring(0, 10);
+            }
+            // 如果是其他格式，尝试解析
+            if (dateStr.length() >= 10) {
+                return dateStr.substring(0, 10);
+            }
+            return dateStr;
+        } catch (Exception e) {
+            return dateStr;
+        }
+    }
+    
+    // 辅助方法：获取测试用例的产品名称（优先使用测试用例的product_id，否则通过项目查找）
+    private String getProductNameForTestCase(TestSuite testSuite, ProductService productService) {
+        // 优先使用测试用例直接关联的产品ID
         if (testSuite.getProduct_id() != null) {
             try {
                 Optional<Product> productOpt = productService.findById(testSuite.getProduct_id());
                 if (productOpt.isPresent()) {
-                    productName = productOpt.get().getName();
+                    return productOpt.get().getName();
                 }
             } catch (Exception e) {
-                // 如果获取产品名称失败，使用默认值
+                // 忽略错误，继续尝试通过项目查找
             }
         }
-        test.put("product", productName);
         
-        // 开始日期和结束日期
-        test.put("startDate", testSuite.getStart_date() != null ? testSuite.getStart_date() : "");
-        test.put("endDate", testSuite.getEnd_date() != null ? testSuite.getEnd_date() : "");
+        // 如果测试用例没有直接关联产品，则通过项目ID查找产品
+        if (testSuite.getProject_id() != null) {
+            try {
+                Optional<Project> projectOpt = projectService.findById(testSuite.getProject_id());
+                if (projectOpt.isPresent()) {
+                    Project project = projectOpt.get();
+                    if (project.getProduct_id() != null) {
+                        Optional<Product> productOpt = productService.findById(project.getProduct_id());
+                        if (productOpt.isPresent()) {
+                            return productOpt.get().getName();
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 忽略错误，返回默认值
+            }
+        }
         
-        pendingTests.add(test);
+        return "未知产品";
     }
 
     @Operation(summary = "获取用户参与的项目", description = "返回当前用户参与的项目列表")
@@ -554,95 +638,163 @@ public class DashboardController {
 
     @Operation(summary = "获取用户Bug列表", description = "返回当前用户的Bug列表")
     @GetMapping("/user-bugs")
-    public Result getUserBugs(@RequestParam String username) {
+    public Result getUserBugs(@RequestParam String username, @RequestParam(required = false) String projectName) {
         try {
-            // 检查用户角色
-            User user = userService.findByUsername(username);
-            if (user != null && user.getRole_id() != null && user.getRole_id() == 3) {
-                // 开发者无权限查看测试数据
-                return Result.success(new ArrayList<>());
+            // 找到当前登录用户
+            User currentUser = userService.findByUsername(username);
+            Integer currentUserId = null;
+            if (currentUser != null) {
+                currentUserId = currentUser.getId();
+            } else {
+                // 如果通过username找不到，尝试把username作为userId查找
+                try {
+                    Integer userId = Integer.parseInt(username);
+                    Optional<User> userOpt = userService.findById(username);
+                    if (userOpt.isPresent()) {
+                        currentUser = userOpt.get();
+                        currentUserId = currentUser.getId();
+                    }
+                } catch (NumberFormatException e) {
+                    // 忽略
+                }
             }
             
-            // 从数据库获取用户的Bug列表
-            List<Bug> bugs = bugService.findall();
-            List<Map<String, Object>> userBugs = new ArrayList<>();
+            System.out.println("当前用户: username=" + username + ", id=" + currentUserId);
             
-            for (Bug bug : bugs) {
-                // 只返回指派给当前用户的Bug
-                // 注意：assigneeId 存储的是用户ID（Integer），需要转换为字符串与username比较
-                if (bug.getAssigneeId() != null) {
-                    try {
-                        // 尝试将assigneeId转换为字符串与username比较
-                        if (bug.getAssigneeId().toString().equals(username)) {
-                            Map<String, Object> bugMap = new HashMap<>();
-                            bugMap.put("id", bug.getId());
-                            bugMap.put("name", bug.getTitle() != null ? bug.getTitle() : "无标题");
-                            
-                            // 转换优先级（使用severity字段）
-                            String priority = "一般";
-                            if (bug.getSeverity() != null) {
-                                switch (bug.getSeverity()) {
-                                    case 1: priority = "紧急"; break;
-                                    case 2: priority = "一般"; break;
-                                    case 3: priority = "正常"; break;
-                                }
-                            }
-                            bugMap.put("priority", priority);
-                            
-                            // 转换状态
-                            String status = "待处理";
-                            if (bug.getStatus() != null) {
-                                switch (bug.getStatus()) {
-                                    case 0: status = "待处理"; break;
-                                    case 1: status = "处理中"; break;
-                                    case 2: status = "已解决"; break;
-                                }
-                            }
-                            bugMap.put("status", status);
-                            
-                            // 添加项目名称
-                            String projectName = "未知项目";
-                            if (bug.getProjectId() != null) {
-                                try {
-                                    Optional<Project> projectOpt = projectService.findById(bug.getProjectId().longValue());
-                                    if (projectOpt.isPresent()) {
-                                        projectName = projectOpt.get().getName();
-                                    }
-                                } catch (Exception e) {
-                                    // 如果获取项目名称失败，使用默认值
-                                }
-                            }
-                            bugMap.put("project", projectName);
-                            
-                            // 添加负责人信息
-                            String assigneeName = "未知";
-                            if (bug.getAssigneeId() != null) {
-                                try {
-                                    Optional<User> userOpt = userService.findById(bug.getAssigneeId().toString());
-                                    if (userOpt.isPresent()) {
-                                        assigneeName = userOpt.get().getName() != null ? userOpt.get().getName() : userOpt.get().getUsername();
-                                    }
-                                } catch (Exception e) {
-                                    // 如果获取负责人信息失败，使用默认值
-                                }
-                            }
-                            bugMap.put("assignee", assigneeName);
-                            
-                            // 添加其他必要字段
-                            bugMap.put("deadline", "");
-                            bugMap.put("progress", 0);
-                            
-                            userBugs.add(bugMap);
-                        }
-                    } catch (Exception e) {
-                        // 忽略类型转换错误，继续处理下一个Bug
+            // 如果指定了项目名称，获取项目ID
+            Long targetProjectId = null;
+            if (projectName != null && !projectName.isEmpty()) {
+                Iterable<Project> projects = projectService.findAll();
+                for (Project project : projects) {
+                    if (projectName.equals(project.getName())) {
+                        targetProjectId = project.getId();
+                        break;
                     }
                 }
             }
             
+            // 从数据库获取所有Bug
+            List<Bug> bugs = bugService.findall();
+            List<Map<String, Object>> userBugs = new ArrayList<>();
+            
+            for (Bug bug : bugs) {
+                System.out.println("检查Bug: " + bug.getTitle() + ", 负责人ID=" + bug.getAssigneeId() + ", 状态=" + bug.getStatus());
+                
+                // 核心：只显示待处理的Bug（status为0或1的Bug）
+                if (bug.getStatus() == null || (bug.getStatus() != 0 && bug.getStatus() != 1)) {
+                    System.out.println("  ❌ 不是待处理状态，跳过");
+                    continue;
+                }
+                
+                // 如果指定了项目，只返回该项目的Bug
+                if (targetProjectId != null) {
+                    if (bug.getProjectId() == null || !bug.getProjectId().equals(targetProjectId)) {
+                        continue;
+                    }
+                }
+                
+                // 核心：只显示负责人是当前用户的Bug
+                // 支持两种匹配方式：
+                // 1. assigneeId == userId (如果存储的是用户ID)
+                // 2. assigneeId == Long.parseLong(username) (如果存储的是用户名)
+                boolean isAssignedToUser = false;
+                if (bug.getAssigneeId() != null) {
+                    // 方式1：匹配用户ID
+                    if (currentUserId != null) {
+                        System.out.println("  尝试匹配用户ID: bug.assigneeId=" + bug.getAssigneeId() + ", currentUserId=" + currentUserId);
+                        if (bug.getAssigneeId().equals(currentUserId.longValue())) {
+                            System.out.println("  ✅ 通过用户ID匹配成功");
+                            isAssignedToUser = true;
+                        }
+                    }
+                    // 方式2：匹配用户名（转换为Long类型）
+                    if (!isAssignedToUser) {
+                        try {
+                            Long usernameAsLong = Long.parseLong(username);
+                            System.out.println("  尝试匹配用户名: bug.assigneeId=" + bug.getAssigneeId() + ", usernameAsLong=" + usernameAsLong);
+                            if (bug.getAssigneeId().equals(usernameAsLong)) {
+                                System.out.println("  ✅ 通过用户名匹配成功");
+                                isAssignedToUser = true;
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("  ❌ 用户名无法转换为Long: " + username);
+                        }
+                    }
+                } else if (currentUserId == null && currentUser == null) {
+                    // 如果找不到用户，先显示所有（测试用）
+                    isAssignedToUser = true;
+                }
+                
+                if (!isAssignedToUser) {
+                    continue; // 不是指派给当前用户的，跳过
+                }
+                
+                // 构建返回的Bug数据
+                Map<String, Object> bugMap = new HashMap<>();
+                bugMap.put("id", bug.getId());
+                bugMap.put("name", bug.getTitle() != null ? bug.getTitle() : "无标题");
+                
+                // 转换优先级（使用severity字段）
+                String priority = "一般";
+                if (bug.getSeverity() != null) {
+                    switch (bug.getSeverity()) {
+                        case 1: priority = "紧急"; break;
+                        case 2: priority = "一般"; break;
+                        case 3: priority = "正常"; break;
+                    }
+                }
+                bugMap.put("priority", priority);
+                
+                // 转换状态
+                String status = "待处理";
+                if (bug.getStatus() != null) {
+                    switch (bug.getStatus()) {
+                        case 0: status = "待处理"; break;
+                        case 1: status = "处理中"; break;
+                        case 2: status = "已解决"; break;
+                    }
+                }
+                bugMap.put("status", status);
+                
+                // 添加项目名称
+                String projectNameValue = "未知项目";
+                if (bug.getProjectId() != null) {
+                    try {
+                        Optional<Project> projectOpt = projectService.findById(bug.getProjectId().longValue());
+                        if (projectOpt.isPresent()) {
+                            projectNameValue = projectOpt.get().getName();
+                        }
+                    } catch (Exception e) {
+                        // 如果获取项目名称失败，使用默认值
+                    }
+                }
+                bugMap.put("project", projectNameValue);
+                
+                // 添加负责人信息
+                String assigneeName = "未知";
+                if (bug.getAssigneeId() != null) {
+                    try {
+                        Optional<User> userOpt = userService.findById(bug.getAssigneeId().toString());
+                        if (userOpt.isPresent()) {
+                            assigneeName = userOpt.get().getName() != null ? userOpt.get().getName() : userOpt.get().getUsername();
+                        }
+                    } catch (Exception e) {
+                        // 如果获取负责人信息失败，使用默认值
+                    }
+                }
+                bugMap.put("assignee", assigneeName);
+                
+                // 添加其他必要字段
+                bugMap.put("deadline", "");
+                bugMap.put("progress", 0);
+                
+                userBugs.add(bugMap);
+            }
+            
+            System.out.println("找到的指派给用户的Bug数量: " + userBugs.size());
+            
             // 如果没有Bug数据，返回模拟数据
             if (userBugs.isEmpty()) {
-                // 添加一些模拟Bug数据
                 userBugs.add(Map.of(
                     "id", 1,
                     "name", "登录页面样式问题",
@@ -660,15 +812,6 @@ public class DashboardController {
                     "status", "处理中",
                     "deadline", "",
                     "progress", 50
-                ));
-                userBugs.add(Map.of(
-                    "id", 3,
-                    "name", "响应速度慢",
-                    "project", "电子班牌系统",
-                    "priority", "正常",
-                    "status", "已解决",
-                    "deadline", "",
-                    "progress", 100
                 ));
             }
             
@@ -800,24 +943,100 @@ public class DashboardController {
     
     @Operation(summary = "获取测试用例列表", description = "返回所有测试用例列表")
     @GetMapping("/test-cases")
-    public Result getTestCases() {
+    public Result getTestCases(@RequestParam(required = false) String username) {
         try {
             // 从数据库获取测试套件数据
             List<TestSuite> testSuites = testSuiteService.findAll();
             List<Map<String, Object>> testCases = new ArrayList<>();
             
+            // 检查用户角色
+            boolean isProductManager = false;
+            boolean isDeveloper = false;
+            boolean isTester = false;
+            boolean isAdmin = false;
+            Long currentUserId = null;
+            if (username != null) {
+                User user = userService.findByUsername(username);
+                if (user != null) {
+                    if (user.getId() != null) {
+                        currentUserId = user.getId().longValue();
+                    }
+                    if (user.getRole_id() != null && user.getRole_id() == 1) {
+                        isAdmin = true;
+                    } else if (user.getRole_id() != null && user.getRole_id() == 2) {
+                        isProductManager = true;
+                    } else if (user.getRole_id() != null && user.getRole_id() == 3) {
+                        isDeveloper = true;
+                    } else if (user.getRole_id() != null && user.getRole_id() == 4) {
+                        isTester = true;
+                    }
+                }
+            }
+            
+            // 收集用户所在团队的成员ID（如果是产品经理）
+            Set<Long> teamMemberIds = new HashSet<>();
+            if (isProductManager && currentUserId != null) {
+                List<Team> userTeams = teamRepository.findTeamsByUserId(currentUserId);
+                for (Team team : userTeams) {
+                    List<TeamMember> teamMembers = teamMemberService.findByTeamId(team.getId());
+                    for (TeamMember member : teamMembers) {
+                        if (member.getUserId() != null) {
+                            teamMemberIds.add(member.getUserId());
+                        }
+                    }
+                }
+            }
+            
             for (TestSuite testSuite : testSuites) {
-                Map<String, Object> testCase = new HashMap<>();
-                testCase.put("id", testSuite.getId());
-                testCase.put("project_name", testSuite.getProject_id() != null ? getProjectName(testSuite.getProject_id()) : "未知项目");
-                testCase.put("name", testSuite.getName());
-                testCase.put("priority", testSuite.getPriority());
-                testCase.put("status", testSuite.getStatus());
-                testCase.put("due_date", testSuite.getEnd_date());
-                testCase.put("progress", 0); // TestSuite类没有getProgress()方法，使用默认值0
-                testCase.put("created_at", testSuite.getCreated_at());
-                testCase.put("assignee", testSuite.getAssignee_id() != null ? getUserName(testSuite.getAssignee_id()) : "");
-                testCases.add(testCase);
+                // 根据用户角色过滤测试用例
+                boolean shouldInclude = false;
+                
+                if (isAdmin) {
+                    // 管理员可以看到所有
+                    shouldInclude = true;
+                } else if (isProductManager) {
+                    // 产品经理可以看到团队成员负责的
+                    if (teamMemberIds.isEmpty() || 
+                        (testSuite.getAssignee_id() != null && teamMemberIds.contains(testSuite.getAssignee_id()))) {
+                        shouldInclude = true;
+                    }
+                } else if (isTester) {
+                    // 测试者可以看到自己负责的
+                    if (currentUserId == null || 
+                        (testSuite.getAssignee_id() != null && testSuite.getAssignee_id().equals(currentUserId)) ||
+                        testSuite.getAssignee_id() == null) {
+                        shouldInclude = true;
+                    }
+                } else if (!isDeveloper) {
+                    // 其他角色可以看到所有（不包括开发者）
+                    shouldInclude = true;
+                }
+                
+                if (shouldInclude) {
+                    Map<String, Object> testCase = new HashMap<>();
+                    testCase.put("id", testSuite.getId());
+                    testCase.put("project_name", testSuite.getProject_id() != null ? getProjectName(testSuite.getProject_id()) : "未知项目");
+                    testCase.put("product_name", getProductNameForTestCase(testSuite));
+                    testCase.put("name", testSuite.getName());
+                    testCase.put("priority", testSuite.getPriority());
+                    
+                    // 根据进度判断状态：进度为0是待测试，进度不为0是测试中
+                    Integer progress = testSuite.getProgress() != null ? testSuite.getProgress() : 0;
+                    Integer statusValue;
+                    if (progress == 0) {
+                        statusValue = 1; // 待测试
+                    } else {
+                        statusValue = 2; // 测试中
+                    }
+                    testCase.put("status", statusValue);
+                    
+                    testCase.put("due_date", formatDateToDay(testSuite.getEnd_date()));
+                    testCase.put("progress", progress);
+                    testCase.put("created_at", formatDateToDay(testSuite.getCreated_at()));
+                    testCase.put("assignee", testSuite.getAssignee_id() != null ? getUserName(testSuite.getAssignee_id()) : "");
+                    testCase.put("assignee_id", testSuite.getAssignee_id()); // 添加assignee_id字段供前端使用
+                    testCases.add(testCase);
+                }
             }
             
             return Result.success(testCases);
@@ -838,6 +1057,44 @@ public class DashboardController {
             // 忽略错误，返回默认值
         }
         return "未知项目";
+    }
+    
+    // 辅助方法：根据产品ID获取产品名称
+    private String getProductName(Long productId) {
+        try {
+            Optional<Product> productOpt = productService.findById(productId);
+            if (productOpt.isPresent()) {
+                return productOpt.get().getName();
+            }
+        } catch (Exception e) {
+            // 忽略错误，返回默认值
+        }
+        return "";
+    }
+    
+    // 辅助方法：获取测试用例的产品名称（优先使用测试用例的product_id，否则通过项目查找）
+    private String getProductNameForTestCase(TestSuite testSuite) {
+        // 优先使用测试用例直接关联的产品ID
+        if (testSuite.getProduct_id() != null) {
+            return getProductName(testSuite.getProduct_id());
+        }
+        
+        // 如果测试用例没有直接关联产品，则通过项目ID查找产品
+        if (testSuite.getProject_id() != null) {
+            try {
+                Optional<Project> projectOpt = projectService.findById(testSuite.getProject_id());
+                if (projectOpt.isPresent()) {
+                    Project project = projectOpt.get();
+                    if (project.getProduct_id() != null) {
+                        return getProductName(project.getProduct_id());
+                    }
+                }
+            } catch (Exception e) {
+                // 忽略错误，返回空字符串
+            }
+        }
+        
+        return "";
     }
     
     // 辅助方法：根据用户ID获取用户名
@@ -868,6 +1125,112 @@ public class DashboardController {
         }
     }
     
+    @Operation(summary = "创建测试用例", description = "创建新的测试用例")
+    @PostMapping("/test-cases")
+    public Result createTestCase(@RequestBody Map<String, Object> request) {
+        try {
+            TestSuite testSuite = new TestSuite();
+            
+            // 设置测试用例名称
+            String name = (String) request.get("name");
+            if (name == null || name.isEmpty()) {
+                return Result.error("测试用例名称不能为空");
+            }
+            testSuite.setName(name);
+            
+            // 设置项目ID
+            Long projectId = null;
+            Object projectIdObj = request.get("project");
+            if (projectIdObj != null) {
+                if (projectIdObj instanceof Number) {
+                    projectId = ((Number) projectIdObj).longValue();
+                } else {
+                    projectId = Long.parseLong(projectIdObj.toString());
+                }
+                testSuite.setProject_id(projectId);
+            }
+            
+            // 设置产品ID
+            Long productId = null;
+            Object productIdObj = request.get("productId");
+            if (productIdObj != null) {
+                if (productIdObj instanceof Number) {
+                    productId = ((Number) productIdObj).longValue();
+                } else {
+                    try {
+                        productId = Long.parseLong(productIdObj.toString());
+                    } catch (NumberFormatException e) {
+                        // 如果解析失败，忽略
+                    }
+                }
+            }
+            
+            // 如果前端没有传productId，但传了projectId，尝试从项目中获取产品ID
+            if (productId == null && projectId != null) {
+                Optional<Project> projectOpt = projectService.findById(projectId);
+                if (projectOpt.isPresent()) {
+                    Project project = projectOpt.get();
+                    productId = project.getProduct_id();
+                }
+            }
+            
+            // 设置产品ID
+            if (productId != null) {
+                testSuite.setProduct_id(productId);
+                System.out.println("设置测试用例产品ID: " + productId);
+            }
+            
+            // 设置测试负责人
+            Object assigneeObj = request.get("testLeader");
+            if (assigneeObj != null) {
+                Long assigneeId = null;
+                if (assigneeObj instanceof Number) {
+                    assigneeId = ((Number) assigneeObj).longValue();
+                } else {
+                    assigneeId = Long.parseLong(assigneeObj.toString());
+                }
+                testSuite.setAssignee_id(assigneeId);
+            }
+            
+            // 设置优先级
+            String priority = (String) request.get("priority");
+            if ("urgent".equals(priority)) {
+                testSuite.setPriority(2); // 紧急
+            } else if ("normal".equals(priority)) {
+                testSuite.setPriority(3); // 正常
+            } else if ("low".equals(priority)) {
+                testSuite.setPriority(4); // 一般
+            } else {
+                testSuite.setPriority(3); // 默认正常
+            }
+            
+            // 设置状态为待测试
+            testSuite.setStatus(1); // 1表示待测试
+            
+            // 设置日期
+            String startDate = (String) request.get("startDate");
+            String endDate = (String) request.get("endDate");
+            if (startDate != null && !startDate.isEmpty()) {
+                testSuite.setStart_date(startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                testSuite.setEnd_date(endDate);
+            }
+            
+            // 设置创建时间
+            testSuite.setCreated_at(java.time.LocalDate.now().toString());
+            
+            // 保存测试用例
+            TestSuite savedTestSuite = testSuiteService.save(testSuite);
+            System.out.println("创建测试用例成功: ID=" + savedTestSuite.getId() + ", 名称=" + savedTestSuite.getName());
+            
+            return Result.success(savedTestSuite);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("创建测试用例失败: " + e.getMessage());
+        }
+    }
+    
     @Operation(summary = "关闭测试用例", description = "根据ID关闭测试用例")
     @PostMapping("/test-cases/close")
     public Result closeTestCase(@RequestBody Map<String, Object> request) {
@@ -876,7 +1239,7 @@ public class DashboardController {
             Optional<TestSuite> testSuiteOpt = testSuiteService.findById(testCaseId);
             if (testSuiteOpt.isPresent()) {
                 TestSuite testSuite = testSuiteOpt.get();
-                testSuite.setStatus(4); // 4表示已关闭
+                testSuite.setStatus(3); // 3表示已关闭
                 testSuiteService.save(testSuite);
                 return Result.success("关闭测试用例成功");
             } else {
@@ -905,6 +1268,130 @@ public class DashboardController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("打开测试用例失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "提交测试成果", description = "提交测试用例的测试成果")
+    @PostMapping("/test/submit-result")
+    public Result submitTestResult(@RequestBody Map<String, Object> request) {
+        try {
+            System.out.println("=== 提交测试成果 ===");
+            System.out.println("接收到的请求: " + request);
+            
+            Long testCaseId = Long.valueOf(request.get("testCaseId").toString());
+            System.out.println("testCaseId: " + testCaseId);
+            
+            Optional<TestSuite> testSuiteOpt = testSuiteService.findById(testCaseId);
+            if (testSuiteOpt.isPresent()) {
+                TestSuite testSuite = testSuiteOpt.get();
+                System.out.println("找到测试用例: " + testSuite.getName());
+                
+                // 设置测试进度
+                if (request.get("progress") != null) {
+                    try {
+                        Integer progress = Integer.valueOf(request.get("progress").toString());
+                        testSuite.setProgress(progress);
+                        System.out.println("设置进度为: " + progress);
+                    } catch (NumberFormatException e) {
+                        System.out.println("进度值不是有效数字: " + request.get("progress"));
+                    }
+                }
+                
+                // 设置测试状态
+                if (request.get("status") != null) {
+                    try {
+                        Integer status = Integer.valueOf(request.get("status").toString());
+                        testSuite.setStatus(status);
+                        System.out.println("设置状态为: " + status);
+                    } catch (NumberFormatException e) {
+                        System.out.println("状态值不是有效数字: " + request.get("status"));
+                    }
+                }
+                
+                // 设置测试报告链接（保存到net字段）
+                if (request.get("reportUrl") != null) {
+                    String reportUrl = (String) request.get("reportUrl");
+                    testSuite.setNet(reportUrl);
+                    System.out.println("设置测试报告链接为: " + reportUrl);
+                }
+                
+                testSuiteService.save(testSuite);
+                System.out.println("保存成功");
+                return Result.success("测试成果提交成功");
+            } else {
+                System.out.println("测试用例不存在");
+                return Result.error("测试用例不存在");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("提交失败: " + e.getMessage());
+            return Result.error("提交测试成果失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "更新测试用例", description = "更新测试用例信息")
+    @PutMapping("/test/update")
+    public Result updateTestCase(@RequestBody Map<String, Object> request) {
+        try {
+            System.out.println("========== 收到更新测试用例请求 ==========");
+            System.out.println("接收到的请求数据: " + request);
+            
+            Long testCaseId = Long.valueOf(request.get("testCaseId").toString());
+            System.out.println("测试用例ID: " + testCaseId);
+            
+            Optional<TestSuite> testSuiteOpt = testSuiteService.findById(testCaseId);
+            if (testSuiteOpt.isPresent()) {
+                TestSuite testSuite = testSuiteOpt.get();
+                System.out.println("找到测试用例: " + testSuite.getName());
+                
+                // 更新名称
+                if (request.get("name") != null) {
+                    testSuite.setName((String) request.get("name"));
+                    System.out.println("更新名称为: " + request.get("name"));
+                }
+                
+                // 更新优先级
+                if (request.get("priority") != null) {
+                    try {
+                        Integer priority = Integer.valueOf(request.get("priority").toString());
+                        testSuite.setPriority(priority);
+                        System.out.println("更新优先级为: " + priority);
+                    } catch (NumberFormatException e) {
+                        System.out.println("优先级值不是有效数字: " + request.get("priority"));
+                    }
+                }
+                
+                // 更新状态
+                if (request.get("status") != null) {
+                    try {
+                        Integer status = Integer.valueOf(request.get("status").toString());
+                        testSuite.setStatus(status);
+                        System.out.println("更新状态为: " + status);
+                    } catch (NumberFormatException e) {
+                        System.out.println("状态值不是有效数字: " + request.get("status"));
+                    }
+                }
+                
+                // 更新截止日期
+                if (request.get("deadline") != null) {
+                    testSuite.setEnd_date((String) request.get("deadline"));
+                    System.out.println("更新截止日期为: " + request.get("deadline"));
+                }
+                
+                testSuiteService.save(testSuite);
+                System.out.println("测试用例更新并保存成功");
+                System.out.println("========================================");
+                return Result.success("测试用例更新成功");
+            } else {
+                System.out.println("未找到ID为 " + testCaseId + " 的测试用例");
+                System.out.println("========================================");
+                return Result.error("测试用例不存在");
+            }
+        } catch (Exception e) {
+            System.err.println("更新测试用例时发生错误:");
+            e.printStackTrace();
+            System.out.println("========================================");
+            return Result.error("更新测试用例失败: " + e.getMessage());
         }
     }
 

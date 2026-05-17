@@ -10,15 +10,36 @@
               filterable
               remote
               reserve-keyword
-              placeholder="请输入项目名称"
-              :remote-method="remoteProjectMethod"
+              placeholder="请选择项目（与迭代二选一）"
+              :remote-method="searchProjects"
               :loading="projectLoading"
+              @change="onProjectSelect"
             >
               <el-option
                 v-for="item in projectOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="所属迭代">
+            <el-select
+              v-model="taskForm.iteration"
+              filterable
+              remote
+              reserve-keyword
+              placeholder="请选择迭代（与项目二选一）"
+              :remote-method="searchIterations"
+              :loading="iterationLoading"
+              @change="onIterationSelect"
+            >
+              <el-option
+                v-for="item in iterationOptions"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
               />
             </el-select>
           </el-form-item>
@@ -111,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { recordOperationLog } from '@/utils/operationLog.js';
 import request from "@/utils/request.js";
@@ -121,6 +142,7 @@ const router = useRouter();
 // 任务表单数据
 const taskForm = ref({
   project: '',
+  iteration: '',
   name: '',
   assignee: '',
   status: '1', // 默认待开始
@@ -130,67 +152,196 @@ const taskForm = ref({
   description: ''
 });
 
+// 当前用户信息
+const currentUser = ref(null);
+
 // 负责人选项
 const assigneeOptions = ref([]);
+// 项目选项
+const projectOptions = ref([]);
+// 迭代选项
+const iterationOptions = ref([]);
+
 // 加载状态
 const loading = ref(false);
+const projectLoading = ref(false);
+const iterationLoading = ref(false);
 
-// 模拟远程搜索方法
-const remoteMethod = (query) => {
-  if (query !== '') {
+// 团队成员ID集合
+const teamMemberIds = ref(new Set());
+// 用户参与的项目ID集合
+const userProjectIds = ref(new Set());
+
+// 获取当前用户信息
+const loadCurrentUser = () => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      currentUser.value = JSON.parse(userStr);
+    } catch (e) {
+      console.error('解析用户信息失败:', e);
+    }
+  }
+};
+
+// 获取用户所在团队的成员和参与的项目
+const loadTeamMembers = async () => {
+  if (!currentUser.value) return;
+  
+  try {
+    // 获取用户参与的项目
+    const projectRes = await request.get(`/dashboard/user-projects?username=${currentUser.value.username}`);
+    if (projectRes.data.code === 200 && Array.isArray(projectRes.data.data)) {
+      const projectIds = new Set();
+      projectRes.data.data.forEach(project => {
+        if (project.id) {
+          projectIds.add(Number(project.id));
+        }
+      });
+      userProjectIds.value = projectIds;
+      console.log('用户参与的项目ID:', userProjectIds.value);
+    }
+    
+    // 获取用户所在的团队
+    const userIdForTeam = currentUser.value.username;
+    const teamRes = await request.get(`/teams/user-teams/${userIdForTeam}`);
+    if (teamRes.data.code === 200 && teamRes.data.data) {
+      const memberIds = new Set();
+      
+      for (const team of teamRes.data.data) {
+        try {
+          const memberRes = await request.get(`/teams/${team.id}/members`);
+          if (memberRes.data.code === 200 && memberRes.data.data) {
+            memberRes.data.data.forEach(member => {
+              if (member.userId) {
+                memberIds.add(Number(member.userId));
+              }
+            });
+          }
+        } catch (e) {
+          console.error('获取团队成员失败:', e);
+        }
+      }
+      
+      teamMemberIds.value = memberIds;
+      console.log('团队成员ID:', teamMemberIds.value);
+    }
+  } catch (error) {
+    console.error('加载团队成员失败:', error);
+  }
+};
+
+// 搜索负责人（优先显示同团队成员）
+const searchUsers = async (query) => {
+  if (query) {
     loading.value = true;
-    // 模拟API请求延迟
-    setTimeout(() => {
+    try {
+      const res = await request.get('/admin/findAll');
+      if (res.data.code === 200) {
+        let filteredUsers = res.data.data;
+        
+        // 如果团队成员集合不为空，则只显示同团队成员
+        if (teamMemberIds.value.size > 0) {
+          filteredUsers = filteredUsers.filter(item => 
+            teamMemberIds.value.has(Number(item.username))
+          );
+        }
+        
+        assigneeOptions.value = filteredUsers
+          .map(item => ({
+            id: item.username,
+            name: item.name || item.username,
+            username: item.username
+          }))
+          .filter(item => 
+            (item.name && item.name.toLowerCase().includes(query.toLowerCase())) ||
+            (item.username && item.username.toLowerCase().includes(query.toLowerCase()))
+          );
+      }
+    } catch (error) {
+      console.error('搜索用户失败:', error);
+    } finally {
       loading.value = false;
-      // 模拟搜索结果
-      const allOptions = [
-        { label: '张三', value: '张三' },
-        { label: '李四', value: '李四' },
-        { label: '王五', value: '王五' },
-        { label: '赵六', value: '赵六' },
-        { label: '孙七', value: '孙七' },
-        { label: '周八', value: '周八' }
-      ];
-      // 根据查询过滤结果
-      assigneeOptions.value = allOptions.filter(item => 
-        item.label.toLowerCase().includes(query.toLowerCase())
-      );
-    }, 200);
+    }
   } else {
     assigneeOptions.value = [];
   }
 };
 
-// 项目选项
-const projectOptions = ref([]);
-// 项目加载状态
-const projectLoading = ref(false);
-
-// 模拟项目远程搜索方法
-const remoteProjectMethod = (query) => {
-  if (query !== '') {
+// 搜索项目（只搜索用户参与的项目）
+const searchProjects = async (query) => {
+  if (query) {
     projectLoading.value = true;
-    // 模拟API请求延迟
-    setTimeout(() => {
+    try {
+      const res = await request.get('/api/projects');
+      if (res.data.code === 200) {
+        projectOptions.value = res.data.data
+          .filter(item => userProjectIds.value.has(Number(item.id)))
+          .filter(item => 
+            item.name.toLowerCase().includes(query.toLowerCase())
+          )
+          .map(item => ({
+            id: item.id,
+            name: item.name
+          }));
+      }
+    } catch (error) {
+      console.error('搜索项目失败:', error);
+    } finally {
       projectLoading.value = false;
-      // 模拟搜索结果
-      const allProjects = [
-        { label: '智慧教室', value: '智慧教室' },
-        { label: '电子班牌', value: '电子班牌' },
-        { label: '数据大屏', value: '数据大屏' },
-        { label: '实训教学管理平台', value: '实训教学管理平台' },
-        { label: '电子班牌管理系统', value: '电子班牌管理系统' },
-        { label: '智慧园区OA办公系统', value: '智慧园区OA办公系统' },
-        { label: '在线试卷批改系统', value: '在线试卷批改系统' },
-        { label: '家校互通平台', value: '家校互通平台' }
-      ];
-      // 根据查询过滤结果
-      projectOptions.value = allProjects.filter(item => 
-        item.label.toLowerCase().includes(query.toLowerCase())
-      );
-    }, 200);
+    }
   } else {
     projectOptions.value = [];
+  }
+};
+
+// 搜索迭代（只显示用户参与的项目的迭代）
+const searchIterations = async (query) => {
+  if (query) {
+    iterationLoading.value = true;
+    try {
+      const res = await request.get('/iteration/list');
+      if (res.data.code === 200 && Array.isArray(res.data.data)) {
+        let iterations = res.data.data;
+        
+        // 只显示用户参与的项目的迭代
+        iterations = iterations.filter(item => userProjectIds.value.has(Number(item.projectId)));
+        
+        iterationOptions.value = iterations
+          .filter(item => 
+            item.name && item.name.toLowerCase().includes(query.toLowerCase())
+          )
+          .map(item => ({
+            id: item.id,
+            name: item.name,
+            projectId: item.projectId
+          }));
+      }
+    } catch (error) {
+      console.error('搜索迭代失败:', error);
+    } finally {
+      iterationLoading.value = false;
+    }
+  } else {
+    iterationOptions.value = [];
+  }
+};
+
+// 选择项目时清空迭代（二选一）
+const onProjectSelect = () => {
+  if (taskForm.value.project) {
+    taskForm.value.iteration = '';
+  }
+};
+
+// 选择迭代时关联项目（二选一）
+const onIterationSelect = () => {
+  if (taskForm.value.iteration) {
+    // 选中迭代后，获取迭代对应的项目信息用于保存
+    const selectedIteration = iterationOptions.value.find(i => i.id === taskForm.value.iteration);
+    if (selectedIteration && selectedIteration.projectId) {
+      taskForm.value.project = selectedIteration.projectId;
+    }
   }
 };
 

@@ -120,4 +120,27 @@ public class UserController {
             return Result.error("获取产品经理失败: " + e.getMessage());
         }
     }
+    
+    @Operation(summary = "获取用户列表", description = "获取所有用户列表")
+    @GetMapping("/list")
+    public Result getUserList() {
+        try {
+            Iterable<User> users = userService.findAll();
+            List<Map<String, Object>> userList = new ArrayList<>();
+            
+            for (User user : users) {
+                Map<String, Object> userMap = new HashMap<>();
+                userMap.put("id", user.getId());
+                userMap.put("name", user.getName());
+                userMap.put("username", user.getUsername());
+                userMap.put("role_id", user.getRole_id());
+                userList.add(userMap);
+            }
+            
+            return Result.success(userList);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取用户列表失败: " + e.getMessage());
+        }
+    }
 }

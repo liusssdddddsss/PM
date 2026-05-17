@@ -16,10 +16,12 @@ public class TestSuite {
     private Long product_id;
     private Integer priority;
     private Integer status;
+    private Integer progress;
     private String start_date;
     private String end_date;
     private Long assignee_id;
     private String created_at;
+    private String net;
 
     // 构造方法
     public TestSuite() {
@@ -87,6 +89,14 @@ public class TestSuite {
         this.status = status;
     }
 
+    public Integer getProgress() {
+        return progress;
+    }
+
+    public void setProgress(Integer progress) {
+        this.progress = progress;
+    }
+
     public String getStart_date() {
         return start_date;
     }
@@ -117,6 +127,14 @@ public class TestSuite {
 
     public void setCreated_at(String created_at) {
         this.created_at = created_at;
+    }
+
+    public String getNet() {
+        return net;
+    }
+
+    public void setNet(String net) {
+        this.net = net;
     }
 
 }

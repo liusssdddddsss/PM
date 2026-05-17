@@ -100,22 +100,7 @@
         </div>
         <div class="detail-item">
           <label>截止时间：</label>
-          <span>{{ detailBug.deadline || '无' }}</span>
-        </div>
-        <div class="detail-item">
-          <label>进度：</label>
-          <div class="progress-container">
-            <el-progress :percentage="detailBug.progress" :stroke-width="15" />
-            <span class="progress-text">{{ detailBug.progress }}%</span>
-          </div>
-        </div>
-        <div class="detail-item">
-          <label>工时：</label>
-          <span>{{ detailBug.workTime }}</span>
-        </div>
-        <div class="detail-item">
-          <label>剩余工时：</label>
-          <span>{{ detailBug.remainingTime }}</span>
+          <span>{{ formatDate(detailBug.deadline) || '无' }}</span>
         </div>
         <div class="detail-item">
           <label>Bug描述：</label>

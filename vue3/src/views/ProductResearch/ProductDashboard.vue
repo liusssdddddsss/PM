@@ -47,37 +47,13 @@
           <div class="product-list-tabs">
             <div class="tab-header" style="display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <span 
-                  v-for="(tab, index) in tabs" 
-                  :key="index"
-                  :class="['tab-item', { active: activeTab === index }]"
-                  @click="activeTab = index"
-                >
-                  {{ tab.name }}
-                </span>
+                <h4 style="margin: 0; font-size: 16px; color: #303133;">产品列表</h4>
               </div>
               <el-button v-if="isProductManager" type="primary" @click="showCreateProductDialog = true">创建产品</el-button>
             </div>
             <div class="tab-content">
-              <!-- 产品发布列表 -->
-              <div v-if="activeTab === 1" class="product-release-list">
-                <el-table :data="productReleases" stripe style="width: 100%">
-                  <el-table-column prop="projectName" label="产品名称" min-width="250">
-                    <template #default="scope">
-                      <a href="#" class="project-link">{{ scope.row.projectName }}</a>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="product" label="所属产品" min-width="150" />
-                  <el-table-column prop="releaseDate" label="计划发布日期" min-width="120" />
-                  <el-table-column prop="status" label="状态" min-width="100">
-                    <template #default="scope">
-                      <span class="status-tag">{{ scope.row.status }}</span>
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </div>
               <!-- 未关闭的产品列表 -->
-              <div v-if="activeTab === 0" class="unclosed-product-list">
+              <div class="unclosed-product-list">
                 <el-table :data="unclosedProducts" stripe style="width: 100%">
                   <el-table-column prop="projectName" label="产品名称" min-width="200">
                     <template #default="scope">
@@ -352,8 +328,7 @@ const selectedPeriodProducts = ref([]);
 // 标签页数据
 const activeTab = ref(0);
 const tabs = ref([
-  { name: '产品列表' },
-  { name: '未完成的产品' }
+  { name: '产品列表' }
 ]);
 
 // 创建产品相关

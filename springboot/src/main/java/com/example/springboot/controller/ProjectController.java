@@ -73,6 +73,7 @@ public class ProjectController {
                 Map<String, Object> projectMap = new HashMap<>();
                 projectMap.put("id", project.getId());
                 projectMap.put("name", project.getName());
+                projectMap.put("product_id", project.getProduct_id());
                 projectList.add(projectMap);
             }
             

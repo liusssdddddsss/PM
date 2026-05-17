@@ -955,6 +955,72 @@ public class TeamController {
         }
     }
     
+    // 获取用户所在的团队
+    @Operation(summary = "获取用户团队", description = "获取用户所在的团队列表")
+    @GetMapping("/user-teams/{userId}")
+    public Result getUserTeams(@PathVariable String userId) {
+        try {
+            System.out.println("===== getUserTeams 方法被调用，用户ID(字符串): " + userId + " =====");
+            
+            // 尝试将用户ID转换为Long类型
+            Long userIdLong = null;
+            try {
+                userIdLong = Long.parseLong(userId);
+            } catch (NumberFormatException e) {
+                // 如果不是数字格式，尝试查找用户获取ID
+                System.out.println("用户ID不是纯数字格式，尝试通过用户名查找");
+                User user = userService.findByUsername(userId);
+                if (user != null && user.getId() != null) {
+                    userIdLong = user.getId().longValue();
+                }
+            }
+            
+            if (userIdLong == null) {
+                System.out.println("无法解析用户ID");
+                return Result.success(new ArrayList<>());
+            }
+            
+            System.out.println("最终使用的用户ID(Long): " + userIdLong);
+            List<TeamMember> teamMembers = teamMemberService.findByUserId(userIdLong);
+            System.out.println("获取到的团队成员记录数量: " + teamMembers.size());
+            
+            List<Team> teams = new ArrayList<>();
+            
+            for (TeamMember member : teamMembers) {
+                System.out.println("团队成员记录: teamId=" + member.getTeamId() + ", userId=" + member.getUserId());
+                Optional<Team> teamOpt = teamService.findById(member.getTeamId());
+                if (teamOpt.isPresent()) {
+                    Team team = teamOpt.get();
+                    System.out.println("找到团队: id=" + team.getId() + ", name=" + team.getName());
+                    teams.add(team);
+                } else {
+                    System.out.println("未找到团队，teamId=" + member.getTeamId());
+                }
+            }
+            
+            System.out.println("获取到的团队数量: " + teams.size());
+            return Result.success(teams);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取用户团队失败: " + e.getMessage());
+        }
+    }
+    
+    // 获取团队成员
+    @Operation(summary = "获取团队成员", description = "获取指定团队的成员列表")
+    @GetMapping("/{teamId}/members")
+    public Result getTeamMembers(@PathVariable Integer teamId) {
+        try {
+            System.out.println("===== getTeamMembers 方法被调用，团队ID: " + teamId + " =====");
+            List<TeamMember> members = teamMemberService.findByTeamId(teamId);
+            System.out.println("获取到的团队成员数量: " + members.size());
+            return Result.success(members);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取团队成员失败: " + e.getMessage());
+        }
+    }
+    
     // 搜索团队
     @Operation(summary = "搜索团队", description = "根据关键词搜索团队")
     @GetMapping("")

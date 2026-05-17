@@ -21,6 +21,9 @@ public class Bug {
     @Column(name = "project_id")
     private Long projectId;
     
+    @Column(name = "iteration_id")
+    private Long iterationId;
+    
     @Column(name = "task_id")
     private Long taskId;
     
@@ -104,6 +107,14 @@ public class Bug {
 
     public void setProjectId(Long projectId) {
         this.projectId = projectId;
+    }
+
+    public Long getIterationId() {
+        return iterationId;
+    }
+
+    public void setIterationId(Long iterationId) {
+        this.iterationId = iterationId;
     }
 
     public Long getTaskId() {

@@ -97,10 +97,7 @@ onMounted(() => {
   const role = route.query.role;
   if (role) {
     roleFromUrl.value = role;
-    // 如果是产品经理或测试者，默认显示"待测试"
-    if (role === 'productManager' || role === 'tester') {
-      activeTab.value = 'stayingTest';
-    }
+    // 默认显示"全部"，用户可以自行切换
   }
   fetchTestCaseStats();
 });

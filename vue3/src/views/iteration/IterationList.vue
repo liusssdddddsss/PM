@@ -55,8 +55,16 @@
             <span>{{ scope.row.projectName }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="startDate" label="开始时间" width="130"></el-table-column>
-        <el-table-column prop="endDate" label="预计完成时间" width="130"></el-table-column>
+        <el-table-column label="开始时间" width="130">
+          <template #default="scope">
+            {{ formatDate(scope.row.startDate) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="预计完成时间" width="130">
+          <template #default="scope">
+            {{ formatDate(scope.row.endDate) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="progress" label="进度" width="100">
           <template #default="scope">
             <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
@@ -104,7 +112,9 @@
 
 import {ref, computed, onMounted} from "vue";
 import {useRouter} from "vue-router";
+import { ElMessageBox } from 'element-plus';
 import request from '@/utils/request.js';
+import { recordOperationLog } from '@/utils/operationLog.js';
 
 // 获取用户角色
 const userRole = ref(null);
@@ -267,45 +277,66 @@ const getStateClass = (status) => {
   return '';
 };
 
-// 处理操作
-const handleClose = async (iteration) => {
-  try {
-    console.log('关闭迭代:', iteration);
-    // 确保id是数字类型
-    const iterationId = parseInt(iteration.id);
-    console.log('迭代ID:', iterationId);
-    
-    // 发送请求关闭迭代，包含所有必要字段
-    const response = await request.put(`/iteration/update`, {
-      id: iterationId,
-      name: iteration.name,
-      description: iteration.description,
-      projectId: iteration.projectId,
-      startDate: iteration.startDate,
-      endDate: iteration.endDate,
-      status: 2 // 2表示已关闭
-    });
-    console.log('关闭迭代响应:', response);
-    if (response.data.code === 200) {
-      console.log('关闭迭代成功:', iterationId);
-      // 重新获取迭代列表
-      await fetchIterations();
-    }
-  } catch (error) {
-    console.error('关闭迭代失败:', error);
-    console.error('错误详情:', error.response);
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  let result = dateStr;
+  if (result.includes('T')) {
+    result = result.split('T')[0];
+  } else if (result.includes(' ')) {
+    result = result.split(' ')[0];
   }
+  if (result.includes('.')) {
+    result = result.split('.')[0];
+  }
+  if (result.includes('Z')) {
+    result = result.replace('Z', '');
+  }
+  return result;
+};
+
+// 处理操作
+const handleClose = (iteration) => {
+  console.log('点击关闭按钮:', iteration);
+  
+  ElMessageBox.confirm(
+    '确定要关闭这个迭代吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      const iterationId = parseInt(iteration.id);
+      
+      const response = await request.put(`/iteration/update`, {
+        id: iterationId,
+        name: iteration.name,
+        description: iteration.description,
+        projectId: iteration.projectId,
+        startDate: iteration.startDate,
+        endDate: iteration.endDate,
+        status: 2
+      });
+      if (response.data.code === 200) {
+        console.log('关闭迭代成功:', iterationId);
+        await recordOperationLog('关闭迭代', 'iteration', iterationId, iteration.name);
+        await fetchIterations();
+      }
+    } catch (error) {
+      console.error('关闭迭代失败:', error);
+    }
+  }).catch(() => {
+    console.log('用户取消关闭迭代');
+  });
 };
 
 // 处理打开迭代
 const handleOpen = async (iteration) => {
   try {
-    console.log('打开迭代:', iteration);
-    // 确保id是数字类型
     const iterationId = parseInt(iteration.id);
-    console.log('迭代ID:', iterationId);
     
-    // 发送请求打开迭代，包含所有必要字段
     const response = await request.put(`/iteration/update`, {
       id: iterationId,
       name: iteration.name,
@@ -313,17 +344,15 @@ const handleOpen = async (iteration) => {
       projectId: iteration.projectId,
       startDate: iteration.startDate,
       endDate: iteration.endDate,
-      status: 1 // 1表示进行中
+      status: 1
     });
-    console.log('打开迭代响应:', response);
     if (response.data.code === 200) {
       console.log('打开迭代成功:', iterationId);
-      // 重新获取迭代列表
+      await recordOperationLog('打开迭代', 'iteration', iterationId, iteration.name);
       await fetchIterations();
     }
   } catch (error) {
     console.error('打开迭代失败:', error);
-    console.error('错误详情:', error.response);
   }
 };
 
@@ -336,6 +365,7 @@ const handleDelete = async (id) => {
     const response = await request.delete(`/iteration/delete/${id}`);
     if (response.data.code === 200) {
       console.log('删除迭代成功:', id);
+      await recordOperationLog('删除迭代', 'iteration', id, '迭代');
       // 重新获取迭代列表
       await fetchIterations();
     }

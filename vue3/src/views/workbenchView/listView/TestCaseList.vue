@@ -24,17 +24,21 @@
             <span class="task-name">{{ scope.row.name }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="priority" label="优先级" width="80">
+        <el-table-column label="优先级" width="80">
           <template #default="scope">
-            <span :class="getPriorityClass(scope.row.priority)">{{ scope.row.priority }}</span>
+            <span :class="getPriorityClass(scope.row.priorityValue)">{{ getPriorityText(scope.row.priorityValue) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column label="状态" width="80">
           <template #default="scope">
-            <span :class="getStatusClass(scope.row.status)">{{ scope.row.status }}</span>
+            <span :class="getStatusClass(scope.row.statusValue)">{{ getStatusText(scope.row.statusValue) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="deadline" label="截止时间" width="120"></el-table-column>
+        <el-table-column label="截止时间" width="120">
+          <template #default="scope">
+            {{ formatDate(scope.row.deadline) || '无' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="progress" label="进度" width="80">
           <template #default="scope">
             <el-progress type="circle" :percentage="scope.row.progress" :width="20" :stroke-width="3" />
@@ -50,8 +54,8 @@
             <template #default="scope">
               <!-- 非开发者和测试者显示完整操作按钮 -->
               <template v-if="!isDeveloperOrTester">
-                <!-- 已关闭状态 -->
-                <template v-if="scope.row.status === '已关闭'">
+                <!-- 已关闭状态（status === 3） -->
+                <template v-if="scope.row.status === 3">
                   <span class="action-text close-action" @click.stop="handleOpen(scope.row)">打开</span>
                   <span class="action-text edit-action disabled">编辑</span>
                   <span class="action-text submit-action disabled">提交测试</span>
@@ -92,21 +96,23 @@
             <el-radio label="部分通过">部分通过</el-radio>
           </el-radio-group>
         </div>
+        <div v-if="testForm.result === '部分通过'" class="form-item">
+          <label>测试进度：</label>
+          <el-slider
+            v-model="testForm.progress"
+            :min="0"
+            :max="100"
+            :step="10"
+            show-input
+            style="width: 100%"
+          />
+        </div>
         <div class="form-item">
           <label>测试报告链接：</label>
           <el-input
             v-model="testForm.reportUrl"
             placeholder="请输入测试报告链接"
             style="width: 100%"
-          />
-        </div>
-        <div class="form-item">
-          <label>测试描述：</label>
-          <el-input
-            v-model="testForm.description"
-            type="textarea"
-            placeholder="请输入测试描述"
-            :rows="3"
           />
         </div>
         <div class="form-item">
@@ -153,24 +159,6 @@
             :rows="3"
           />
         </div>
-        <div class="form-item">
-          <label>预计完成时间：</label>
-          <el-date-picker
-            v-model="closeForm.expectedCompleteTime"
-            type="datetime"
-            placeholder="选择日期时间"
-            style="width: 100%"
-          />
-        </div>
-        <div class="form-item">
-          <label>实际完成时间：</label>
-          <el-date-picker
-            v-model="closeForm.actualCompleteTime"
-            type="datetime"
-            placeholder="选择日期时间"
-            style="width: 100%"
-          />
-        </div>
       </div>
       <template #footer>
         <span class="dialog-footer">
@@ -212,9 +200,9 @@
             placeholder="选择优先级"
             style="width: 100%"
           >
-            <el-option label="紧急" value="紧急"></el-option>
-            <el-option label="一般" value="一般"></el-option>
-            <el-option label="正常" value="正常"></el-option>
+            <el-option label="紧急" :value="1"></el-option>
+            <el-option label="一般" :value="2"></el-option>
+            <el-option label="正常" :value="3"></el-option>
           </el-select>
         </div>
         <div class="form-item">
@@ -224,10 +212,10 @@
             placeholder="选择状态"
             style="width: 100%"
           >
-            <el-option label="待测试" value="待测试"></el-option>
-            <el-option label="测试中" value="测试中"></el-option>
-            <el-option label="已完成" value="已完成"></el-option>
-            <el-option label="已关闭" value="已关闭"></el-option>
+            <el-option label="已完成" :value="0"></el-option>
+            <el-option label="待测试" :value="1"></el-option>
+            <el-option label="测试中" :value="2"></el-option>
+            <el-option label="已关闭" :value="3"></el-option>
           </el-select>
         </div>
         <div class="form-item">
@@ -237,15 +225,6 @@
             type="date"
             placeholder="选择日期"
             style="width: 100%"
-          />
-        </div>
-        <div class="form-item">
-          <label>测试描述：</label>
-          <el-input
-            v-model="editForm.description"
-            type="textarea"
-            placeholder="请输入测试描述"
-            :rows="3"
           />
         </div>
       </div>
@@ -270,16 +249,20 @@
           <span>{{ detailTestCase.name }}</span>
         </div>
         <div class="detail-item">
-          <label>项目名称：</label>
+          <label>所属项目：</label>
           <span>{{ detailTestCase.projectName }}</span>
         </div>
         <div class="detail-item">
+          <label>所属产品：</label>
+          <span>{{ detailTestCase.productName || '无' }}</span>
+        </div>
+        <div class="detail-item">
           <label>优先级：</label>
-          <span :class="getPriorityClass(detailTestCase.priority)">{{ detailTestCase.priority }}</span>
+          <span :class="getPriorityClass(detailTestCase.priorityValue)">{{ getPriorityText(detailTestCase.priorityValue) }}</span>
         </div>
         <div class="detail-item">
           <label>状态：</label>
-          <span :class="getStatusClass(detailTestCase.status)">{{ detailTestCase.status }}</span>
+          <span :class="getStatusClass(detailTestCase.statusValue)">{{ getStatusText(detailTestCase.statusValue) }}</span>
         </div>
         <div class="detail-item">
           <label>截止时间：</label>
@@ -288,7 +271,7 @@
         <div class="detail-item">
           <label>进度：</label>
           <div class="progress-container">
-            <el-progress :percentage="detailTestCase.progress" :stroke-width="15" />
+            <el-progress :percentage="detailTestCase.progress" :stroke-width="15" :show-text="false" />
             <span class="progress-text">{{ detailTestCase.progress }}%</span>
           </div>
         </div>
@@ -299,10 +282,6 @@
         <div class="detail-item">
           <label>负责人：</label>
           <span>{{ detailTestCase.assignee || '无' }}</span>
-        </div>
-        <div class="detail-item">
-          <label>测试描述：</label>
-          <p class="description">{{ detailTestCase.description || '无' }}</p>
         </div>
       </div>
       <template #footer>
@@ -349,7 +328,9 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/request.js";
+import { recordOperationLog } from "@/utils/operationLog.js";
 
 // 获取用户角色
 const userRole = ref(null);
@@ -427,7 +408,6 @@ const teamMemberIds = ref(new Set());
 
 // 原始测试用例数据
 const allTestCaseList = ref([]);
-const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(20);
 
@@ -472,6 +452,11 @@ const testCaseList = computed(() => {
   }
   
   return filteredList;
+});
+
+// 总条数（根据筛选后的结果计算）
+const total = computed(() => {
+  return testCaseList.value.length;
 });
 
 // 分页后的测试用例列表
@@ -557,32 +542,68 @@ const fetchTeamMembers = async () => {
 
 const fetchTestCases = async () => {
   try {
-    const response = await request.get('/dashboard/test-cases');
+    const userStr = localStorage.getItem('user');
+    let username = null;
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      username = user.username;
+    }
+    
+    const response = await request.get('/dashboard/test-cases', { params: { username } });
     console.log('获取测试用例列表响应:', response);
+    console.log('response.data:', response.data);
+    console.log('response.data.code:', response.data.code);
+    console.log('response.data.data:', response.data.data);
+    console.log('response.data.data类型:', Array.isArray(response.data.data) ? '数组' : typeof response.data.data);
     if (response.data.code === 200) {
-      // 转换数据格式以匹配前端组件
-      allTestCaseList.value = response.data.data.map(item => ({
-        id: item.id,
-        projectName: item.project_name,
-        name: item.name || item.title,
-        priority: getPriorityText(item.priority),
-        status: getStatusText(item.status),
-        deadline: item.due_date,
-        progress: item.progress || 0,
-        createdAt: item.created_at || '',
-        assignee: item.assignee || '',
-        assigneeId: item.assignee_id || item.assigneeId,
-        description: ''
-      }));
-      console.log('转换后的测试用例列表数据:', allTestCaseList.value);
-      total.value = allTestCaseList.value.length;
+      if (Array.isArray(response.data.data)) {
+        // 转换数据格式以匹配前端组件
+        allTestCaseList.value = response.data.data.map(item => {
+          const progress = item.progress || 0;
+          // 根据进度判断状态：进度为0是待测试，进度不为0是测试中
+          let statusValue;
+          if (progress === 0) {
+            statusValue = 1; // 待测试
+          } else if (progress > 0 && progress < 100) {
+            statusValue = 2; // 测试中
+          } else {
+            statusValue = 0; // 已完成
+          }
+          
+          return {
+            id: item.id,
+            projectName: item.project_name,
+            productName: item.product_name || '',
+            name: item.name || item.title,
+            priority: getPriorityText(item.priority),
+            priorityValue: item.priority, // 保留原始数字用于编辑
+            status: getStatusText(statusValue),
+            statusValue: statusValue,
+            deadline: item.due_date,
+            progress: progress,
+            createdAt: item.created_at || '',
+            assignee: item.assignee || '',
+            assigneeId: item.assignee_id || item.assigneeId,
+            description: ''
+          };
+        });
+        console.log('转换后的测试用例列表数据:', allTestCaseList.value);
+        console.log('转换后的长度:', allTestCaseList.value.length);
+        // total.value 将通过 computed 属性自动计算
+      } else {
+        console.error('response.data.data不是数组:', response.data.data);
+        allTestCaseList.value = [];
+        total.value = 0;
+      }
+    } else {
+      console.error('响应code不是200:', response.data.code);
     }
   } catch (error) {
     console.error('获取测试用例列表失败:', error);
   }
 };
 
-// 获取优先级文本
+// 获取优先级的文本
 const getPriorityText = (priority) => {
   switch (priority) {
     case 1:
@@ -596,60 +617,74 @@ const getPriorityText = (priority) => {
   }
 };
 
-// 获取状态文本
-const getStatusText = (status) => {
-  switch (status) {
-    case 1:
-      return '待测试';
-    case 2:
-      return '测试中';
-    case 3:
-      return '已完成';
-    case 4:
-      return '已关闭';
-    default:
-      return '待测试';
-  }
-};
-
 // 获取优先级的类名
 const getPriorityClass = (priority) => {
+  // priority现在是数字：1=紧急，2=一般，3=正常
   switch (priority) {
-    case '紧急':
+    case 1:
       return 'priority-urgent';
-    case '一般':
+    case 2:
       return 'priority-normal';
-    case '正常':
+    case 3:
       return 'priority-regular';
     default:
       return '';
   }
 };
 
+// 获取状态的文本
+const getStatusText = (status) => {
+  switch (status) {
+    case 0:
+      return '已完成';
+    case 1:
+      return '待测试';
+    case 2:
+      return '测试中';
+    case 3:
+      return '已关闭';
+    default:
+      return '待测试';
+  }
+};
+
 // 获取状态的类名
 const getStatusClass = (status) => {
   switch (status) {
-    case '测试中':
+    case 2:
       return 'status-in-progress';
-    case '已完成':
+    case 0:
       return 'status-completed';
-    case '已关闭':
+    case 3:
       return 'status-closed';
     default:
       return '';
   }
 };
 
-// 格式化日期
-const formatDate = (date) => {
-  if (!date) return '';
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
+// 格式化日期，只显示到天
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  let result = dateStr;
+  
+  // 先处理 ISO 格式的日期
+  if (result.includes('T')) {
+    result = result.split('T')[0];
+  } else if (result.includes(' ')) {
+    result = result.split(' ')[0];
+  }
+  
+  // 处理毫秒部分
+  if (result.includes('.')) {
+    result = result.split('.')[0];
+  }
+  
+  // 移除 Z 字符
+  if (result.includes('Z')) {
+    result = result.replace('Z', '');
+  }
+  
+  return result;
 };
 
 // 测试成果提交对话框
@@ -657,6 +692,7 @@ const testDialogVisible = ref(false);
 const currentTestCase = ref({ name: '' });
 const testForm = ref({
   result: '',
+  progress: 0,
   reportUrl: '',
   description: '',
   files: []
@@ -665,9 +701,7 @@ const testForm = ref({
 // 关闭测试用例对话框
 const closeDialogVisible = ref(false);
 const closeForm = ref({
-  reason: '',
-  expectedCompleteTime: '',
-  actualCompleteTime: ''
+  reason: ''
 });
 
 // 编辑测试用例对话框
@@ -686,6 +720,7 @@ const detailDialogVisible = ref(false);
 const detailTestCase = ref({ 
   name: '',
   projectName: '',
+  productName: '',
   priority: '',
   status: '',
   deadline: '',
@@ -702,30 +737,52 @@ const currentDeleteId = ref(null);
 // 处理操作
 const handleClose = (testCase) => {
   console.log('点击关闭按钮:', testCase);
-  currentTestCase.value = testCase;
-  // 重置关闭表单
-  closeForm.value = {
-    reason: '',
-    expectedCompleteTime: '',
-    actualCompleteTime: ''
-  };
-  closeDialogVisible.value = true;
+  
+  ElMessageBox.confirm(
+    '确定要关闭这个测试用例吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      const response = await request.post('/dashboard/test-cases/close', {
+        testCaseId: testCase.id,
+        reason: '用户手动关闭'
+      });
+      
+      if (response.data.code === 200) {
+        ElMessage.success('测试用例已关闭');
+        await recordOperationLog('关闭测试用例', 'testcase', testCase.id, testCase.name);
+        await fetchTestCases();
+      } else {
+        ElMessage.error('关闭失败');
+      }
+    } catch (error) {
+      console.error('关闭失败:', error);
+      ElMessage.error('关闭失败: ' + (error.response?.data?.msg || error.message));
+    }
+  }).catch(() => {
+    ElMessage.info('已取消关闭');
+  });
 };
 
-const handleOpen = (testCase) => {
+const handleOpen = async (testCase) => {
   console.log('点击打开按钮:', testCase);
-  openTestCase(testCase.id);
+  await openTestCase(testCase.id);
 };
 
 const handleEdit = (testCase) => {
   console.log('点击编辑按钮:', testCase);
   currentTestCase.value = testCase;
-  // 填充编辑表单
+  // 填充编辑表单，使用原始数字值
   editForm.value = {
     name: testCase.name,
     projectName: testCase.projectName,
-    priority: testCase.priority,
-    status: testCase.status,
+    priority: testCase.priorityValue !== undefined ? testCase.priorityValue : testCase.priority,
+    status: testCase.statusValue !== undefined ? testCase.statusValue : testCase.status,
     deadline: testCase.deadline,
     description: testCase.description
   };
@@ -750,6 +807,7 @@ const handleSubmitTest = (testCase) => {
   // 重置测试提交表单
   testForm.value = {
     result: '',
+    progress: 0,
     reportUrl: '',
     description: '',
     files: []
@@ -773,26 +831,37 @@ const handleFileChange = (file, fileList) => {
 const confirmSubmitTest = async () => {
   try {
     console.log('确认提交测试成果:', currentTestCase.value.id);
-    console.log('测试提交表单:', testForm.value);
     
-    // 这里可以添加测试成果提交的逻辑，例如调用后端API
-    // 模拟API调用
-    const response = await request.post('/test/submit-result', {
+    let status;
+    if (testForm.value.progress === 100) {
+      status = 0;
+    } else if (testForm.value.progress > 0) {
+      status = 2;
+    } else {
+      status = 1;
+    }
+    
+    const response = await request.post('/dashboard/test/submit-result', {
       testCaseId: currentTestCase.value.id,
       result: testForm.value.result,
+      progress: testForm.value.progress,
+      status: status,
       reportUrl: testForm.value.reportUrl,
       description: testForm.value.description,
-      // 注意：文件上传需要特殊处理，这里只是示例
     });
     
     if (response.data.code === 200) {
       console.log('测试成果提交成功');
+      await recordOperationLog('提交测试成果', 'testcase', currentTestCase.value.id, currentTestCase.value.name);
+      ElMessage.success('测试成果提交成功');
       testDialogVisible.value = false;
-      // 重新获取测试用例列表
       await fetchTestCases();
+    } else {
+      ElMessage.error('提交失败: ' + (response.data.msg || '未知错误'));
     }
   } catch (error) {
     console.error('测试成果提交失败:', error);
+    ElMessage.error('提交失败: ' + (error.response?.data?.msg || error.message));
   }
 };
 
@@ -805,9 +874,7 @@ const confirmClose = async () => {
     // 调用关闭测试用例的API
     const response = await request.post('/dashboard/test-cases/close', {
       testCaseId: currentTestCase.value.id,
-      reason: closeForm.value.reason,
-      expectedCompleteTime: closeForm.value.expectedCompleteTime,
-      actualCompleteTime: closeForm.value.actualCompleteTime
+      reason: closeForm.value.reason
     });
     
     if (response.data.code === 200) {
@@ -826,14 +893,14 @@ const openTestCase = async (testCaseId) => {
   try {
     console.log('打开测试用例:', testCaseId);
     
-    // 调用打开测试用例的API
     const response = await request.post('/dashboard/test-cases/open', {
       testCaseId: testCaseId
     });
     
     if (response.data.code === 200) {
       console.log('测试用例打开成功');
-      // 重新获取测试用例列表
+      const testCase = allTestCaseList.value.find(tc => tc.id === testCaseId);
+      await recordOperationLog('打开测试用例', 'testcase', testCaseId, testCase?.name || '测试用例');
       await fetchTestCases();
     }
   } catch (error) {
@@ -845,28 +912,46 @@ const openTestCase = async (testCaseId) => {
 const confirmEdit = async () => {
   try {
     console.log('确认编辑测试用例:', currentTestCase.value.id);
-    console.log('编辑表单:', editForm.value);
     
-    // 这里可以添加编辑测试用例的逻辑，例如调用后端API
-    // 模拟API调用
-    const response = await request.put('/test/update', {
+    const priorityValue = typeof editForm.value.priority === 'number' 
+      ? editForm.value.priority 
+      : parseInt(editForm.value.priority) || 3;
+    const statusValue = typeof editForm.value.status === 'number' 
+      ? editForm.value.status 
+      : parseInt(editForm.value.status) || 1;
+    
+    const response = await request.put('/dashboard/test/update', {
       testCaseId: currentTestCase.value.id,
       name: editForm.value.name,
       projectName: editForm.value.projectName,
-      priority: editForm.value.priority,
-      status: editForm.value.status,
+      priority: priorityValue,
+      status: statusValue,
       deadline: editForm.value.deadline,
       description: editForm.value.description
     });
     
     if (response.data.code === 200) {
       console.log('测试用例编辑成功');
+      await recordOperationLog('编辑测试用例', 'testcase', currentTestCase.value.id, currentTestCase.value.name);
+      ElMessage.success('测试用例编辑成功');
       editDialogVisible.value = false;
-      // 重新获取测试用例列表
       await fetchTestCases();
+    } else {
+      ElMessage.error('编辑失败: ' + (response.data.msg || '未知错误'));
     }
   } catch (error) {
     console.error('编辑测试用例失败:', error);
+    let errorMsg = '编辑失败';
+    if (error.response?.status === 404) {
+      errorMsg = '接口不存在，请检查后端服务';
+    } else if (error.response?.status === 500) {
+      errorMsg = '服务器内部错误';
+    } else if (error.response?.data?.msg) {
+      errorMsg = error.response.data.msg;
+    } else if (error.message) {
+      errorMsg = error.message;
+    }
+    ElMessage.error(errorMsg);
   }
 };
 
@@ -878,8 +963,8 @@ const confirmDelete = async () => {
       const response = await request.delete(`/dashboard/test-cases/${currentDeleteId.value}`);
       if (response.data.code === 200) {
         console.log('删除测试用例成功:', currentDeleteId.value);
+        await recordOperationLog('删除测试用例', 'testcase', currentDeleteId.value, currentTestCase.value.name);
         deleteDialogVisible.value = false;
-        // 重新获取测试用例列表
         await fetchTestCases();
       }
     }

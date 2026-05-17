@@ -746,7 +746,7 @@ const confirmSubmitCode = async () => {
     const newProgress = Math.min(currentProgress + addedProgress, 100);
     
     // 调用后端API提交代码并更新进度
-    const response = await request.post('/task/submit-code', {
+    const response = await request.post('/workbench/task/submit-code', {
       taskId: currentTask.value.id,
       repositoryUrl: codeForm.value.repositoryUrl,
       branch: codeForm.value.branch,
