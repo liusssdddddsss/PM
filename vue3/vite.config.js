@@ -40,6 +40,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
+      '/teams': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
       '/dashboard': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -51,6 +56,31 @@ export default defineConfig({
         secure: false
       },
       '/ai': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/projects': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/bug': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/tasks': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/feedback': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      },
+      '/product': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
