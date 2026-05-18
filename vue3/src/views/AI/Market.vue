@@ -114,7 +114,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import request from '@/utils/request';
 
 // 表单数据
 const formData = ref({
@@ -169,22 +169,16 @@ const generateReport = async () => {
     // 构建详细的prompt给AI
     const prompt = `请根据以下市场信息生成一份详细的市场分析报告：\n\n目标市场：${formData.value.targetMarket}\n市场概况：${formData.value.marketOverview}\n细分市场：${formData.value.segmentedMarket}\n竞品名称：${formData.value.competitors}\n竞品分析维度：${formData.value.competitorDimensions}\n\n请生成一份结构清晰、内容正式的市场分析报告，包括：市场规模分析、发展趋势、竞争格局、机会与挑战等内容。报告应该专业、全面，并且易于理解。`;
 
-    const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.6-flash-2026-04-16',
+    const response = await request.post('/ai/chat/history', {
       messages: [
         { role: 'user', content: prompt }
       ]
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk-24fe119404b1404da366d99aacbe3bf9'
-      }
     });
 
     // 添加AI回复到聊天历史
     chatMessages.value.push({
       role: 'assistant',
-      content: response.data.choices[0].message.content,
+      content: response.data,
       timestamp: getCurrentTimestamp()
     });
   } catch (error) {
@@ -224,20 +218,14 @@ const sendMessage = async () => {
       content: msg.content
     }));
 
-    const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen3.6-flash-2026-04-16',
+    const response = await request.post('/ai/chat/history', {
       messages: messages
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk-24fe119404b1404da366d99aacbe3bf9'
-      }
     });
 
     // 添加AI回复
     chatMessages.value.push({
       role: 'assistant',
-      content: response.data.choices[0].message.content,
+      content: response.data,
       timestamp: getCurrentTimestamp()
     });
   } catch (error) {
