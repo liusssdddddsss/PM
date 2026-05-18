@@ -696,11 +696,15 @@ public class DashboardController {
                     System.out.println("  ✅ 项目匹配通过");
                 }
                 
-                // 核心：只显示负责人是当前用户的Bug
+                // 核心：显示负责人是当前用户或当前用户创建的Bug
                 // 支持两种匹配方式：
                 // 1. assigneeId == userId (如果存储的是用户ID)
                 // 2. assigneeId == Long.parseLong(username) (如果存储的是用户名)
+                // 3. reporterId == userId 或 username (当前用户创建的Bug)
                 boolean isAssignedToUser = false;
+                boolean isCreatedByUser = false;
+                
+                // 检查是否指派给当前用户
                 if (bug.getAssigneeId() != null) {
                     // 方式1：匹配用户ID
                     if (currentUserId != null) {
@@ -723,13 +727,38 @@ public class DashboardController {
                             System.out.println("  ❌ 用户名无法转换为Long: " + username);
                         }
                     }
-                } else if (currentUserId == null && currentUser == null) {
+                }
+                
+                // 检查是否是当前用户创建的
+                if (bug.getReporterId() != null) {
+                    if (currentUserId != null) {
+                        System.out.println("  尝试匹配创建人ID: bug.reporterId=" + bug.getReporterId() + ", currentUserId=" + currentUserId);
+                        if (bug.getReporterId().equals(currentUserId.longValue())) {
+                            System.out.println("  ✅ 通过创建人ID匹配成功");
+                            isCreatedByUser = true;
+                        }
+                    }
+                    if (!isCreatedByUser) {
+                        try {
+                            Long usernameAsLong = Long.parseLong(username);
+                            System.out.println("  尝试匹配创建人用户名: bug.reporterId=" + bug.getReporterId() + ", usernameAsLong=" + usernameAsLong);
+                            if (bug.getReporterId().equals(usernameAsLong)) {
+                                System.out.println("  ✅ 通过创建人用户名匹配成功");
+                                isCreatedByUser = true;
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("  ❌ 用户名无法转换为Long: " + username);
+                        }
+                    }
+                }
+                
+                if (currentUserId == null && currentUser == null) {
                     // 如果找不到用户，先显示所有（测试用）
                     isAssignedToUser = true;
                 }
                 
-                if (!isAssignedToUser) {
-                    continue; // 不是指派给当前用户的，跳过
+                if (!isAssignedToUser && !isCreatedByUser) {
+                    continue; // 不是指派给当前用户也不是当前用户创建的，跳过
                 }
                 
                 // 构建返回的Bug数据
@@ -860,6 +889,15 @@ public class DashboardController {
                 
                 // 状态
                 bugMap.put("status", bug.getStatus());
+                
+                // 负责人信息
+                bugMap.put("assigneeId", bug.getAssigneeId());
+                bugMap.put("assignee_name", bug.getAssigneeId() != null ? bug.getAssigneeId().toString() : "未指派");
+                bugMap.put("assignee", bug.getAssigneeId() != null ? bug.getAssigneeId().toString() : "未指派");
+                
+                // 完成时间
+                bugMap.put("resolvedAt", bug.getResolvedAt());
+                bugMap.put("completedAt", bug.getResolvedAt());
                 
                 pendingBugs.add(bugMap);
             }
@@ -3100,9 +3138,11 @@ public class DashboardController {
                     // 管理员和产品经理可以看到所有Bug
                     bugState++;
                 } else if (isDeveloper) {
-                    // 开发者只能看到指派给自己的Bug
-                    // 注意：Bug的assigneeId存储的是用户名
-                    if (bug.getAssigneeId() != null && userUsername != null && bug.getAssigneeId().toString().equals(userUsername)) {
+                    // 开发者可以看到指派给自己的Bug或自己创建的Bug
+                    // 注意：Bug的assigneeId和reporterId存储的是用户名
+                    boolean isAssigned = bug.getAssigneeId() != null && userUsername != null && bug.getAssigneeId().toString().equals(userUsername);
+                    boolean isCreated = bug.getReporterId() != null && userUsername != null && bug.getReporterId().toString().equals(userUsername);
+                    if (isAssigned || isCreated) {
                         System.out.println("  -> 匹配！统计此Bug");
                         bugState++;
                     }

@@ -443,20 +443,36 @@ const fetchTasks = async () => {
             // 转换数据格式以匹配前端组件
             if (response.data.data && Array.isArray(response.data.data)) {
               console.log('TaskList - 任务列表数据长度:', response.data.data.length);
-              taskList.value = response.data.data.map(item => ({
-                id: item.id,
-                projectName: item.project_name || item.projectName || '未命名项目',
-                name: item.description || item.title || '未命名任务',
-                assignee: item.assignee_name || item.assignee || '未指派',
-                priority: getPriorityText(item.priority),
-                status: getStatusText(item.status),
-                deadline: item.due_date || item.deadline || '',
-                progress: item.progress || 0,
-                workTime: item.actual_hours ? `${item.actual_hours}h` : '0h',
-                remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h',
-                assignee_id: item.assignee_id,
-                creator_id: item.creator_id
-              }));
+              taskList.value = response.data.data.map(item => {
+                console.log('原始任务数据:', item);
+                const deadline = formatDateTime(item.due_date || item.deadline);
+                console.log('格式化后的截止日期:', deadline);
+                
+                let projectName = item.project_name || item.projectName;
+                if (!projectName || projectName === '未知项目') {
+                  projectName = item.project_id ? `项目ID: ${item.project_id}` : '未关联项目';
+                }
+                
+                let assignee = item.assignee_name || item.assignee;
+                if (!assignee || assignee === '未指派') {
+                  assignee = item.assignee_id ? `用户ID: ${item.assignee_id}` : '未指派';
+                }
+                
+                return {
+                  id: item.id,
+                  projectName: projectName,
+                  name: item.description || item.title || item.name || '未命名任务',
+                  assignee: assignee,
+                  priority: getPriorityText(item.priority),
+                  status: getStatusText(item.status),
+                  deadline: deadline,
+                  progress: item.progress || 0,
+                  workTime: item.actual_hours ? `${item.actual_hours}h` : '0h',
+                  remainingTime: item.estimated_hours && item.actual_hours ? `${item.estimated_hours - item.actual_hours}h` : '0h',
+                  assignee_id: item.assignee_id,
+                  creator_id: item.creator_id
+                };
+              });
               console.log('TaskList - 转换后的任务列表数据:', taskList.value);
               console.log('TaskList - 转换后的任务列表数据长度:', taskList.value.length);
               success = true;
@@ -527,6 +543,24 @@ const getStatusText = (status) => {
       return '已关闭';
     default:
       return '待开始';
+  }
+};
+
+// 格式化日期时间
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (e) {
+    console.error('日期格式化失败:', dateStr, e);
+    return dateStr;
   }
 };
 

@@ -22,7 +22,7 @@
               >
                 <el-option
                   v-for="user in userOptions"
-                  :key="user.id"
+                  :key="user.username"
                   :label="user.name"
                   :value="user.username"
                 />
@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import request from '@/utils/request.js';
 import { recordOperationLog } from '@/utils/operationLog.js';
@@ -174,8 +174,14 @@ const searchUsers = async (query) => {
     loadingUsers.value = true;
     try {
       const response = await request.get(`/admin/search-users?search=${query}`);
+      console.log('搜索用户返回:', response);
       if (response.data.code === 200) {
-        userOptions.value = response.data.data || [];
+        userOptions.value = response.data.data.map(item => ({
+          id: item.username,
+          name: item.name || item.username,
+          username: item.username
+        }));
+        console.log('用户选项:', userOptions.value);
       }
     } catch (error) {
       console.error('搜索用户失败:', error);
@@ -183,7 +189,25 @@ const searchUsers = async (query) => {
       loadingUsers.value = false;
     }
   } else {
-    userOptions.value = [];
+    loadUsers();
+  }
+};
+
+// 加载用户列表
+const loadUsers = async () => {
+  try {
+    const response = await request.get('/admin/findAll');
+    console.log('加载用户返回:', response);
+    if (response.data.code === 200) {
+      userOptions.value = response.data.data.map(item => ({
+        id: item.username,
+        name: item.name || item.username,
+        username: item.username
+      }));
+      console.log('用户选项:', userOptions.value);
+    }
+  } catch (error) {
+    console.error('加载用户失败:', error);
   }
 };
 
@@ -192,9 +216,16 @@ const searchTeams = async (query) => {
   if (query) {
     loadingTeams.value = true;
     try {
-      const response = await request.get(`/teams?search=${query}`);
+      const response = await request.get(`/admin/teams`);
+      console.log('搜索团队返回:', response);
       if (response.data.code === 200) {
-        teamOptions.value = response.data.data || [];
+        teamOptions.value = response.data.data
+          .filter(item => item.teamName && item.teamName.toLowerCase().includes(query.toLowerCase()))
+          .map(item => ({
+            id: item.teamId,
+            name: item.teamName
+          }));
+        console.log('团队选项:', teamOptions.value);
       }
     } catch (error) {
       console.error('搜索团队失败:', error);
@@ -202,7 +233,24 @@ const searchTeams = async (query) => {
       loadingTeams.value = false;
     }
   } else {
-    teamOptions.value = [];
+    loadTeams();
+  }
+};
+
+// 加载团队列表
+const loadTeams = async () => {
+  try {
+    const response = await request.get('/admin/teams');
+    console.log('加载团队返回:', response);
+    if (response.data.code === 200) {
+      teamOptions.value = response.data.data.map(item => ({
+        id: item.teamId,
+        name: item.teamName
+      }));
+      console.log('团队选项:', teamOptions.value);
+    }
+  } catch (error) {
+    console.error('加载团队失败:', error);
   }
 };
 
@@ -212,8 +260,13 @@ const searchProducts = async (query) => {
     loadingProducts.value = true;
     try {
       const response = await request.get(`/api/productResearch/products?search=${query}`);
+      console.log('搜索产品返回:', response);
       if (response.data.code === 200) {
-        productOptions.value = response.data.data || [];
+        productOptions.value = response.data.data.map(item => ({
+          id: item.id,
+          name: item.name
+        }));
+        console.log('产品选项:', productOptions.value);
       }
     } catch (error) {
       console.error('搜索产品失败:', error);
@@ -221,9 +274,33 @@ const searchProducts = async (query) => {
       loadingProducts.value = false;
     }
   } else {
-    productOptions.value = [];
+    loadProducts();
   }
 };
+
+// 加载产品列表
+const loadProducts = async () => {
+  try {
+    const response = await request.get('/api/productResearch/products');
+    console.log('加载产品返回:', response);
+    if (response.data.code === 200) {
+      productOptions.value = response.data.data.map(item => ({
+        id: item.id,
+        name: item.name
+      }));
+      console.log('产品选项:', productOptions.value);
+    }
+  } catch (error) {
+    console.error('加载产品失败:', error);
+  }
+};
+
+// 初始化加载数据
+onMounted(async () => {
+  await loadUsers();
+  await loadTeams();
+  await loadProducts();
+});
 
 // 保存项目
 const saveProject = async () => {

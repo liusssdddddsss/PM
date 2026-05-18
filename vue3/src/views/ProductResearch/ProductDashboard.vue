@@ -76,7 +76,7 @@
                   <el-table-column prop="release" label="发布" min-width="80" />
                   <el-table-column label="操作" min-width="80">
                     <template #default="scope">
-                      <el-button type="text" size="small" @click="handleDeleteProduct(scope.row)" style="color: #F56C6C;">删除</el-button>
+                      <el-button v-if="isProductManager" type="text" size="small" @click="handleDeleteProduct(scope.row)" style="color: #F56C6C;">删除</el-button>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -275,8 +275,8 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="handleProductDetailCancel">取消</el-button>
-        <el-button v-if="!isEditing" @click="startEditing">编辑</el-button>
-        <el-button v-if="isEditing" type="primary" @click="saveProduct">保存</el-button>
+        <el-button v-if="!isEditing && isProductManager" @click="startEditing">编辑</el-button>
+        <el-button v-if="isEditing && isProductManager" type="primary" @click="saveProduct">保存</el-button>
       </span>
     </template>
   </el-dialog>

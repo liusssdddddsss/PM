@@ -26,7 +26,6 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="workTime" label="总计工时" width="80"></el-table-column>
         <el-table-column prop="shengYuTask" label="剩余任务" width="80"></el-table-column>
         <el-table-column prop="shengYuBug" label="剩余Bug" width="80"></el-table-column>
         <el-table-column prop="finishTime" label="计划完成" width="100">

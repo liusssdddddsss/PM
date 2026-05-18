@@ -59,7 +59,7 @@
               remote
               reserve-keyword
               placeholder="请输入负责人姓名"
-              :remote-method="remoteMethod"
+              :remote-method="searchUsers"
               :loading="loading"
             >
               <el-option
@@ -191,6 +191,7 @@ const loadTeamMembers = async () => {
   try {
     // 获取用户参与的项目
     const projectRes = await request.get(`/dashboard/user-projects?username=${currentUser.value.username}`);
+    console.log('用户项目返回:', projectRes);
     if (projectRes.data.code === 200 && Array.isArray(projectRes.data.data)) {
       const projectIds = new Set();
       projectRes.data.data.forEach(project => {
@@ -205,12 +206,14 @@ const loadTeamMembers = async () => {
     // 获取用户所在的团队
     const userIdForTeam = currentUser.value.username;
     const teamRes = await request.get(`/teams/user-teams/${userIdForTeam}`);
+    console.log('用户团队返回:', teamRes);
     if (teamRes.data.code === 200 && teamRes.data.data) {
       const memberIds = new Set();
       
       for (const team of teamRes.data.data) {
         try {
           const memberRes = await request.get(`/teams/${team.id}/members`);
+          console.log('团队成员返回:', memberRes);
           if (memberRes.data.code === 200 && memberRes.data.data) {
             memberRes.data.data.forEach(member => {
               if (member.userId) {
@@ -231,12 +234,39 @@ const loadTeamMembers = async () => {
   }
 };
 
+// 加载用户列表
+const loadUsers = async () => {
+  try {
+    const res = await request.get('/admin/findAll');
+    console.log('加载用户返回:', res);
+    if (res.data.code === 200) {
+      let filteredUsers = res.data.data;
+      
+      if (teamMemberIds.value.size > 0) {
+        filteredUsers = filteredUsers.filter(item => 
+          teamMemberIds.value.has(Number(item.username))
+        );
+      }
+      
+      assigneeOptions.value = filteredUsers.map(item => ({
+        value: item.username,
+        label: item.name || item.username,
+        username: item.username
+      }));
+      console.log('加载用户选项:', assigneeOptions.value);
+    }
+  } catch (error) {
+    console.error('加载用户失败:', error);
+  }
+};
+
 // 搜索负责人（优先显示同团队成员）
 const searchUsers = async (query) => {
   if (query) {
     loading.value = true;
     try {
       const res = await request.get('/admin/findAll');
+      console.log('搜索用户返回:', res);
       if (res.data.code === 200) {
         let filteredUsers = res.data.data;
         
@@ -249,14 +279,15 @@ const searchUsers = async (query) => {
         
         assigneeOptions.value = filteredUsers
           .map(item => ({
-            id: item.username,
-            name: item.name || item.username,
+            value: item.username,
+            label: item.name || item.username,
             username: item.username
           }))
           .filter(item => 
-            (item.name && item.name.toLowerCase().includes(query.toLowerCase())) ||
+            (item.label && item.label.toLowerCase().includes(query.toLowerCase())) ||
             (item.username && item.username.toLowerCase().includes(query.toLowerCase()))
           );
+        console.log('负责人选项:', assigneeOptions.value);
       }
     } catch (error) {
       console.error('搜索用户失败:', error);
@@ -274,6 +305,7 @@ const searchProjects = async (query) => {
     projectLoading.value = true;
     try {
       const res = await request.get('/api/projects');
+      console.log('搜索项目返回:', res);
       if (res.data.code === 200) {
         projectOptions.value = res.data.data
           .filter(item => userProjectIds.value.has(Number(item.id)))
@@ -284,6 +316,7 @@ const searchProjects = async (query) => {
             id: item.id,
             name: item.name
           }));
+        console.log('项目选项:', projectOptions.value);
       }
     } catch (error) {
       console.error('搜索项目失败:', error);
@@ -301,6 +334,7 @@ const searchIterations = async (query) => {
     iterationLoading.value = true;
     try {
       const res = await request.get('/iteration/list');
+      console.log('搜索迭代返回:', res);
       if (res.data.code === 200 && Array.isArray(res.data.data)) {
         let iterations = res.data.data;
         
@@ -316,6 +350,7 @@ const searchIterations = async (query) => {
             name: item.name,
             projectId: item.projectId
           }));
+        console.log('迭代选项:', iterationOptions.value);
       }
     } catch (error) {
       console.error('搜索迭代失败:', error);
@@ -323,7 +358,29 @@ const searchIterations = async (query) => {
       iterationLoading.value = false;
     }
   } else {
-    iterationOptions.value = [];
+    loadIterations();
+  }
+};
+
+// 加载迭代列表
+const loadIterations = async () => {
+  try {
+    const res = await request.get('/iteration/list');
+    console.log('加载迭代返回:', res);
+    if (res.data.code === 200 && Array.isArray(res.data.data)) {
+      let iterations = res.data.data;
+      
+      iterations = iterations.filter(item => userProjectIds.value.has(Number(item.projectId)));
+      
+      iterationOptions.value = iterations.map(item => ({
+        id: item.id,
+        name: item.name,
+        projectId: item.projectId
+      }));
+      console.log('迭代选项:', iterationOptions.value);
+    }
+  } catch (error) {
+    console.error('加载迭代失败:', error);
   }
 };
 
@@ -403,6 +460,11 @@ const saveTask = async () => {
 const goBack = () => {
   router.push('/task/taskList');
 };
+
+onMounted(async () => {
+  loadCurrentUser();
+  await loadTeamMembers();
+});
 </script>
 
 <style scoped>

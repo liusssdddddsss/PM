@@ -39,7 +39,7 @@ const fetchProjects = async () => {
     if (response.data.code === 200) {
       projectList.value = response.data.data.map(project => ({
         id: project.id,
-        name: project.title
+        name: project.name || project.title || '未命名项目'
       }));
       console.log('转换后的项目列表数据:', projectList.value);
     }

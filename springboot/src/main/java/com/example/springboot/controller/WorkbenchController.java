@@ -20,6 +20,7 @@ import com.example.springboot.service.ProductService;
 import com.example.springboot.service.OperationLogService;
 import com.example.springboot.service.TeamMemberService;
 import com.example.springboot.service.FeedbackService;
+import com.example.springboot.service.TestSuiteService;
 import com.example.springboot.utils.RolePermissionUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -72,6 +73,8 @@ public class WorkbenchController {
     RolePermissionUtils rolePermissionUtils;
     @Resource
     FeedbackService feedbackService;
+    @Resource
+    TestSuiteService testSuiteService;
 
     @Operation(summary = "获取审批列表", description = "返回审批列表数据")
     @GetMapping("/approvals")
@@ -440,22 +443,37 @@ public class WorkbenchController {
             }
             
             for (Bug bug : bugs) {
-                System.out.println("处理Bug: " + bug.getTitle() + "，负责人ID: " + bug.getAssigneeId() + "，项目ID: " + bug.getProjectId());
+                System.out.println("===== 处理Bug: " + bug.getTitle() + " =====");
+                System.out.println("Bug标题: " + bug.getTitle() + "，负责人ID: " + bug.getAssigneeId() + "，负责人ID类型: " + (bug.getAssigneeId() != null ? bug.getAssigneeId().getClass().getName() : "null"));
+                System.out.println("项目ID: " + bug.getProjectId() + "，状态: " + bug.getStatus());
+                
                 // 如果指定了用户名
                 if (username != null && !username.isEmpty()) {
                     try {
-                        Integer userId = Integer.parseInt(username);
-                        System.out.println("转换后的用户ID: " + userId);
+                        Long userId = Long.parseLong(username);
+                        System.out.println("当前登录用户: username=" + username + ", 转换后的用户ID=" + userId + ", 类型=" + userId.getClass().getName());
                         
                         // 如果是产品经理
                         if (isProductManager) {
                             // 产品经理可以看到所有Bug
-                            System.out.println("产品经理看到Bug: " + bug.getTitle());
+                            System.out.println("用户是产品经理，显示Bug: " + bug.getTitle());
                         } else {
-                            // 非产品经理，只返回被指派给当前用户的Bug
-                            if (bug.getAssigneeId() == null || !bug.getAssigneeId().equals(userId)) {
-                                System.out.println("跳过Bug: " + bug.getTitle() + "，负责人ID: " + bug.getAssigneeId() + "，当前用户ID: " + userId);
-                                continue; // 跳过不是当前用户的Bug
+                            // 非产品经理，返回指派给当前用户的Bug或当前用户创建的Bug
+                            System.out.println("用户不是产品经理，需要检查是否指派给自己或自己创建的");
+                            System.out.println("Bug的负责人ID: " + bug.getAssigneeId() + "，Bug的创建人ID: " + bug.getReporterId() + "，当前用户ID: " + userId);
+                            
+                            boolean isAssignedToMe = bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId);
+                            boolean isCreatedByMe = bug.getReporterId() != null && bug.getReporterId().equals(userId);
+                            
+                            if (!isAssignedToMe && !isCreatedByMe) {
+                                System.out.println("跳过Bug: " + bug.getTitle() + "，既不是指派给自己也不是自己创建的");
+                                continue; // 跳过既不是指派给自己也不是自己创建的Bug
+                            } else {
+                                if (isAssignedToMe) {
+                                    System.out.println("保留Bug: " + bug.getTitle() + "，负责人ID匹配");
+                                } else {
+                                    System.out.println("保留Bug: " + bug.getTitle() + "，创建人ID匹配");
+                                }
                             }
                         }
                     } catch (NumberFormatException e) {
@@ -626,11 +644,21 @@ public class WorkbenchController {
             Iterable<Project> allProjects = projectService.findAll();
             List<Map<String, Object>> projectList = new ArrayList<>();
             
-            // 如果没有提供用户名，返回所有未完成项目
-            if (username == null || username.isEmpty()) {
-                System.out.println("没有提供用户名，返回所有未完成项目");
+            // 检查用户是否是管理员或产品经理
+            boolean isAdmin = false;
+            boolean isProductManager = false;
+            if (username != null && !username.isEmpty()) {
+                isAdmin = rolePermissionUtils.isAdmin(username);
+                isProductManager = rolePermissionUtils.isProductManager(username);
+                System.out.println("用户 " + username + ", 是管理员: " + isAdmin + ", 是产品经理: " + isProductManager);
+            }
+            
+            // 如果没有提供用户名，或者用户是管理员或产品经理，返回所有未完成项目
+            if (username == null || username.isEmpty() || isAdmin || isProductManager) {
+                System.out.println("没有提供用户名，或用户是管理员/产品经理，返回所有未完成项目");
                 for (Project project : allProjects) {
                     if (project.getStatus() == null || (project.getStatus() != 2 && project.getStatus() != 3)) {
+                        System.out.println("  添加项目: " + project.getName());
                         Map<String, Object> projectMap = buildProjectMapWithDetails(project);
                         projectList.add(projectMap);
                     }
@@ -698,27 +726,31 @@ public class WorkbenchController {
                         }
                         projectMap.put("states", statusText);
                         
-                        // 从数据库获取实际数据
-                        Integer projectId = project.getId().intValue();
+                        // 从数据库获取实际数据（保持Long类型以正确匹配）
+                        Long projectId = project.getId();
+                        System.out.println("项目 " + project.getName() + " 的ID: " + projectId);
                         
                         // 计算总工时（从tasks表中获取）
                         int totalHours = 0;
                         List<Task> tasks = taskService.findall();
+                        System.out.println("  总任务数: " + tasks.size());
                         for (Task task : tasks) {
-                            if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
-                                if (task.getEstimatedHours() != null) {
-                                    totalHours += task.getEstimatedHours().intValue();
+                            if (task.getProjectId() != null) {
+                                System.out.println("  任务: " + task.getTitle() + ", projectId=" + task.getProjectId() + ", status=" + task.getStatus());
+                                if (task.getProjectId().longValue() == projectId) {
+                                    if (task.getEstimatedHours() != null) {
+                                        totalHours += task.getEstimatedHours().intValue();
+                                    }
                                 }
                             }
                         }
                         projectMap.put("workTime", totalHours + "h");
-                        
-
+                        System.out.println("  总工时: " + totalHours + "h");
                         
                         // 计算剩余任务数量（从tasks表中获取）
                         int remainingTasks = 0;
                         for (Task task : tasks) {
-                            if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
+                            if (task.getProjectId() != null && task.getProjectId().longValue() == projectId) {
                                 // 假设任务状态为0或1表示未完成
                                 if (task.getStatus() == null || task.getStatus() < 2) {
                                     remainingTasks++;
@@ -726,24 +758,48 @@ public class WorkbenchController {
                             }
                         }
                         projectMap.put("shengYuTask", remainingTasks);
+                        System.out.println("  剩余任务数: " + remainingTasks);
                         
                         // 计算剩余Bug数量（从bugs表中获取）
                         int remainingBugs = 0;
                         List<Bug> bugs = bugService.findall();
+                        System.out.println("  总Bug数: " + bugs.size());
                         for (Bug bug : bugs) {
-                            if (bug.getProjectId() != null && bug.getProjectId().equals(projectId)) {
-                                // 假设Bug状态为0或1表示未解决
-                                if (bug.getStatus() == null || bug.getStatus() < 2) {
-                                    remainingBugs++;
+                            if (bug.getProjectId() != null) {
+                                System.out.println("  Bug: " + bug.getTitle() + ", projectId=" + bug.getProjectId() + ", status=" + bug.getStatus());
+                                if (bug.getProjectId().equals(projectId)) {
+                                    // 假设Bug状态为0或1表示未解决
+                                    if (bug.getStatus() == null || bug.getStatus() < 2) {
+                                        remainingBugs++;
+                                    }
                                 }
                             }
                         }
                         projectMap.put("shengYuBug", remainingBugs);
+                        System.out.println("  剩余Bug数: " + remainingBugs);
+                        
+                        // 计算未完成测试套件数量（从test_suites表中获取）
+                        int remainingTestSuites = 0;
+                        List<com.example.springboot.entity.TestSuite> testSuites = testSuiteService.findAll();
+                        for (com.example.springboot.entity.TestSuite testSuite : testSuites) {
+                            if (testSuite.getProject_id() != null && testSuite.getProject_id().equals(project.getId())) {
+                                // 假设测试套件状态不为2表示未完成
+                                if (testSuite.getStatus() == null || testSuite.getStatus() != 2) {
+                                    remainingTestSuites++;
+                                }
+                            }
+                        }
+                        projectMap.put("remainingTestSuites", remainingTestSuites);
                         
                         // 设置完成时间和进度
                         projectMap.put("finishTime", project.getEnd_date());
                         projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
                         
+                        // 判断项目是否有未完成的内容
+                        boolean hasUnfinishedContent = remainingTasks > 0 || remainingBugs > 0 || remainingTestSuites > 0;
+                        projectMap.put("hasUnfinishedContent", hasUnfinishedContent);
+                        
+                        // 添加到列表（所有状态为未完成的项目都显示）
                         projectList.add(projectMap);
                     }
                 }
@@ -875,6 +931,7 @@ public class WorkbenchController {
         Map<String, Object> projectMap = new HashMap<>();
         projectMap.put("id", project.getId());
         projectMap.put("title", project.getName());
+        projectMap.put("name", project.getName());
         
         // 获取负责人姓名
         String managerName = "未知"; 
@@ -953,14 +1010,14 @@ public class WorkbenchController {
         }
         projectMap.put("states", statusText);
         
-        // 从数据库获取实际数据
-        Integer projectId = project.getId().intValue();
+        // 从数据库获取实际数据（保持Long类型以正确匹配）
+        Long projectId = project.getId();
         
         // 计算总工时（从tasks表中获取）
         int totalHours = 0;
         List<Task> tasks = taskService.findall();
         for (Task task : tasks) {
-            if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
+            if (task.getProjectId() != null && task.getProjectId().longValue() == projectId) {
                 if (task.getEstimatedHours() != null) {
                     totalHours += task.getEstimatedHours().intValue();
                 }
@@ -971,7 +1028,7 @@ public class WorkbenchController {
         // 计算剩余任务数量（从tasks表中获取）
         int remainingTasks = 0;
         for (Task task : tasks) {
-            if (task.getProjectId() != null && task.getProjectId().equals(projectId)) {
+            if (task.getProjectId() != null && task.getProjectId().longValue() == projectId) {
                 // 假设任务状态为0或1表示未完成
                 if (task.getStatus() == null || task.getStatus() < 2) {
                     remainingTasks++;
@@ -993,9 +1050,26 @@ public class WorkbenchController {
         }
         projectMap.put("shengYuBug", remainingBugs);
         
+        // 计算未完成测试套件数量（从test_suites表中获取）
+        int remainingTestSuites = 0;
+        List<com.example.springboot.entity.TestSuite> testSuites = testSuiteService.findAll();
+        for (com.example.springboot.entity.TestSuite testSuite : testSuites) {
+            if (testSuite.getProject_id() != null && testSuite.getProject_id().equals(project.getId())) {
+                // 假设测试套件状态不为2表示未完成
+                if (testSuite.getStatus() == null || testSuite.getStatus() != 2) {
+                    remainingTestSuites++;
+                }
+            }
+        }
+        projectMap.put("remainingTestSuites", remainingTestSuites);
+        
         // 设置完成时间和进度
         projectMap.put("finishTime", project.getEnd_date());
         projectMap.put("jinDu", project.getProgress() != null ? project.getProgress() : 0);
+        
+        // 判断项目是否未完成：有未完成任务、未解决Bug或未完成测试套件
+        boolean isIncomplete = remainingTasks > 0 || remainingBugs > 0 || remainingTestSuites > 0;
+        projectMap.put("isIncomplete", isIncomplete);
         
         return projectMap;
     }
@@ -1514,16 +1588,18 @@ public class WorkbenchController {
             int taskState = 0;
             List<Task> tasks = taskService.findall();
             
-            // 先通过username查找用户，获取用户的id
-            Integer userId = null;
-            if (user != null) {
-                userId = user.getId();
+            // 通过username解析为Long，因为username存储的是学号/工号
+            Long taskAssigneeId = null;
+            try {
+                taskAssigneeId = Long.parseLong(username);
+            } catch (NumberFormatException e) {
+                // 用户名不是数字格式，忽略
             }
             
-            if (userId != null) {
+            if (taskAssigneeId != null) {
                 for (Task task : tasks) {
-                    // 只统计当前用户是负责人的任务
-                    if (task.getAssigneeId() != null && task.getAssigneeId().equals(userId)) {
+                    // 只统计当前用户是负责人的任务（Task.assigneeId是Integer，需要转换）
+                    if (task.getAssigneeId() != null && task.getAssigneeId().longValue() == taskAssigneeId) {
                         taskState++;
                     }
                 }
@@ -1534,7 +1610,7 @@ public class WorkbenchController {
             List<Bug> bugs = bugService.findall();
             System.out.println("获取到的Bug数量: " + bugs.size());
             System.out.println("当前用户名: " + username);
-            System.out.println("当前用户ID: " + userId);
+            System.out.println("当前用户ID: " + taskAssigneeId);
             
             // 检查数据库连接和Bug数据
             if (bugs == null) {
@@ -1546,10 +1622,10 @@ public class WorkbenchController {
                 }
             }
             
-            if (userId != null) {
+            if (taskAssigneeId != null) {
                 for (Bug bug : bugs) {
-                    // 只统计当前用户是负责人的Bug
-                    if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId)) {
+                    // 只统计当前用户是负责人的Bug（Bug.assigneeId是Long）
+                    if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(taskAssigneeId)) {
                         bugState++;
                         System.out.println("匹配到Bug: " + bug.getId());
                     }
