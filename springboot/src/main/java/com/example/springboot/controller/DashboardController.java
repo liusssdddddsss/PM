@@ -686,11 +686,14 @@ public class DashboardController {
                     continue;
                 }
                 
-                // 如果指定了项目，只返回该项目的Bug
+                // 如果指定了项目，只返回该项目的Bug或没有关联项目的Bug
                 if (targetProjectId != null) {
-                    if (bug.getProjectId() == null || !bug.getProjectId().equals(targetProjectId)) {
+                    System.out.println("  检查项目匹配: bug.projectId=" + bug.getProjectId() + ", targetProjectId=" + targetProjectId);
+                    if (bug.getProjectId() != null && !bug.getProjectId().equals(targetProjectId)) {
+                        System.out.println("  ❌ 项目不匹配，跳过");
                         continue;
                     }
+                    System.out.println("  ✅ 项目匹配通过");
                 }
                 
                 // 核心：只显示负责人是当前用户的Bug
@@ -819,6 +822,54 @@ public class DashboardController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取用户Bug列表失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "获取所有待处理的Bug列表", description = "返回所有待处理状态的Bug（状态为0或1）")
+    @GetMapping("/all-pending-bugs")
+    public Result getAllPendingBugs(@RequestParam(required = false) String username) {
+        try {
+            System.out.println("获取所有待处理的Bug列表，username: " + username);
+            
+            List<Bug> allBugs = bugRepository.findAll();
+            List<Map<String, Object>> pendingBugs = new ArrayList<>();
+            
+            for (Bug bug : allBugs) {
+                // 只显示待处理状态的Bug（status=0）
+                if (bug.getStatus() == null || bug.getStatus() != 0) {
+                    continue;
+                }
+                
+                System.out.println("待处理Bug: " + bug.getTitle() + ", 状态=" + bug.getStatus());
+                
+                // 构建返回的Bug数据
+                Map<String, Object> bugMap = new HashMap<>();
+                bugMap.put("id", bug.getId());
+                bugMap.put("title", bug.getTitle() != null ? bug.getTitle() : "无标题");
+                
+                // 转换优先级（使用severity字段）
+                String severity = "一般";
+                if (bug.getSeverity() != null) {
+                    switch (bug.getSeverity()) {
+                        case 1: severity = "紧急"; break;
+                        case 2: severity = "一般"; break;
+                        case 3: severity = "正常"; break;
+                    }
+                }
+                bugMap.put("severity", severity);
+                
+                // 状态
+                bugMap.put("status", bug.getStatus());
+                
+                pendingBugs.add(bugMap);
+            }
+            
+            System.out.println("待处理的Bug数量: " + pendingBugs.size());
+            
+            return Result.success(pendingBugs);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取待处理Bug列表失败: " + e.getMessage());
         }
     }
 

@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -297,6 +298,33 @@ public class ProductController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("更新产品失败: " + e.getMessage());
+        }
+    }
+    
+    // 删除产品
+    @DeleteMapping("/products/{id}")
+    @Transactional
+    public Result deleteProduct(@PathVariable Long id) {
+        try {
+            System.out.println("========== 调用 /api/products/" + id + " 删除接口 ==========");
+            
+            Optional<Product> productOpt = productRepository.findById(id);
+            if (productOpt.isEmpty()) {
+                return Result.error("产品不存在");
+            }
+            
+            Product product = productOpt.get();
+            String productName = product.getName();
+            System.out.println("  待删除产品: " + productName);
+            
+            // 删除产品
+            productRepository.delete(product);
+            System.out.println("  产品删除成功: " + productName);
+            
+            return Result.success("产品删除成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除产品失败: " + e.getMessage());
         }
     }
 }

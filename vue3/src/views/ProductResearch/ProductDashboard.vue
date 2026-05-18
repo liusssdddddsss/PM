@@ -74,6 +74,11 @@
                   <el-table-column prop="plan" label="计划" min-width="80" />
                   <el-table-column prop="activeBugs" label="Bug数" min-width="80" />
                   <el-table-column prop="release" label="发布" min-width="80" />
+                  <el-table-column label="操作" min-width="80">
+                    <template #default="scope">
+                      <el-button type="text" size="small" @click="handleDeleteProduct(scope.row)" style="color: #F56C6C;">删除</el-button>
+                    </template>
+                  </el-table-column>
                 </el-table>
               </div>
             </div>
@@ -286,7 +291,8 @@ import {useEcharts} from "@/utils/useEcharts.js";
 import StayTestList from "@/views/workbenchView/listView/StayTestList.vue";
 import ProjectList from "@/views/workbenchView/listView/ProjectList.vue";
 import request from "@/utils/request.js";
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { recordOperationLog } from '@/utils/operationLog.js';
 
 // 初始化路由
 const router = useRouter();
@@ -446,6 +452,65 @@ const createProduct = async () => {
   } catch (error) {
     console.error('创建产品失败:', error);
     ElMessage.error('产品创建失败，请稍后重试');
+  }
+};
+
+// 删除产品
+const handleDeleteProduct = async (productRow) => {
+  try {
+    // 获取产品名称用于确认和日志记录
+    const productName = productRow.projectName || productRow.name;
+    
+    // 确认删除
+    await ElMessageBox.confirm(
+      `确定要删除产品 "${productName}" 吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+    
+    // 获取产品ID
+    let productId = productRow.id;
+    if (!productId && productRow.projectName) {
+      const foundProduct = unclosedProducts.value.find(p => p.projectName === productRow.projectName);
+      if (foundProduct) {
+        productId = foundProduct.id;
+      }
+    }
+    
+    if (!productId) {
+      ElMessage.error('无法获取产品ID');
+      return;
+    }
+    
+    // 调用删除接口
+    const response = await request.delete(`/api/products/${productId}`);
+    
+    if (response.data.code === 200) {
+      ElMessage.success('产品删除成功');
+      
+      // 记录操作日志
+      try {
+        await recordOperationLog('删除了', '产品', null, productName);
+      } catch (logError) {
+        console.error('记录操作日志失败:', logError);
+      }
+      
+      // 重新获取产品数据
+      await fetchUnclosedProducts();
+      await fetchProductOverview();
+      await initCharts();
+    } else {
+      ElMessage.error('产品删除失败: ' + response.data.msg);
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除产品失败:', error);
+      ElMessage.error('产品删除失败，请稍后重试');
+    }
   }
 };
 

@@ -89,10 +89,10 @@
         </el-card>
       </div>
 
-      <!-- 右侧面板：指派给我的Bug列表 -->
+      <!-- 右侧面板：待处理的Bug列表 -->
       <div class="right-panel" style="width: 45%;">
         <el-card style="height: calc(100vh - 80px);display: flex;flex-direction: column;">
-          <div class="assigned-bugs" style="flex: 1;display: flex;flex-direction: column;">
+          <div class="pending-bugs" style="flex: 1;display: flex;flex-direction: column;">
             <div class="section-header">
               <h3>待处理的Bug列表</h3>
               <div style="display: flex; gap: 10px;">
@@ -101,16 +101,16 @@
               </div>
             </div>
             <div class="card-content" style="flex: 1;overflow-y: auto;">
-              <el-table :data="assignedBugs" stripe style="width: 100%;height: 100%;">
-                <el-table-column prop="name" label="Bug名称" min-width="150" />
-                <el-table-column prop="priority" label="优先级" width="80">
+              <el-table :data="pendingBugs" stripe style="width: 100%;height: 100%;">
+                <el-table-column prop="title" label="Bug名称" min-width="150" />
+                <el-table-column prop="severity" label="优先级" width="80">
                   <template #default="scope">
-                    <el-tag :type="getPriorityType(scope.row.priority)">{{ scope.row.priority }}</el-tag>
+                    <el-tag :type="getPriorityType(scope.row.severity)">{{ scope.row.severity }}</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="status" label="状态" width="80">
                   <template #default="scope">
-                    <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status }}</el-tag>
+                    <el-tag :type="getStatusType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
                   </template>
                 </el-table-column>
               </el-table>
@@ -153,8 +153,8 @@ const bugStats = ref({
 // 待测试的测试单
 const pendingTestCases = ref([]);
 
-// 指派给我的Bug列表
-const assignedBugs = ref([]);
+// 待处理的Bug列表
+const pendingBugs = ref([]);
 
 // 当前用户角色
 const userRole = ref('');
@@ -259,26 +259,23 @@ const fetchTestStatistics = async (projectName = '') => {
   }
 };
 
-// 获取指派给我的Bug列表
-const fetchBugs = async (projectName = '') => {
+// 获取待处理的Bug列表
+const fetchPendingBugs = async () => {
   try {
     const username = getCurrentUsername();
-    console.log('获取Bug列表，用户名:', username, '项目名:', projectName);
+    console.log('获取待处理的Bug列表，用户名:', username);
     
-    let params = { username };
-    if (projectName) {
-      params.projectName = projectName;
-    }
+    const response = await request.get('/dashboard/all-pending-bugs', {
+      params: { username }
+    });
+    console.log('获取待处理Bug响应:', response);
     
-    const response = await request.get('/dashboard/user-bugs', { params });
-    console.log('获取Bug列表响应:', response);
-    
-    if (response.data.code === 200 && Array.isArray(response.data.data)) {
-      assignedBugs.value = response.data.data;
-      console.log('指派给我的Bug列表:', assignedBugs.value);
+    if (response.data.code === 200) {
+      pendingBugs.value = response.data.data || [];
+      console.log('待处理的Bug列表:', pendingBugs.value);
     }
   } catch (error) {
-    console.error('获取Bug列表失败:', error);
+    console.error('获取待处理Bug失败:', error);
   }
 };
 
@@ -286,7 +283,6 @@ const fetchBugs = async (projectName = '') => {
 const selectProject = async (projectName) => {
   selectedProject.value = projectName;
   await fetchTestStatistics(projectName);
-  await fetchBugs(projectName);
 };
 
 // 页面跳转
@@ -294,12 +290,12 @@ const goToTestList = () => {
   router.push('/test/testList');
 };
 
-const goToBugList = () => {
-  router.push('/test/bugList');
-};
-
 const goToCreateBug = () => {
   router.push('/test/createBug');
+};
+
+const goToBugList = () => {
+  router.push('/test/bugList');
 };
 
 // 获取优先级对应的标签类型
@@ -318,13 +314,28 @@ const getPriorityType = (priority) => {
 // 获取状态对应的标签类型
 const getStatusType = (status) => {
   switch (status) {
-    case '解决中':
-    case '处理中':
+    case 0:
+      return 'info';
+    case 1:
       return 'warning';
-    case '已解决':
+    case 2:
       return 'success';
     default:
-      return 'info';
+      return 'default';
+  }
+};
+
+// 获取状态文本
+const getStatusText = (status) => {
+  switch (status) {
+    case 0:
+      return '待处理';
+    case 1:
+      return '处理中';
+    case 2:
+      return '已解决';
+    default:
+      return '未知';
   }
 };
 
@@ -353,11 +364,10 @@ onMounted(async () => {
   await fetchUserProjects();
   if (selectedProject.value) {
     await fetchTestStatistics(selectedProject.value);
-    await fetchBugs(selectedProject.value);
   } else {
     await fetchTestStatistics();
-    await fetchBugs();
   }
+  await fetchPendingBugs();
 });
 </script>
 
@@ -369,7 +379,6 @@ onMounted(async () => {
 .main-content {
   display: flex;
   gap: 15px;
-  padding: 10px;
 }
 
 .left-panel {
@@ -501,7 +510,7 @@ onMounted(async () => {
   color: #606266;
 }
 
-.pending-tests, .assigned-bugs {
+.pending-tests, .pending-bugs {
   background-color: #fff;
   display: flex;
   flex-direction: column;

@@ -34,7 +34,7 @@ public class WebConfig implements WebMvcConfigurer {
                                   "/api/verificationCode", "/api/checkUsername",
                                   "/api/project/list",
                                   "/admin/login", "/admin/user-info", "/admin/update-user",
-                                  "/dashboard/view-bug-projects",
+                                  "/dashboard/view-bug-projects", "/dashboard/dynamic", "/dashboard/**",
                                   "/ai/**",
                                   "/uploads/**", "/static/**", "/assets/**", "/favicon.ico");
     }
