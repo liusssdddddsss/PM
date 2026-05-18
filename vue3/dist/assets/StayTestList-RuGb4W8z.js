@@ -1,1 +1,0 @@
-import{c as e,a as n,F as r,n as l,l as c,i as a,t as i}from"./index-D6fI98cn.js";const o={class:"staying-test-list"},d={__name:"StayTestList",setup(m){const s=c([{name:"智慧教室"},{name:"智慧教室"},{name:"智慧教室"},{name:"智慧教室"},{name:"智慧教室"}]);return(u,_)=>(a(),e("div",o,[n("ul",null,[(a(!0),e(r,null,l(s.value,t=>(a(),e("li",{",":"",key:t},i(t.name),1))),128))])]))}};export{d as default};

@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const request = axios.create({
-    baseURL: 'https://4b324173af1d83e3-47-99-144-233.serveousercontent.com',
-    timeout: 10000,
+    baseURL: '/',
+    timeout: 30000,
 })
 //request拦截器
 request.interceptors.request.use(config => {
