@@ -3,10 +3,15 @@
     <h3>添加项目</h3>
     <el-divider/>
     <div class="form-container">
-      <el-form :model="projectForm" label-width="120px">
+      <el-form 
+        :model="projectForm" 
+        label-width="120px"
+        :rules="formRules"
+        ref="projectFormRef"
+      >
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="项目名称">
+            <el-form-item label="项目名称" prop="name">
               <el-input v-model="projectForm.name" placeholder="请输入项目名称" />
             </el-form-item>
           </el-col>
@@ -52,7 +57,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="所属产品">
+            <el-form-item label="所属产品" prop="productId">
               <el-select
                 v-model="projectForm.productId"
                 placeholder="请选择"
@@ -74,7 +79,7 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="开始日期">
+            <el-form-item label="开始日期" prop="startDate">
               <el-date-picker
                   v-model="projectForm.startDate"
                   type="date"
@@ -84,7 +89,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="预计完成日期">
+            <el-form-item label="预计完成日期" prop="endDate">
               <el-date-picker
                   v-model="projectForm.endDate"
                   type="date"
@@ -142,10 +147,14 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import request from '@/utils/request.js';
 import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
+
+// 表单引用
+const projectFormRef = ref(null);
 
 // 项目表单数据
 const projectForm = ref({
@@ -167,6 +176,59 @@ const productOptions = ref([]);
 const loadingUsers = ref(false);
 const loadingTeams = ref(false);
 const loadingProducts = ref(false);
+
+// 验证项目名称唯一性
+const validateProjectNameUnique = async (rule, value, callback) => {
+  if (!value) {
+    return callback();
+  }
+  try {
+    const response = await request.get('/workbench/projects/validate-name', {
+      params: { name: value }
+    });
+    if (response.data.code === 200) {
+      if (!response.data.data) {
+        callback(new Error('项目名称已存在'));
+      } else {
+        callback();
+      }
+    } else {
+      callback(); // 如果API返回非200，也让验证通过
+    }
+  } catch (error) {
+    console.error('验证项目名称失败:', error);
+    callback(); // API调用失败时，让验证通过，不阻止用户操作
+  }
+};
+
+// 验证日期顺序
+const validateDateOrder = (rule, value, callback) => {
+  const startDate = projectForm.value.startDate;
+  const endDate = projectForm.value.endDate;
+  
+  if (startDate && endDate) {
+    if (new Date(endDate) < new Date(startDate)) {
+      callback(new Error('结束时间不得早于开始时间'));
+    }
+  }
+  callback();
+};
+
+// 表单验证规则
+const formRules = {
+  name: [
+    { required: true, message: '项目名称不能为空', trigger: 'blur' }
+  ],
+  productId: [
+    { required: true, message: '请选择关联产品', trigger: 'change' }
+  ],
+  startDate: [
+    { validator: validateDateOrder, trigger: 'change' }
+  ],
+  endDate: [
+    { validator: validateDateOrder, trigger: 'change' }
+  ]
+};
 
 // 搜索用户
 const searchUsers = async (query) => {
@@ -304,6 +366,24 @@ onMounted(async () => {
 
 // 保存项目
 const saveProject = async () => {
+  if (!projectFormRef.value) return;
+  
+  // 表单验证
+  try {
+    await projectFormRef.value.validate();
+  } catch (error) {
+    console.error('表单验证失败:', error);
+    return;
+  }
+  
+  // 日期顺序验证（额外检查）
+  if (projectForm.value.startDate && projectForm.value.endDate) {
+    if (new Date(projectForm.value.endDate) < new Date(projectForm.value.startDate)) {
+      ElMessage.error('结束时间不得早于开始时间');
+      return;
+    }
+  }
+  
   try {
     // 构建请求数据
     const projectData = {
@@ -324,13 +404,19 @@ const saveProject = async () => {
     const response = await request.post('/workbench/projects', projectData);
     if (response.data.code === 200) {
       console.log('项目创建成功');
+      ElMessage.success('项目创建成功');
       // 记录操作日志
       await recordOperationLog('创建了', '项目', null, projectForm.value.name);
+      // 触发全局事件，通知其他组件刷新
+      window.dispatchEvent(new CustomEvent('refreshDynamic'));
       // 保存成功后返回
       goBack();
+    } else {
+      ElMessage.error(response.data.message || '项目创建失败');
     }
   } catch (error) {
     console.error('保存项目失败:', error);
+    ElMessage.error('项目创建失败');
   }
 };
 

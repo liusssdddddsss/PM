@@ -115,7 +115,7 @@
 
 <script setup>
 
-import {ref, computed, onMounted, onBeforeMount} from "vue";
+import {ref, computed, onMounted, onBeforeMount, watch} from "vue";
 import {useRouter, useRoute} from "vue-router";
 import request from "@/utils/request.js";
 import { ElMessageBox, ElMessage } from "element-plus";
@@ -294,6 +294,12 @@ onMounted(async () => {
   } catch (error) {
     console.error('组件挂载时出错:', error);
   }
+});
+
+// 监听路由变化，刷新项目列表
+watch(() => route.fullPath, async () => {
+  console.log('路由变化，刷新项目列表');
+  await fetchProjects();
 });
 
 // 根据当前标签和搜索词过滤数据

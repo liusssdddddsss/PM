@@ -20,6 +20,7 @@ public class TestSuite {
     private String start_date;
     private String end_date;
     private Long assignee_id;
+    private Long creator_id;
     private String created_at;
     private String net;
 
@@ -119,6 +120,14 @@ public class TestSuite {
 
     public void setAssignee_id(Long assignee_id) {
         this.assignee_id = assignee_id;
+    }
+
+    public Long getCreator_id() {
+        return creator_id;
+    }
+
+    public void setCreator_id(Long creator_id) {
+        this.creator_id = creator_id;
     }
 
     public String getCreated_at() {

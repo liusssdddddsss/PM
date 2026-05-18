@@ -15,6 +15,8 @@ public class ProjectMember {
     private Long userId;
     @Column(name = "role_type")
     private String roleType;
+    @Column(name = "team_id")
+    private Integer teamId;
     @Column(name = "joined_at")
     private Date joinedAt;
     @Column(name = "joined_by")
@@ -50,6 +52,14 @@ public class ProjectMember {
 
     public void setRoleType(String roleType) {
         this.roleType = roleType;
+    }
+
+    public Integer getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(Integer teamId) {
+        this.teamId = teamId;
     }
 
     public Date getJoinedAt() {

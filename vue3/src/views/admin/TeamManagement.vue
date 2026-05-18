@@ -103,15 +103,31 @@
     :title="isEditTeam ? '编辑团队' : '创建团队'"
     width="500px"
   >
-    <el-form :model="formTeam" label-width="100px">
+    <el-form :model="formTeam" :rules="teamFormRules" ref="teamFormRef" label-width="100px">
       <el-form-item label="团队编号">
         <el-input v-model="formTeam.teamId" :disabled="isEditTeam" placeholder="自动生成" />
       </el-form-item>
-      <el-form-item label="团队名称">
-        <el-input v-model="formTeam.teamName" />
+      <el-form-item label="团队名称" prop="teamName">
+        <el-input v-model="formTeam.teamName" placeholder="请输入团队名称" />
       </el-form-item>
-      <el-form-item label="领导人员">
-        <el-input v-model="formTeam.leader" placeholder="输入领导姓名" />
+      <el-form-item label="领导人员" prop="leader">
+        <el-select
+          v-model="formTeam.leader"
+          placeholder="请选择负责人"
+          filterable
+          remote
+          reserve-keyword
+          :remote-method="searchUsers"
+          :loading="userLoading"
+          style="width: 100%"
+        >
+          <el-option
+            v-for="item in userOptions"
+            :key="item.username"
+            :label="item.name || item.username"
+            :value="item.username"
+          />
+        </el-select>
       </el-form-item>
       <el-form-item label="项目名称">
         <el-input v-model="formTeam.projectName" />
@@ -207,14 +223,14 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted} from "vue";
+import {ref, computed, onMounted} from 'vue';
+import { ElMessage } from 'element-plus';
 import request from '@/utils/request.js';
 
 // 根据角色编号获取角色名称
 const getRoleName = (roleId) => {
   const roleMap = {
-    '1': '超级管理员',
-    '2': '产品经理',
+    '1': '产品经理',
     '3': '开发者',
     '4': '测试者'
   };
@@ -279,6 +295,87 @@ const selectedProject = ref({
 
 const teamToDisband = ref(null);
 
+// 表单引用
+const teamFormRef = ref(null);
+
+// 用户选项和加载状态
+const userOptions = ref([]);
+const userLoading = ref(false);
+
+// 验证团队名称是否已存在
+const validateTeamNameUnique = async (rule, value, callback) => {
+  if (!value) {
+    return callback();
+  }
+  try {
+    const response = await request.get('/admin/teams/check-name', {
+      params: { name: value }
+    });
+    if (response.data.code === 200) {
+      if (!response.data.data) {
+        callback(new Error('团队名称已存在'));
+      } else {
+        callback();
+      }
+    } else {
+      callback(); // 如果API返回非200，也让验证通过
+    }
+  } catch (error) {
+    console.error('验证团队名称失败:', error);
+    callback(); // API调用失败时，让验证通过，不阻止用户操作
+  }
+};
+
+// 表单验证规则
+const teamFormRules = {
+  teamName: [
+    { required: true, message: '团队名称不能为空', trigger: 'blur' }
+  ],
+  leader: [
+    { required: true, message: '请选择负责人', trigger: 'change' }
+  ]
+};
+
+// 搜索用户
+const searchUsers = async (query) => {
+  if (query) {
+    userLoading.value = true;
+    try {
+      const response = await request.get('/admin/findAll');
+      if (response.data.code === 200 && Array.isArray(response.data.data)) {
+        userOptions.value = response.data.data.map(item => ({
+          username: item.username,
+          name: item.name || item.username
+        })).filter(item => 
+          item.name.toLowerCase().includes(query.toLowerCase()) || 
+          item.username.toLowerCase().includes(query.toLowerCase())
+        );
+      }
+    } catch (error) {
+      console.error('搜索用户失败:', error);
+    } finally {
+      userLoading.value = false;
+    }
+  } else {
+    loadUsers();
+  }
+};
+
+// 加载用户列表
+const loadUsers = async () => {
+  try {
+    const response = await request.get('/admin/findAll');
+    if (response.data.code === 200 && Array.isArray(response.data.data)) {
+      userOptions.value = response.data.data.map(item => ({
+        username: item.username,
+        name: item.name || item.username
+      }));
+    }
+  } catch (error) {
+    console.error('加载用户失败:', error);
+  }
+};
+
 // 表单数据
 const formTeam = ref({
   teamId: '',
@@ -301,7 +398,7 @@ const fetchTeams = async () => {
 };
 
 // 方法
-const showAddTeamDialog = () => {
+const showAddTeamDialog = async () => {
   isEditTeam.value = false;
   formTeam.value = {
     teamId: '',
@@ -310,31 +407,52 @@ const showAddTeamDialog = () => {
     projectName: '',
     createTime: ''
   };
+  // 加载用户列表
+  await loadUsers();
   teamDialogVisible.value = true;
 };
 
 const saveTeam = async () => {
+  if (!teamFormRef.value) return;
+  
+  // 表单验证
+  try {
+    await teamFormRef.value.validate();
+  } catch (error) {
+    console.error('表单验证失败:', error);
+    return;
+  }
+  
   try {
     if (isEditTeam.value) {
       // 编辑团队
-      // 这里可以添加编辑团队的 API 调用
+      // 这里可以添加编辑团队的API调用
     } else {
       // 创建团队
+      const userStr = localStorage.getItem('user');
+      const creatorId = userStr ? JSON.parse(userStr).username : 202201;
+      
       const response = await request.post('/admin/teams', {
         teamName: formTeam.value.teamName,
         leaderName: formTeam.value.leader,
         projectName: formTeam.value.projectName,
         createTime: formTeam.value.createTime,
-        creatorId: 202201 // 假设当前用户的 ID 是 202201
+        creatorId: creatorId
       });
       if (response.data.code === 200) {
+        ElMessage.success('团队创建成功');
         // 重新获取团队列表
         await fetchTeams();
+        teamDialogVisible.value = false;
+        // 重置表单
+        teamFormRef.value.resetFields();
+      } else {
+        ElMessage.error(response.data.message || '团队创建失败');
       }
     }
-    teamDialogVisible.value = false;
   } catch (error) {
     console.error('保存团队失败:', error);
+    ElMessage.error('团队创建失败');
   }
 };
 
@@ -362,17 +480,33 @@ const disbandTeam = async () => {
   if (!teamToDisband.value) return;
   
   try {
+    // 先检查团队是否有关联项目（如果API存在的话）
+    try {
+      const checkResponse = await request.get(`/admin/teams/${teamToDisband.value.teamId}/check-projects`);
+      if (checkResponse.data.code === 200 && !checkResponse.data.data) {
+        ElMessage.error('该团队有关联项目，无法解散');
+        return;
+      }
+    } catch (checkError) {
+      console.log('检查团队项目API不存在或失败，跳过检查:', checkError);
+      // API不存在或调用失败时，继续执行解散流程
+    }
+    
     const response = await request.delete(`/admin/teams/${teamToDisband.value.teamId}`);
     if (response.data.code === 200) {
+      ElMessage.success('团队解散成功');
       // 重新获取团队列表
       await fetchTeams();
       // 关闭确认对话框
       confirmDialogVisible.value = false;
       // 重置选中的团队
       teamToDisband.value = null;
+    } else {
+      ElMessage.error(response.data.message || '团队解散失败');
     }
   } catch (error) {
     console.error('解散团队失败:', error);
+    ElMessage.error('团队解散失败');
   }
 };
 

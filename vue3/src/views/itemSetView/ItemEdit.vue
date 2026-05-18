@@ -1,13 +1,13 @@
 <template>
   <div class="edit">
-    <h3>查看项目</h3>
+    <h3>编辑项目</h3>
     <el-divider/>
     <div class="form-container">
       <el-form :model="projectForm" label-width="120px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="项目名称">
-              <el-input v-model="projectForm.name" placeholder="请输入项目名称" readonly />
+              <el-input v-model="projectForm.name" placeholder="请输入项目名称" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -19,7 +19,6 @@
                 :remote-method="remoteSearch"
                 :loading="loading"
                 placeholder="请选择所属产品"
-                disabled
               >
                 <el-option
                   v-for="product in productList"
@@ -38,9 +37,8 @@
               <el-date-picker
                   v-model="projectForm.startDate"
                   type="date"
-                  placeholder="请选"
+                  placeholder="请选择"
                   style="width: 100%"
-                  disabled
               />
             </el-form-item>
           </el-col>
@@ -49,9 +47,8 @@
               <el-date-picker
                   v-model="projectForm.endDate"
                   type="date"
-                  placeholder="请选"
+                  placeholder="请选择"
                   style="width: 100%"
-                  disabled
               />
             </el-form-item>
           </el-col>
@@ -60,81 +57,58 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="负责人">
-              <el-select v-model="projectForm.leader" placeholder="请选择负责人" disabled>
-                <el-option label="张三" value="zhangsan" />
-                <el-option label="李四" value="lisi" />
-                <el-option label="王五" value="wangwu" />
+              <el-select 
+                v-model="projectForm.leader" 
+                filterable
+                remote
+                :remote-method="searchUsers"
+                :loading="loadingLeader"
+                placeholder="请选择负责人"
+              >
+                <el-option 
+                  v-for="user in leaderOptions" 
+                  :key="user.id" 
+                  :label="user.name || user.username" 
+                  :value="user.id" 
+                />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="开发者">
+            <el-form-item label="所属团队">
               <el-select
-                v-model="projectForm.developers"
-                multiple
+                v-model="projectForm.team"
                 filterable
                 remote
-                :remote-method="remoteSearchDevelopers"
-                :loading="loadingDevelopers"
-                placeholder="请选择开发者"
-                disabled
+                :remote-method="searchTeams"
+                :loading="loadingTeam"
+                placeholder="请选择所属团队"
               >
                 <el-option
-                  v-for="developer in developerList"
-                  :key="developer.id"
-                  :label="developer.name"
-                  :value="developer.id"
+                  v-for="team in teamOptions"
+                  :key="team.teamId"
+                  :label="team.teamName"
+                  :value="team.teamId"
                 />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="测试者">
-              <el-select
-                v-model="projectForm.testers"
-                multiple
-                filterable
-                remote
-                :remote-method="remoteSearchTesters"
-                :loading="loadingTesters"
-                placeholder="请选择测试者"
-                disabled
-              >
-                <el-option
-                  v-for="tester in testerList"
-                  :key="tester.id"
-                  :label="tester.name"
-                  :value="tester.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="备注">
+        <el-form-item label="项目描述">
           <el-input
-              v-model="projectForm.remark"
+              v-model="projectForm.description"
               type="textarea"
-              placeholder="请输入备注"
+              placeholder="请输入项目描述"
               :rows="4"
-              readonly
           />
-        </el-form-item>
-
-        <el-form-item label="访问控制">
-          <el-radio-group v-model="projectForm.accessControl" disabled>
-            <el-radio label="public">公开(所有人可见)</el-radio>
-            <el-radio label="private">私有(只项目负责人、团队成员和干系人可访问)</el-radio>
-          </el-radio-group>
         </el-form-item>
 
         <el-row :gutter="20">
           <el-col :span="24">
             <div class="form-buttons">
               <el-button @click="goBack">返回</el-button>
+              <el-button type="primary" @click="saveProject">保存</el-button>
             </div>
           </el-col>
         </el-row>
@@ -159,40 +133,50 @@ const projectForm = ref({
   startDate: '',
   endDate: '',
   leader: '',
-  developers: [],
-  testers: [],
-  remark: '',
-  accessControl: 'public'
+  team: '',
+  description: '',
+  progress: 0,
+  status: 0
 });
 
 // 产品列表
 const productList = ref([]);
-// 加载状态
 const loading = ref(false);
 
-// 开发者列表
-const developerList = ref([]);
-// 开发者加载状态
-const loadingDevelopers = ref(false);
+// 负责人选项
+const leaderOptions = ref([]);
+const loadingLeader = ref(false);
 
-// 测试者列表
-const testerList = ref([]);
-// 测试者加载状态
-const loadingTesters = ref(false);
+// 团队选项
+const teamOptions = ref([]);
+const loadingTeam = ref(false);
 
 // 远程搜索产品
-const remoteSearch = (query) => {
+const remoteSearch = async (query) => {
   if (query !== '') {
     loading.value = true;
-    // 模拟远程搜索，实际应该调用后端API
-    setTimeout(() => {
-      productList.value = productList.value.filter(item => {
-        return item.name.toLowerCase().includes(query.toLowerCase());
-      });
-      loading.value = false;
-    }, 200);
+    try {
+      const response = await request.get('/api/products');
+      if (response.data.code === 200) {
+        const newProducts = response.data.data
+          .filter(item => item.name && item.name.toLowerCase().includes(query.toLowerCase()))
+          .map(item => ({
+            id: Number(item.id),
+            name: item.name
+          }));
+        // 合并数据，避免覆盖已存在的选项
+        newProducts.forEach(product => {
+          const exists = productList.value.some(p => p.id === product.id);
+          if (!exists) {
+            productList.value.push(product);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('搜索产品失败:', error);
+    }
+    loading.value = false;
   } else {
-    // 如果查询为空，加载所有产品
     loadProducts();
   }
 };
@@ -200,124 +184,60 @@ const remoteSearch = (query) => {
 // 加载产品列表
 const loadProducts = async () => {
   try {
-    console.log('开始加载产品列表...');
-    // 修改API路径，确保与后端服务器的API路径匹配
-    const response = await request.get('/workbench/products');
-    console.log('产品列表响应:', response);
+    const response = await request.get('/api/products');
     if (response.data.code === 200) {
-      // 验证数据格式，确保每个产品都有id和name属性
-      const products = response.data.data || [];
-      console.log('原始产品数据:', products);
-      productList.value = products.map(product => ({
-        id: product.id || product.product_id || Math.random().toString(36).substr(2, 9),
-        name: product.name || product.product_name || '未知产品'
+      const newProducts = response.data.data.map(item => ({
+        id: Number(item.id),
+        name: item.name
       }));
-      console.log('加载的产品列表:', productList.value);
-    } else {
-      console.error('加载产品列表失败，响应码:', response.data.code);
-      productList.value = [];
+      // 合并数据，避免覆盖已存在的选项
+      newProducts.forEach(product => {
+        const exists = productList.value.some(p => p.id === product.id);
+        if (!exists) {
+          productList.value.push(product);
+        }
+      });
     }
   } catch (error) {
     console.error('加载产品列表失败:', error);
-    // 加载失败时，设置默认数据
-    productList.value = [];
   }
 };
 
-// 加载项目成员列表
-const loadProjectMembers = async (projectId) => {
+// 搜索用户
+const searchUsers = async (query) => {
+  loadingLeader.value = true;
   try {
-    console.log('开始加载项目成员列表，项目ID:', projectId);
-    // 修改API路径，确保与后端服务器的API路径匹配
-    const response = await request.get(`/workbench/projects/${projectId}/members`);
-    console.log('项目成员列表响应:', response);
+    const response = await request.get(`/admin/search-users?search=${query}`);
     if (response.data.code === 200) {
-      const members = response.data.data || [];
-      console.log('原始项目成员数据:', members);
-      
-      // 验证数据格式，确保每个成员都有id和name属性
-      const validMembers = members.map(member => ({
-        id: member.id || member.user_id || Math.random().toString(36).substr(2, 9),
-        name: member.name || member.username || '未知用户',
-        role: member.role || 'member'
+      leaderOptions.value = response.data.data.map(item => ({
+        username: item.username,
+        name: item.name,
+        id: item.id
       }));
-      console.log('验证后的项目成员数据:', validMembers);
-      
-      // 按角色分类 - 使用数字角色ID
-      developerList.value = validMembers.filter(member => member.role === '3' || member.role === 3);
-      testerList.value = validMembers.filter(member => member.role === '4' || member.role === 4);
-      
-      console.log('加载的开发者列表:', developerList.value);
-      console.log('加载的测试者列表:', testerList.value);
-      
-      // 强制更新表单值，确保组件能够正确显示已选项
-      setTimeout(() => {
-        projectForm.value.developers = [...developerList.value.map(member => member.id)];
-        projectForm.value.testers = [...testerList.value.map(member => member.id)];
-        console.log('设置后的开发者表单值:', projectForm.value.developers);
-        console.log('设置后的测试者表单值:', projectForm.value.testers);
-      }, 100);
-    } else {
-      console.error('加载项目成员列表失败，响应码:', response.data.code);
-      developerList.value = [];
-      testerList.value = [];
     }
   } catch (error) {
-    console.error('加载项目成员列表失败:', error);
-    // 加载失败时，设置默认数据
-    developerList.value = [];
-    testerList.value = [];
+    console.error('搜索用户失败:', error);
   }
+  loadingLeader.value = false;
 };
 
-// 远程搜索开发者
-const remoteSearchDevelopers = (query) => {
-  if (query !== '') {
-    loadingDevelopers.value = true;
-    // 过滤本地列表
-    setTimeout(() => {
-      developerList.value = developerList.value.filter(item => {
-        return item.name.toLowerCase().includes(query.toLowerCase());
-      });
-      loadingDevelopers.value = false;
-    }, 200);
-  } else {
-    // 如果查询为空，重新加载项目成员
-    const projectId = route.query.id;
-    if (projectId) {
-      loadProjectMembers(projectId);
+// 搜索团队
+const searchTeams = async (query) => {
+  loadingTeam.value = true;
+  try {
+    const response = await request.get('/admin/teams');
+    if (response.data.code === 200) {
+      teamOptions.value = response.data.data
+        .filter(item => item.teamName && item.teamName.toLowerCase().includes((query || '').toLowerCase()))
+        .map(item => ({
+          teamId: item.teamId,
+          teamName: item.teamName
+        }));
     }
+  } catch (error) {
+    console.error('搜索团队失败:', error);
   }
-};
-
-// 加载开发者列表
-const loadDevelopers = async () => {
-  // 开发者列表将通过loadProjectMembers加载
-};
-
-// 远程搜索测试者
-const remoteSearchTesters = (query) => {
-  if (query !== '') {
-    loadingTesters.value = true;
-    // 过滤本地列表
-    setTimeout(() => {
-      testerList.value = testerList.value.filter(item => {
-        return item.name.toLowerCase().includes(query.toLowerCase());
-      });
-      loadingTesters.value = false;
-    }, 200);
-  } else {
-    // 如果查询为空，重新加载项目成员
-    const projectId = route.query.id;
-    if (projectId) {
-      loadProjectMembers(projectId);
-    }
-  }
-};
-
-// 加载测试者列表
-const loadTesters = async () => {
-  // 测试者列表将通过loadProjectMembers加载
+  loadingTeam.value = false;
 };
 
 // 获取项目详情
@@ -329,37 +249,150 @@ const fetchProjectDetail = async () => {
   }
   
   try {
-    console.log('Fetching project detail for ID:', projectId);
-    // 修改API路径，确保与后端服务器的API路径匹配
     const response = await request.get(`/workbench/projects/${projectId}`);
-    console.log('Project detail response:', response);
     if (response.data.code === 200) {
       const project = response.data.data;
-      console.log('Project data:', project);
-      // 填充表单数据
-      projectForm.value = {
-        name: project.title || '',
-        product: project.product_id || '',
-        startDate: project.startTime ? new Date(project.startTime) : '',
-        endDate: project.finishTime ? new Date(project.finishTime) : '',
-        leader: project.person || '',
-        developers: project.developers || [],
-        testers: project.testers || [],
-        remark: project.remark || project.description || '',
-        accessControl: project.accessControl || project.access_control || 'public'
-      };
+      console.log('项目详情:', project);
       
-      // 确保产品列表已加载
-      if (productList.value.length === 0) {
-        await loadProducts();
+      const productId = project.product_id;
+      const managerId = project.manager_id;
+      const teamId = project.team_id;
+      
+      // 1. 先获取当前项目关联的数据，添加到选项列表
+      if (productId) {
+        try {
+          const productRes = await request.get(`/api/products/${productId}/detail`);
+          if (productRes.data.code === 200) {
+            const product = productRes.data.data;
+            const pid = Number(product.id);
+            const isProductExist = productList.value.some(p => Number(p.id) === pid);
+            if (!isProductExist) {
+              productList.value.push({
+                id: pid,
+                name: product.name || `产品${productId}`
+              });
+            }
+          }
+        } catch (e) {
+          console.error('获取产品信息失败:', e);
+        }
       }
       
-      // 加载项目成员列表
-      await loadProjectMembers(projectId);
+      if (managerId) {
+        const userId = Number(managerId);
+        const isUserExist = leaderOptions.value.some(u => Number(u.id) === userId);
+        if (!isUserExist) {
+          try {
+            const userRes = await request.get(`/admin/search-users?search=${userId}`);
+            if (userRes.data.code === 200 && userRes.data.data.length > 0) {
+              const user = userRes.data.data[0];
+              leaderOptions.value.push({
+                id: Number(user.id),
+                username: user.username,
+                name: user.name
+              });
+            }
+          } catch (e) {
+            console.error('获取用户信息失败:', e);
+          }
+        }
+      }
+      
+      if (teamId) {
+        const tid = Number(teamId);
+        const isTeamExist = teamOptions.value.some(t => Number(t.teamId) === tid);
+        if (!isTeamExist) {
+          try {
+            const teamRes = await request.get('/admin/teams');
+            if (teamRes.data.code === 200) {
+              const teams = teamRes.data.data;
+              const targetTeam = teams.find(t => Number(t.teamId) === tid);
+              if (targetTeam) {
+                teamOptions.value.push({
+                  teamId: Number(targetTeam.teamId),
+                  teamName: targetTeam.teamName
+                });
+              }
+            }
+          } catch (e) {
+            console.error('获取团队信息失败:', e);
+          }
+        }
+      }
+      
+      // 2. 然后加载完整的选项列表
+      await loadProducts();
+      await loadAllUsers();
+      await loadAllTeams();
+      
+      // 3. 最后设置表单值（使用nextTick确保DOM更新）
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      projectForm.value = {
+        name: project.name || project.title || '',
+        product: productId ? Number(productId) : '',
+        startDate: project.startTime ? new Date(project.startTime) : '',
+        endDate: project.finishTime ? new Date(project.finishTime) : '',
+        leader: managerId !== null && managerId !== undefined ? Number(managerId) : '',
+        team: teamId !== null && teamId !== undefined ? Number(teamId) : '',
+        description: project.description !== null && project.description !== undefined ? project.description : '',
+        progress: project.progress !== null && project.progress !== undefined ? project.progress : 0,
+        status: project.status !== null && project.status !== undefined ? project.status : 0
+      };
+      
+      console.log('表单数据:', projectForm.value);
+      console.log('产品列表:', productList.value);
+      console.log('用户列表:', leaderOptions.value);
+      console.log('团队列表:', teamOptions.value);
     }
   } catch (error) {
     console.error('获取项目详情失败:', error);
     ElMessage.error('获取项目详情失败');
+  }
+};
+
+// 加载所有用户
+const loadAllUsers = async () => {
+  try {
+    const response = await request.get('/admin/findAll');
+    if (response.data.code === 200) {
+      const newUsers = response.data.data.map(item => ({
+        username: item.username,
+        name: item.name,
+        id: Number(item.id)
+      }));
+      // 合并数据，避免覆盖已存在的选项
+      newUsers.forEach(user => {
+        const exists = leaderOptions.value.some(u => u.id === user.id);
+        if (!exists) {
+          leaderOptions.value.push(user);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('加载用户列表失败:', error);
+  }
+};
+
+// 加载所有团队
+const loadAllTeams = async () => {
+  try {
+    const response = await request.get('/admin/teams');
+    if (response.data.code === 200) {
+      const newTeams = response.data.data.map(item => ({
+        teamId: Number(item.teamId),
+        teamName: item.teamName
+      }));
+      // 合并数据，避免覆盖已存在的选项
+      newTeams.forEach(team => {
+        const exists = teamOptions.value.some(t => t.teamId === team.teamId);
+        if (!exists) {
+          teamOptions.value.push(team);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('加载团队列表失败:', error);
   }
 };
 
@@ -371,30 +404,48 @@ const saveProject = async () => {
     return;
   }
   
+  if (!projectForm.value.name) {
+    ElMessage.error('请输入项目名称');
+    return;
+  }
+  
   try {
-    // 构建保存数据
-    const saveData = {
-      title: projectForm.value.name,
-      product_id: projectForm.value.product,
-      startTime: projectForm.value.startDate,
-      finishTime: projectForm.value.endDate,
-      person: projectForm.value.leader,
-      developers: projectForm.value.developers,
-      testers: projectForm.value.testers,
-      remark: projectForm.value.remark,
-      accessControl: projectForm.value.accessControl
+    // 格式化日期为字符串
+    const formatDate = (date) => {
+      if (!date) return null;
+      if (date instanceof Date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      return date;
     };
     
-    // 调用后端API保存项目
+    const saveData = {
+      name: projectForm.value.name,
+      product_id: projectForm.value.product ? Number(projectForm.value.product) : null,
+      start_date: formatDate(projectForm.value.startDate),
+      end_date: formatDate(projectForm.value.endDate),
+      manager_id: projectForm.value.leader ? Number(projectForm.value.leader) : null,
+      team_id: projectForm.value.team ? Number(projectForm.value.team) : null,
+      description: projectForm.value.description,
+      progress: projectForm.value.progress,
+      status: projectForm.value.status
+    };
+    
+    console.log('保存数据:', saveData);
+    
     const response = await request.put(`/workbench/projects/${projectId}`, saveData);
     if (response.data.code === 200) {
       ElMessage.success('项目保存成功');
-      // 保存成功后返回
       goBack();
+    } else {
+      ElMessage.error('保存失败: ' + response.data.msg);
     }
   } catch (error) {
     console.error('保存项目失败:', error);
-    ElMessage.error('保存项目失败');
+    ElMessage.error('保存失败: ' + (error.response?.data?.msg || error.message || '未知错误'));
   }
 };
 
@@ -403,16 +454,11 @@ const goBack = () => {
   router.push('/itemSet/itemList');
 };
 
-// 页面加载时获取项目详情
 onMounted(async () => {
-  console.log('Page mounted, loading data...');
-  console.log('Route query:', route.query);
   await loadProducts();
+  await searchUsers('');
+  await searchTeams('');
   await fetchProjectDetail();
-  console.log('Data loading completed');
-  console.log('Product list:', productList.value);
-  console.log('Developer list:', developerList.value);
-  console.log('Tester list:', testerList.value);
 });
 </script>
 
@@ -436,6 +482,7 @@ onMounted(async () => {
   margin-top: 20px;
   justify-content: center;
   align-items: center;
+  gap: 20px;
 }
 .el-form-item {
   margin-bottom: 20px;

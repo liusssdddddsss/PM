@@ -2,7 +2,7 @@
   <div class="test-submit">
     <h3>创建测试</h3>
     <div class="form-container">
-      <el-form :model="testForm" label-width="120px">
+      <el-form :model="testForm" label-width="120px" :rules="formRules" ref="testFormRef">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="所属项目">
@@ -115,7 +115,7 @@
 
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="测试名称">
+            <el-form-item label="测试名称" prop="name">
               <el-input
                   v-model="testForm.name"
                   placeholder="请输入测试名称"
@@ -140,10 +140,19 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import request from '@/utils/request.js';
 import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
+
+const testFormRef = ref(null);
+
+const formRules = {
+  name: [
+    { required: true, message: '测试名称不能为空', trigger: 'blur' }
+  ]
+};
 
 // 测试表单数据
 const testForm = ref({
@@ -418,24 +427,41 @@ const loadUsers = async () => {
 
 // 保存测试
 const saveTest = async () => {
+  if (!testFormRef.value) return;
+  
+  try {
+    await testFormRef.value.validate();
+  } catch (error) {
+    console.error('表单验证失败:', error);
+    return;
+  }
+  
   try {
     // 验证必填字段
-    if (!testForm.value.name) {
-      alert('请输入测试名称');
-      return;
-    }
     if (!testForm.value.project) {
-      alert('请选择所属项目');
+      ElMessage.error('请选择所属项目');
       return;
     }
     if (!testForm.value.testLeader) {
-      alert('请选择测试负责人');
+      ElMessage.error('请选择测试负责人');
       return;
     }
     
     // 根据选中的项目获取产品ID
     const selectedProject = projectOptions.value.find(p => p.id === testForm.value.project);
     const productId = selectedProject ? selectedProject.product_id : null;
+    
+    // 获取当前用户ID作为创建者
+    const userStr = localStorage.getItem('user');
+    let creatorId = null;
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user.id) {
+        creatorId = user.id;
+      } else if (user.username) {
+        creatorId = user.username;
+      }
+    }
     
     const response = await request.post('/dashboard/test-cases', {
       name: testForm.value.name,
@@ -446,7 +472,8 @@ const saveTest = async () => {
       testType: testForm.value.testType,
       priority: testForm.value.priority,
       startDate: testForm.value.startDate,
-      endDate: testForm.value.endDate
+      endDate: testForm.value.endDate,
+      creatorId: creatorId // 传递创建者ID
     });
     
     console.log('保存测试响应:', response);
@@ -454,14 +481,14 @@ const saveTest = async () => {
     if (response.data.code === 200) {
       // 记录操作日志
       await recordOperationLog('创建了', '测试', null, testForm.value.name);
-      alert('创建测试成功');
+      ElMessage.success('测试单保存成功，状态为"待测试"');
       goBack();
     } else {
-      alert('创建测试失败: ' + response.data.message);
+      ElMessage.error('创建测试失败: ' + response.data.message);
     }
   } catch (error) {
     console.error('保存测试失败:', error);
-    alert('创建测试失败');
+    ElMessage.error('创建测试失败');
   }
 };
 

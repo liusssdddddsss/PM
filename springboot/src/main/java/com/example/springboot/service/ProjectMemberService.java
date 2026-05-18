@@ -19,4 +19,8 @@ public class ProjectMemberService {
     public List<ProjectMember> findByProjectId(Long projectId) {
         return projectMemberRepository.findByProjectId(projectId);
     }
+
+    public ProjectMember save(ProjectMember projectMember) {
+        return projectMemberRepository.save(projectMember);
+    }
 }

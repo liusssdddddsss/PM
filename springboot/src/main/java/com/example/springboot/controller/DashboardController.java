@@ -106,7 +106,16 @@ public class DashboardController {
                 User user = userService.findByUsername(username);
                 if (user != null) {
                     System.out.println("用户角色ID: " + user.getRole_id());
-                    if (user.getId() != null) {
+                    // 使用工号作为用户ID（与负责人ID保持一致）
+                    if (user.getUsername() != null) {
+                        try {
+                            currentUserId = Long.parseLong(user.getUsername());
+                        } catch (NumberFormatException e) {
+                            if (user.getId() != null) {
+                                currentUserId = user.getId().longValue();
+                            }
+                        }
+                    } else if (user.getId() != null) {
                         currentUserId = user.getId().longValue();
                     }
                     // 角色ID定义：1=超级管理员，2=产品经理，3=开发者，4=测试者
@@ -137,6 +146,7 @@ public class DashboardController {
                             userProjectIds.add(member.getProjectId());
                         }
                     }
+                    System.out.println("用户参与的项目列表（通过工号查找）: " + userProjectIds);
                 } catch (NumberFormatException e) {
                     // 用户名不是数字格式，尝试通过用户名查找用户
                     User user = userService.findByUsername(username);
@@ -148,6 +158,7 @@ public class DashboardController {
                                 userProjectIds.add(member.getProjectId());
                             }
                         }
+                        System.out.println("用户参与的项目列表（通过用户ID查找）: " + userProjectIds);
                     }
                 }
             }
@@ -342,65 +353,22 @@ public class DashboardController {
                         ", 名称=" + testSuite.getName() + 
                         ", 进度=" + testSuite.getProgress() + 
                         ", 负责人ID=" + testSuite.getAssignee_id() + 
+                        ", 创建者ID=" + testSuite.getCreator_id() +
                         ", 项目ID=" + testSuite.getProject_id());
                     
-                    // 如果指定了项目，只显示该项目的测试套件
-                    boolean projectMatch = true;
-                    if (targetProjectId != null) {
-                        if (testSuite.getProject_id() == null || !testSuite.getProject_id().equals(targetProjectId)) {
-                            projectMatch = false;
-                        }
-                    }
+                    // 状态为待测试（status=0或1，两者都是待测试状态）
+                    Integer status = testSuite.getStatus();
+                    boolean isPendingTest = status != null && (status.equals(0) || status.equals(1));
+                    System.out.println("测试套件 " + testSuite.getName() + " 的状态: " + status + ", 是否待测试: " + isPendingTest);
                     
-                    if (!projectMatch) {
-                        continue;
-                    }
-                    
-                    // 如果没有指定项目，只显示用户参与项目的测试套件
-                    if (targetProjectId == null && !userProjectIds.isEmpty() && testSuite.getProject_id() != null) {
-                        if (!userProjectIds.contains(testSuite.getProject_id())) {
-                            continue;
-                        }
-                    }
-                    
-                    // 只显示：负责人是当前用户，且进度为0（待测试）的测试单
-                    boolean isAssignedToUser = false;
-                    if (testSuite.getAssignee_id() != null && currentUserId != null) {
-                        if (testSuite.getAssignee_id().equals(currentUserId)) {
-                            isAssignedToUser = true;
-                        }
-                    } else if (currentUserId == null) {
-                        // 如果找不到用户，先显示所有（测试用）
-                        isAssignedToUser = true;
-                    }
-                    
-                    boolean progressIsZero = testSuite.getProgress() == null || testSuite.getProgress().equals(0);
-                    
-                    if (isAssignedToUser && progressIsZero && testSuite.getName() != null) {
+                    // 只要是待测试状态，且用户不是开发者，就显示（不限制项目ID和负责人）
+                    if (isPendingTest && testSuite.getName() != null) {
                         addPendingTest(testSuite, productService, pendingTests);
-                        System.out.println("添加待测试测试单: " + testSuite.getName() + ", 进度: " + testSuite.getProgress());
+                        System.out.println("添加待测试测试单: " + testSuite.getName() + ", 状态: " + testSuite.getStatus());
+                    } else {
+                        System.out.println("  -> 不符合条件（待测试: " + isPendingTest + "）");
                     }
                 }
-            }
-            
-            // 如果没有测试单数据，添加一些模拟数据
-            if (pendingTests.isEmpty()) {
-                System.out.println("没有找到待测试测试单，添加模拟数据");
-                Map<String, Object> test1 = new HashMap<>();
-                test1.put("name", "登录模块测试");
-                test1.put("priority", "紧急");
-                test1.put("product", "智慧教室系统");
-                test1.put("startDate", "2026-05-18");
-                test1.put("endDate", "2026-05-20");
-                pendingTests.add(test1);
-                
-                Map<String, Object> test2 = new HashMap<>();
-                test2.put("name", "用户管理测试");
-                test2.put("priority", "一般");
-                test2.put("product", "教务考试系统");
-                test2.put("startDate", "2026-05-19");
-                test2.put("endDate", "2026-05-22");
-                pendingTests.add(test2);
             }
             
             System.out.println("最终待测试的测试单数量: " + pendingTests.size());
@@ -1047,7 +1015,16 @@ public class DashboardController {
             if (username != null) {
                 User user = userService.findByUsername(username);
                 if (user != null) {
-                    if (user.getId() != null) {
+                    // 使用工号作为用户ID（与负责人ID保持一致）
+                    if (user.getUsername() != null) {
+                        try {
+                            currentUserId = Long.parseLong(user.getUsername());
+                        } catch (NumberFormatException e) {
+                            if (user.getId() != null) {
+                                currentUserId = user.getId().longValue();
+                            }
+                        }
+                    } else if (user.getId() != null) {
                         currentUserId = user.getId().longValue();
                     }
                     if (user.getRole_id() != null && user.getRole_id() == 1) {
@@ -1076,30 +1053,50 @@ public class DashboardController {
                 }
             }
             
+            System.out.println("========== 获取测试用例列表开始 ==========");
+            System.out.println("请求用户名: " + username);
+            System.out.println("当前用户ID: " + currentUserId);
+            System.out.println("用户角色 - 管理员: " + isAdmin + ", 产品经理: " + isProductManager + ", 开发者: " + isDeveloper + ", 测试者: " + isTester);
+            System.out.println("数据库中测试套件总数: " + testSuites.size());
+            
             for (TestSuite testSuite : testSuites) {
                 // 根据用户角色过滤测试用例
                 boolean shouldInclude = false;
                 
+                System.out.println("\n测试套件: " + testSuite.getName() + " (ID: " + testSuite.getId() + ")");
+                System.out.println("  负责人ID: " + testSuite.getAssignee_id());
+                System.out.println("  创建者ID: " + testSuite.getCreator_id());
+                System.out.println("  状态: " + testSuite.getStatus());
+                System.out.println("  进度: " + testSuite.getProgress());
+                
                 if (isAdmin) {
                     // 管理员可以看到所有
                     shouldInclude = true;
+                    System.out.println("  -> 管理员，包含");
                 } else if (isProductManager) {
                     // 产品经理可以看到团队成员负责的
                     if (teamMemberIds.isEmpty() || 
                         (testSuite.getAssignee_id() != null && teamMemberIds.contains(testSuite.getAssignee_id()))) {
                         shouldInclude = true;
                     }
+                    System.out.println("  -> 产品经理，团队成员ID列表: " + teamMemberIds + ", 是否包含: " + shouldInclude);
                 } else if (isTester) {
-                    // 测试者可以看到自己负责的
-                    if (currentUserId == null || 
-                        (testSuite.getAssignee_id() != null && testSuite.getAssignee_id().equals(currentUserId)) ||
-                        testSuite.getAssignee_id() == null) {
+                    // 测试者可以看到自己负责的 OR 自己创建的
+                    boolean isAssignedToMe = (testSuite.getAssignee_id() != null && testSuite.getAssignee_id().equals(currentUserId));
+                    boolean isCreatedByMe = (testSuite.getCreator_id() != null && testSuite.getCreator_id().equals(currentUserId));
+                    boolean hasNoAssignee = (testSuite.getAssignee_id() == null);
+                    
+                    if (currentUserId == null || isAssignedToMe || isCreatedByMe || hasNoAssignee) {
                         shouldInclude = true;
                     }
+                    System.out.println("  -> 测试者，负责人是我: " + isAssignedToMe + ", 创建者是我: " + isCreatedByMe + ", 无负责人: " + hasNoAssignee + ", 是否包含: " + shouldInclude);
                 } else if (!isDeveloper) {
                     // 其他角色可以看到所有（不包括开发者）
                     shouldInclude = true;
+                    System.out.println("  -> 其他角色，包含");
                 }
+                
+                System.out.println("  最终是否包含: " + shouldInclude);
                 
                 if (shouldInclude) {
                     Map<String, Object> testCase = new HashMap<>();
@@ -1127,6 +1124,9 @@ public class DashboardController {
                     testCases.add(testCase);
                 }
             }
+            
+            System.out.println("\n========== 获取测试用例列表结束 ==========");
+            System.out.println("返回的测试用例数量: " + testCases.size());
             
             return Result.success(testCases);
         } catch (Exception e) {
@@ -1281,14 +1281,30 @@ public class DashboardController {
                 testSuite.setAssignee_id(assigneeId);
             }
             
-            // 设置优先级
+            // 设置创建者ID
+            Object creatorObj = request.get("creatorId");
+            System.out.println("创建测试用例 - 接收到的creatorId参数: " + creatorObj + ", 类型: " + (creatorObj != null ? creatorObj.getClass().getName() : "null"));
+            if (creatorObj != null) {
+                Long creatorId = null;
+                if (creatorObj instanceof Number) {
+                    creatorId = ((Number) creatorObj).longValue();
+                } else {
+                    creatorId = Long.parseLong(creatorObj.toString());
+                }
+                testSuite.setCreator_id(creatorId);
+                System.out.println("设置创建者ID成功: " + creatorId);
+            } else {
+                System.out.println("创建者ID为空，未设置");
+            }
+            
+            // 设置优先级（与前端显示映射一致：1=紧急, 2=一般, 3=正常）
             String priority = (String) request.get("priority");
             if ("urgent".equals(priority)) {
-                testSuite.setPriority(2); // 紧急
+                testSuite.setPriority(1); // 紧急
             } else if ("normal".equals(priority)) {
                 testSuite.setPriority(3); // 正常
             } else if ("low".equals(priority)) {
-                testSuite.setPriority(4); // 一般
+                testSuite.setPriority(2); // 一般
             } else {
                 testSuite.setPriority(3); // 默认正常
             }

@@ -1,9 +1,11 @@
 package com.example.springboot.controller;
 
 import com.example.springboot.common.Result;
+import com.example.springboot.entity.Project;
 import com.example.springboot.entity.Team;
 import com.example.springboot.entity.TeamMember;
 import com.example.springboot.entity.User;
+import com.example.springboot.repository.ProjectRepository;
 import com.example.springboot.repository.TeamMemberRepository;
 import com.example.springboot.repository.TeamRepository;
 import com.example.springboot.repository.UserRepository;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin/teams")
@@ -23,6 +26,8 @@ public class AdminTeamController {
     private TeamMemberRepository teamMemberRepository;
     @Resource
     private UserRepository userRepository;
+    @Resource
+    private ProjectRepository projectRepository;
 
     @GetMapping
     public Result listTeams() {
@@ -102,73 +107,128 @@ public class AdminTeamController {
     }
 
     private Map<String, Object> toTeamListRow(Team t) {
+        System.out.println("========== 处理团队开始 ==========");
+        System.out.println("团队ID: " + t.getId());
+        System.out.println("团队名称: " + t.getName());
+        System.out.println("团队描述: " + t.getDescription());
+        
         Map<String, Object> row = new HashMap<>();
         row.put("teamId", t.getId() == null ? "" : String.valueOf(t.getId()));
         row.put("teamName", t.getName());
-        row.put("projectName", t.getDescription());
+        
+        // 从项目表中获取关联的项目名称
+        Long teamIdLong = t.getId() != null ? t.getId().longValue() : null;
+        System.out.println("查询团队ID为 " + teamIdLong + " 的项目...");
+        List<Project> projects = projectRepository.findByTeamId(teamIdLong);
+        System.out.println("找到的项目数量: " + projects.size());
+        for (Project p : projects) {
+            System.out.println("  - 项目ID: " + p.getId() + ", 项目名称: " + p.getName() + ", 团队ID: " + p.getTeam_id());
+        }
+        
+        String projectNames = projects.stream()
+                .map(Project::getName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("、"));
+        System.out.println("合并后的项目名称: " + projectNames);
+        row.put("projectName", projectNames.isEmpty() ? "" : projectNames);
 
         // 为每个团队添加真实的进度信息
         Integer progress = 0;
         String progressNode = "";
-        switch (t.getId()) {
-            case 1:
-                progress = 80;
-                progressNode = "测试阶段";
-                break;
-            case 2:
-                progress = 50;
-                progressNode = "开发阶段";
-                break;
-            default:
-                progress = 0;
-                progressNode = "初始化";
-                break;
+        if (!projects.isEmpty()) {
+            // 计算平均进度
+            int totalProgress = projects.stream().mapToInt(p -> p.getProgress() != null ? p.getProgress() : 0).sum();
+            progress = totalProgress / projects.size();
+            progressNode = "进行中";
+        } else {
+            progress = 0;
+            progressNode = "初始化";
         }
+        System.out.println("进度: " + progress + ", 阶段: " + progressNode);
         row.put("progress", progress);
         row.put("progressNode", progressNode);
 
         // 添加团队成员信息
-        row.put("members", toTeamMembers(t.getId()));
+        System.out.println("查询团队成员...");
+        List<Map<String, Object>> members = toTeamMembers(t.getId());
+        System.out.println("团队成员数量: " + members.size());
+        for (Map<String, Object> m : members) {
+            System.out.println("  - 成员: " + m.get("name") + ", 角色: " + m.get("role") + ", 职位: " + m.get("position"));
+        }
+        row.put("members", members);
 
         row.put("createTime", formatDate(t.getCreatedAt()));
         row.put("deadline", formatDate(t.getUpdatedAt()));
-        row.put("leader", resolveLeaderName(t.getId()));
+        String leader = resolveLeaderName(t.getId());
+        System.out.println("团队领导: " + leader);
+        row.put("leader", leader);
+        
+        System.out.println("========== 处理团队结束 ==========");
         return row;
     }
 
     private List<Map<String, Object>> toTeamMembers(Integer teamId) {
+        System.out.println("  ---------- toTeamMembers 开始, teamId: " + teamId + " ----------");
         List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
+        System.out.println("  找到的 TeamMember 数量: " + members.size());
+        
         List<Map<String, Object>> result = new ArrayList<>();
         for (TeamMember tm : members) {
-            if (tm.getUserId() == null) continue;
+            System.out.println("  处理 TeamMember: id=" + tm.getId() + ", userId=" + tm.getUserId() + ", roleInTeam=" + tm.getRoleInTeam());
+            
+            if (tm.getUserId() == null) {
+                System.out.println("  跳过: userId 为空");
+                continue;
+            }
+            
             // 转换 userId 为字符串，因为 User 实体的主键是 username（String 类型）
             String userIdStr = String.valueOf(tm.getUserId());
+            System.out.println("  用 userIdStr: " + userIdStr + " 查询 User...");
             User u = userRepository.findById(userIdStr).orElse(null);
+            System.out.println("  查询到的 User: " + (u != null ? "id=" + u.getId() + ", name=" + u.getName() + ", is_admin=" + u.getIs_admin() + ", role_id=" + u.getRole_id() : "null"));
+            
             Map<String, Object> m = new HashMap<>();
             m.put("name", u != null ? u.getName() : "");
             m.put("role", tm.getRoleInTeam());
             m.put("position", mapPosition(u != null ? u.getIs_admin() : null, u != null ? u.getRole_id() : null));
+            System.out.println("  添加到结果: name=" + m.get("name") + ", role=" + m.get("role") + ", position=" + m.get("position"));
             result.add(m);
         }
+        
+        System.out.println("  ---------- toTeamMembers 结束, 返回 " + result.size() + " 个成员 ----------");
         return result;
     }
 
     private String resolveLeaderName(Integer teamId) {
+        System.out.println("  ---------- resolveLeaderName 开始, teamId: " + teamId + " ----------");
         List<TeamMember> members = teamMemberRepository.findByTeamId(teamId);
+        System.out.println("  团队成员数量: " + (members != null ? members.size() : 0));
+        
         if (members == null || members.isEmpty()) {
+            System.out.println("  没有团队成员，返回空字符串");
             return "";
         }
+        
         // 优先：项目经理/leader
         TeamMember leader = members.stream()
                 .filter(m -> m.getRoleInTeam() != null && (m.getRoleInTeam().contains("leader") || m.getRoleInTeam().contains("项目经理")))
                 .findFirst()
                 .orElse(members.get(0));
+        System.out.println("  选中的 leader: userId=" + leader.getUserId() + ", roleInTeam=" + leader.getRoleInTeam());
 
-        if (leader.getUserId() == null) return "";
+        if (leader.getUserId() == null) {
+            System.out.println("  leader 的 userId 为空，返回空字符串");
+            return "";
+        }
+        
         // 转换 userId 为字符串，因为 User 实体的主键是 username（String 类型）
         String userIdStr = String.valueOf(leader.getUserId());
+        System.out.println("  查询 User, userIdStr: " + userIdStr);
         User u = userRepository.findById(userIdStr).orElse(null);
-        return u != null ? u.getName() : "";
+        String result = u != null ? u.getName() : "";
+        System.out.println("  resolveLeaderName 结果: " + result);
+        System.out.println("  ---------- resolveLeaderName 结束 ----------");
+        return result;
     }
 
     private static String formatDate(Date d) {

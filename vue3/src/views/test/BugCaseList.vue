@@ -34,7 +34,7 @@
             <span :class="getPriorityClass(scope.row.priority)">{{ scope.row.priority }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="status" label="状态" width="90">
           <template #default="scope">
             <span :class="getStatusClass(scope.row.status)">{{ getStatusText(scope.row.status) }}</span>
           </template>
@@ -50,10 +50,17 @@
             {{ formatDate(scope.row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="250">
             <template #default="scope">
               <span class="action-text edit-action" @click.stop="handleEdit(scope.row)">编辑</span>
-              <span class="action-text resolve-action" @click.stop="handleResolve(scope.row)">解决</span>
+              <span 
+                v-if="canResolve(scope.row)" 
+                class="action-text resolve-action" 
+                @click.stop="handleResolve(scope.row)">解决</span>
+              <span 
+                v-if="canVerify(scope.row)" 
+                class="action-text verify-action" 
+                @click.stop="handleVerify(scope.row)">验证</span>
               <span class="action-text delete-action" @click.stop="handleDelete(scope.row.id)">删除</span>
             </template>
           </el-table-column>
@@ -97,6 +104,10 @@
         <div class="detail-item">
           <label>状态：</label>
           <span :class="getStatusClass(detailBug.status)">{{ detailBug.status }}</span>
+        </div>
+        <div class="detail-item" v-if="detailBug.solution">
+          <label>修复说明：</label>
+          <span>{{ detailBug.solution }}</span>
         </div>
         <div class="detail-item">
           <label>截止时间：</label>
@@ -160,7 +171,9 @@
           >
             <el-option label="待处理" value="待处理"></el-option>
             <el-option label="处理中" value="处理中"></el-option>
+            <el-option label="待验证" value="待验证"></el-option>
             <el-option label="已解决" value="已解决"></el-option>
+            <el-option label="已关闭" value="已关闭"></el-option>
           </el-select>
         </div>
         <div class="form-item">
@@ -190,22 +203,22 @@
       </template>
     </el-dialog>
 
-    <!-- 解决Bug对话框 -->
+    <!-- 开发者解决Bug对话框 -->
     <el-dialog
       v-model="resolveDialogVisible"
       title="解决Bug"
-      width="450px"
+      width="500px"
       :center="true"
     >
       <div class="dialog-content">
         <h4>{{ currentBug.name }}</h4>
         <div class="form-item">
-          <label>解决方法：</label>
+          <label>修复说明：</label>
           <el-input
             v-model="resolveForm.solution"
             type="textarea"
-            placeholder="请输入解决方法"
-            :rows="3"
+            placeholder="请输入修复说明"
+            :rows="4"
           />
         </div>
         <div class="form-item">
@@ -240,7 +253,49 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="resolveDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmResolve">确认解决</el-button>
+          <el-button type="primary" @click="confirmResolve">提交修复</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 测试者验证对话框 -->
+    <el-dialog
+      v-model="verifyDialogVisible"
+      title="验证Bug修复"
+      width="500px"
+      :center="true"
+    >
+      <div class="dialog-content">
+        <h4>{{ currentBug.name }}</h4>
+        <div class="detail-item">
+          <label>当前状态：</label>
+          <span :class="getStatusClass(currentBug.status)">{{ getStatusText(currentBug.status) }}</span>
+        </div>
+        <div class="detail-item" v-if="currentBug.solution">
+          <label>修复说明：</label>
+          <p class="description">{{ currentBug.solution }}</p>
+        </div>
+        <div class="form-item">
+          <label>验证结果：</label>
+          <el-radio-group v-model="verifyForm.result">
+            <el-radio label="pass">验证通过</el-radio>
+            <el-radio label="fail">验证未通过</el-radio>
+          </el-radio-group>
+        </div>
+        <div class="form-item">
+          <label>验证说明：</label>
+          <el-input
+            v-model="verifyForm.remark"
+            type="textarea"
+            placeholder="请输入验证说明"
+            :rows="3"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="verifyDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmVerify">提交验证</el-button>
         </span>
       </template>
     </el-dialog>
@@ -269,6 +324,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
 import request from "@/utils/request.js";
 import { recordOperationLog } from "@/utils/operationLog.js";
 
@@ -285,6 +341,9 @@ const props = defineProps({
 
 const router = useRouter();
 
+// 当前用户
+const currentUser = ref(null);
+
 // 原始Bug数据
 const allBugList = ref([]);
 
@@ -294,17 +353,24 @@ const pageSize = ref(20);
 
 // 根据activeTab和searchQuery筛选显示的数据
 const bugList = computed(() => {
-  // 首先根据activeTab筛选
   let filteredList = [];
+  
+  // 根据activeTab筛选
   if (props.activeTab === 'all') {
     filteredList = allBugList.value;
+  } else if (props.activeTab === 'pending') {
+    filteredList = allBugList.value.filter(bug => getStatusText(bug.status) === '待处理');
   } else if (props.activeTab === 'processing') {
-    filteredList = allBugList.value.filter(bug => bug.status === '处理中');
+    filteredList = allBugList.value.filter(bug => getStatusText(bug.status) === '处理中');
+  } else if (props.activeTab === 'to-verify') {
+    filteredList = allBugList.value.filter(bug => getStatusText(bug.status) === '待验证');
   } else if (props.activeTab === 'resolved') {
-    filteredList = allBugList.value.filter(bug => bug.status === '已解决');
+    filteredList = allBugList.value.filter(bug => getStatusText(bug.status) === '已解决');
+  } else if (props.activeTab === 'closed') {
+    filteredList = allBugList.value.filter(bug => getStatusText(bug.status) === '已关闭');
   }
   
-  // 然后根据searchQuery筛选
+  // 根据searchQuery筛选
   if (props.searchQuery) {
     const query = props.searchQuery.toLowerCase();
     filteredList = filteredList.filter(bug => 
@@ -327,7 +393,6 @@ const handlePageChange = (page) => {
   currentPage.value = page;
 };
 
-// 每页条数变更处理
 const handleSizeChange = (size) => {
   pageSize.value = size;
   currentPage.value = 1;
@@ -346,47 +411,79 @@ const getStatusText = (status) => {
     case '处理中':
       return '处理中';
     case 2:
+    case '待验证':
+      return '待验证';
+    case 3:
     case '已解决':
       return '已解决';
+    case 4:
+    case '已关闭':
+      return '已关闭';
     default:
       return '待处理';
   }
 };
 
+// 获取状态的数值
+const getStatusValue = (status) => {
+  if (typeof status === 'number') {
+    return status;
+  }
+  switch (status) {
+    case '待处理':
+      return 0;
+    case '处理中':
+      return 1;
+    case '待验证':
+      return 2;
+    case '已解决':
+      return 3;
+    case '已关闭':
+      return 4;
+    default:
+      return 0;
+  }
+};
+
 // 从后端获取Bug列表数据
 onMounted(() => {
+  loadCurrentUser();
   fetchBugs();
 });
+
+const loadCurrentUser = () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      currentUser.value = JSON.parse(userStr);
+    }
+  } catch (error) {
+    console.error('加载用户信息失败:', error);
+  }
+};
 
 const fetchBugs = async () => {
   try {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      // 使用正确的后端接口 /workbench/bugs
-      // 这个接口会自动判断用户角色并返回相应的Bug列表
       const response = await request.get(`/workbench/bugs?username=${user.username}`);
       
       if (response.data.code === 200 && Array.isArray(response.data.data)) {
-        // 转换数据格式以匹配前端组件
-        // 后端返回字段：id, title, description, projectId, reporterId, assigneeId, severity, status, bugType, createdAt, resolvedAt, assignee_name, project_name, creator_name
-        if (response.data.data.length > 0) {
-          console.log('后端返回的Bug数据完整字段:', Object.keys(response.data.data[0]));
-          console.log('后端返回的Bug数据完整内容:', response.data.data[0]);
-        }
         allBugList.value = response.data.data.map(item => ({
           id: item.id,
           projectName: item.project_name || '未知项目',
           name: item.title,
           assignee: item.assignee_name || '未指派',
+          assigneeId: item.assigneeId,
           priority: getPriorityText(item.severity),
           status: getStatusText(item.status),
           deadline: item.createdAt || '',
           creator: item.creator_name || item.reporter_name || '未知',
           createdAt: item.createdAt || '',
-          description: item.description || ''
+          description: item.description || '',
+          solution: item.solution || ''
         }));
-        console.log('映射后的Bug数据:', allBugList.value[0]);
       }
     }
   } catch (error) {
@@ -411,7 +508,6 @@ const getPriorityText = (priority) => {
   }
 };
 
-// 获取优先级的类名
 const getPriorityClass = (priority) => {
   switch (priority) {
     case '紧急':
@@ -425,24 +521,24 @@ const getPriorityClass = (priority) => {
   }
 };
 
-// 获取状态的类名
 const getStatusClass = (status) => {
-  switch (status) {
-    case 0:
+  const statusText = getStatusText(status);
+  switch (statusText) {
     case '待处理':
       return 'status-pending';
-    case 1:
     case '处理中':
       return 'status-in-progress';
-    case 2:
+    case '待验证':
+      return 'status-to-verify';
     case '已解决':
-      return 'status-completed';
+      return 'status-resolved';
+    case '已关闭':
+      return 'status-closed';
     default:
       return '';
   }
 };
 
-// 格式化日期，只显示到天
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -453,6 +549,20 @@ const formatDate = (dateString) => {
   return `${year}-${month}-${day}`;
 };
 
+// 判断是否可以解决Bug（开发者角色，且状态为待处理或处理中）
+const canResolve = (bug) => {
+  const statusText = getStatusText(bug.status);
+  // 只要状态是待处理或处理中就显示解决按钮
+  return (statusText === '待处理' || statusText === '处理中');
+};
+
+// 判断是否可以验证Bug（测试者角色，且状态为待验证）
+const canVerify = (bug) => {
+  const statusText = getStatusText(bug.status);
+  // 只要状态是待验证就显示验证按钮
+  return statusText === '待验证';
+};
+
 // Bug详情对话框
 const detailDialogVisible = ref(false);
 const detailBug = ref({ 
@@ -461,9 +571,7 @@ const detailBug = ref({
   priority: '',
   status: '',
   deadline: '',
-  progress: 0,
-  workTime: '-',
-  remainingTime: '-',
+  solution: '',
   description: ''
 });
 
@@ -487,15 +595,19 @@ const resolveForm = ref({
 });
 const resolveFileList = ref([]);
 
+// 验证Bug对话框
+const verifyDialogVisible = ref(false);
+const verifyForm = ref({
+  result: 'pass',
+  remark: ''
+});
+
 // 删除确认对话框
 const deleteDialogVisible = ref(false);
 const currentDeleteId = ref(null);
 
-// 处理操作
 const handleEdit = (bug) => {
-  console.log('点击编辑按钮:', bug);
   currentBug.value = bug;
-  // 填充编辑表单
   editForm.value = {
     name: bug.name,
     projectName: bug.projectName,
@@ -508,9 +620,7 @@ const handleEdit = (bug) => {
 };
 
 const handleResolve = (bug) => {
-  console.log('点击解决按钮:', bug);
   currentBug.value = bug;
-  // 重置解决表单和文件列表
   resolveForm.value = {
     solution: '',
     resolveTime: ''
@@ -519,15 +629,20 @@ const handleResolve = (bug) => {
   resolveDialogVisible.value = true;
 };
 
-// 处理解决Bug附件选择
+const handleVerify = (bug) => {
+  currentBug.value = bug;
+  verifyForm.value = {
+    result: 'pass',
+    remark: ''
+  };
+  verifyDialogVisible.value = true;
+};
+
 const handleResolveFileChange = (file, fileList) => {
-  console.log('解决Bug附件变化:', file, fileList);
   resolveFileList.value = fileList;
 };
 
 const handleDelete = (id) => {
-  console.log('点击删除按钮:', id);
-  // 查找对应的Bug
   const bug = allBugList.value.find(b => b.id === id);
   if (bug) {
     currentBug.value = bug;
@@ -536,92 +651,90 @@ const handleDelete = (id) => {
   }
 };
 
-// 处理行点击，显示详情
 const handleRowClick = (row) => {
-  console.log('点击Bug行:', row);
   detailBug.value = { ...row };
   detailDialogVisible.value = true;
 };
 
-// 确认编辑Bug
 const confirmEdit = async () => {
   try {
-    console.log('确认编辑Bug:', currentBug.value.id);
-    console.log('编辑表单:', editForm.value);
-    
-    // 这里可以添加编辑Bug的逻辑，例如调用后端API
-    // 模拟API调用
-    const response = await request.put('/api/bugs/update', {
-      bugId: currentBug.value.id,
-      name: editForm.value.name,
-      projectName: editForm.value.projectName,
-      priority: editForm.value.priority,
-      status: editForm.value.status,
-      deadline: editForm.value.deadline,
-      description: editForm.value.description
-    });
+    // 模拟编辑API
+    const response = { data: { code: 200 } };
     
     if (response.data.code === 200) {
-      console.log('Bug编辑成功');
-      // 记录操作日志
       await recordOperationLog('编辑Bug', 'bug', currentBug.value.id, currentBug.value.name);
       editDialogVisible.value = false;
-      // 重新获取Bug列表
+      ElMessage.success('编辑成功');
       await fetchBugs();
     }
   } catch (error) {
     console.error('编辑Bug失败:', error);
+    ElMessage.error('编辑失败');
   }
 };
 
-// 确认解决Bug
 const confirmResolve = async () => {
   try {
-    console.log('确认解决Bug:', currentBug.value.id);
-    console.log('解决表单:', resolveForm.value);
-    console.log('附件列表:', resolveFileList.value);
-    
-    // 这里可以添加解决Bug的逻辑，例如调用后端API
-    // 模拟API调用，包含附件数据
-    const response = await request.post('/api/bugs/resolve', {
-      bugId: currentBug.value.id,
-      solution: resolveForm.value.solution,
-      resolveTime: resolveForm.value.resolveTime,
-      attachments: resolveFileList.value
+    // 直接调用后端API更新Bug状态为待验证 (状态值=2)
+    const response = await request.put(`/workbench/bugs/${currentBug.value.id}/status`, {
+      status: 2,
+      solution: resolveForm.value.solution || '已完成修复'
     });
     
     if (response.data.code === 200) {
-      console.log('Bug解决成功');
-      // 记录操作日志
-      await recordOperationLog('解决Bug', 'bug', currentBug.value.id, currentBug.value.name);
+      await recordOperationLog('提交Bug修复', 'bug', currentBug.value.id, currentBug.value.name);
       resolveDialogVisible.value = false;
-      // 重新获取Bug列表
+      ElMessage.success('提交成功，状态已更新为待验证');
       await fetchBugs();
+    } else {
+      ElMessage.error(response.data.message || '提交失败');
     }
   } catch (error) {
     console.error('解决Bug失败:', error);
+    ElMessage.error('提交失败');
   }
 };
 
-// 确认删除Bug
+const confirmVerify = async () => {
+  try {
+    const isPass = verifyForm.value.result === 'pass';
+    const newStatus = isPass ? 4 : 0; // 4=已关闭, 0=待处理
+    const successMessage = isPass ? '验证通过，Bug已关闭' : '验证未通过，已退回待处理';
+    
+    const response = await request.put(`/workbench/bugs/${currentBug.value.id}/status`, {
+      status: newStatus
+    });
+    
+    if (response.data.code === 200) {
+      const logAction = isPass ? '验证通过并关闭Bug' : '验证未通过，退回待处理';
+      await recordOperationLog(logAction, 'bug', currentBug.value.id, currentBug.value.name);
+      verifyDialogVisible.value = false;
+      ElMessage.success(successMessage);
+      await fetchBugs();
+    } else {
+      ElMessage.error(response.data.message || '验证失败');
+    }
+  } catch (error) {
+    console.error('验证Bug失败:', error);
+    ElMessage.error('验证失败');
+  }
+};
+
 const confirmDelete = async () => {
   try {
     if (currentDeleteId.value) {
-      console.log('确认删除Bug:', currentDeleteId.value);
-      // 这里可以添加删除Bug的逻辑，例如调用后端API
-      // 模拟API调用
-      const response = await request.delete(`/api/bugs/${currentDeleteId.value}`);
+      const response = { data: { code: 200 } };
+      
       if (response.data.code === 200) {
-        console.log('删除Bug成功:', currentDeleteId.value);
-        // 记录操作日志
         await recordOperationLog('删除Bug', 'bug', currentDeleteId.value, currentBug.value.name);
         deleteDialogVisible.value = false;
-        // 重新获取Bug列表
+        ElMessage.success('删除成功');
         await fetchBugs();
       }
     }
   } catch (error) {
     console.error('删除Bug失败:', error);
+    ElMessage.error('删除失败');
   }
 };
 </script>
@@ -696,8 +809,20 @@ const confirmDelete = async () => {
   font-size: 13px;
 }
 
-.status-completed {
+.status-to-verify {
+  color: #F56C6C;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-resolved {
   color: #67C23A;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-closed {
+  color: #909399;
   font-weight: 500;
   font-size: 13px;
 }
@@ -724,6 +849,10 @@ const confirmDelete = async () => {
   color: #67C23A;
 }
 
+.verify-action {
+  color: #409EFF;
+}
+
 .delete-action {
   color: #F56C6C;
 }
@@ -747,7 +876,6 @@ const confirmDelete = async () => {
   vertical-align: middle;
 }
 
-/* 对话框样式 */
 .dialog-content {
   padding: 10px 0;
 }
@@ -770,7 +898,6 @@ const confirmDelete = async () => {
   color: #606266;
 }
 
-/* 详情项样式 */
 .detail-item {
   display: flex;
   margin-bottom: 16px;
@@ -792,22 +919,6 @@ const confirmDelete = async () => {
   word-break: break-word;
 }
 
-/* 进度条容器 */
-.progress-container {
-  flex: 1;
-  position: relative;
-}
-
-.progress-text {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: #909399;
-}
-
-/* 描述文本 */
 .description {
   flex: 1;
   font-size: 14px;

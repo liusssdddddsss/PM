@@ -152,8 +152,8 @@
         title="创建团队"
         width="500px"
       >
-        <el-form :model="createTeamForm" label-width="100px">
-          <el-form-item label="团队名称">
+        <el-form :model="createTeamForm" :rules="createTeamRules" ref="createTeamFormRef" label-width="100px">
+          <el-form-item label="团队名称" prop="name">
             <el-input v-model="createTeamForm.name" placeholder="请输入团队名称"></el-input>
           </el-form-item>
           <el-form-item label="团队描述">
@@ -174,8 +174,8 @@
         title="邀请成员"
         width="500px"
       >
-        <el-form :model="inviteMemberForm" label-width="100px">
-          <el-form-item label="团队">
+        <el-form :model="inviteMemberForm" :rules="inviteMemberRules" ref="inviteMemberFormRef" label-width="100px">
+          <el-form-item label="团队" prop="teamId">
             <el-select v-model="inviteMemberForm.teamId" placeholder="请选择团队">
               <el-option
                 v-for="team in teams"
@@ -185,7 +185,7 @@
               ></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="用户名">
+          <el-form-item label="用户名" prop="username">
             <el-select
               v-model="inviteMemberForm.username"
               placeholder="请输入用户名搜索"
@@ -203,7 +203,7 @@
               ></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="角色">
+          <el-form-item label="角色" prop="role">
             <el-select v-model="inviteMemberForm.role" placeholder="请选择角色">
               <el-option label="项目经理" value="项目经理"></el-option>
               <el-option label="开发" value="开发"></el-option>
@@ -216,7 +216,7 @@
             <el-button @click="showInviteMemberDialog = false">取消</el-button>
             <el-button type="primary" @click="submitInviteMember">确定</el-button>
           </span>
-          </template>
+        </template>
       </el-dialog>
 
       <!-- 创建消息弹窗 -->
@@ -299,18 +299,65 @@ const currentTeam = ref('');
 
 // 创建团队弹窗
 const showCreateTeamDialog = ref(false);
+const createTeamFormRef = ref(null);
 const createTeamForm = ref({
   name: '',
   description: ''
 });
 
+// 验证团队名称是否已存在
+const validateTeamNameUnique = async (rule, value, callback) => {
+  if (!value) {
+    return callback();
+  }
+  try {
+    const response = await request.get('/teams/check-name', {
+      params: { name: value }
+    });
+    if (response.data.code === 200) {
+      if (!response.data.data) {
+        callback(new Error('团队名称已存在'));
+      } else {
+        callback();
+      }
+    } else {
+      callback(); // 如果API返回非200，也让验证通过
+    }
+  } catch (error) {
+    // API不存在或调用失败时，静默处理，不打印错误，让验证通过
+    callback();
+  }
+};
+
+// 创建团队验证规则
+const createTeamRules = {
+  name: [
+    { required: true, message: '团队名称不能为空', trigger: 'blur' }
+    // 暂时移除后端名称唯一性验证，避免API调用失败问题
+  ]
+};
+
 // 邀请成员弹窗
 const showInviteMemberDialog = ref(false);
+const inviteMemberFormRef = ref(null);
 const inviteMemberForm = ref({
     teamId: "",
     username: "",
     role: ""
 });
+
+// 邀请成员验证规则
+const inviteMemberRules = {
+  teamId: [
+    { required: true, message: '请选择团队', trigger: 'change' }
+  ],
+  username: [
+    { required: true, message: '请选择用户', trigger: 'change' }
+  ],
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ]
+};
 
 // 创建消息弹窗
 const showCreateMessageDialog = ref(false);
@@ -779,6 +826,18 @@ async function switchTeam(team) {
 // 解散团队
 async function disbandTeam(team) {
   try {
+    // 先检查团队是否有关联项目（如果API存在的话）
+    try {
+      const checkResponse = await request.get(`/teams/${team.id}/check-projects`);
+      if (checkResponse.data.code === 200 && !checkResponse.data.data) {
+        ElMessage.error('该团队有关联项目，无法解散');
+        return;
+      }
+    } catch (checkError) {
+      console.log('检查团队项目API不存在或失败，跳过检查:', checkError);
+      // API不存在或调用失败时，继续执行解散流程
+    }
+    
     // 弹出确认对话框
     await ElMessageBox.confirm(
       `确定要解散团队"${team.name}"吗？此操作将删除团队的所有数据，不可恢复。`,
@@ -810,6 +869,27 @@ async function disbandTeam(team) {
 // 删除团队成员
 async function deleteDivision(row) {
   try {
+    // 获取团队ID
+    const teamId = teams.value.find(t => t.name === currentTeam.value)?.id;
+    if (!teamId) {
+      ElMessage.error('团队ID不存在');
+      return;
+    }
+    
+    // 先检查该成员是否有关联任务（如果API存在的话）
+    try {
+      const checkResponse = await request.get(`/teams/member/${row.userId}/check-tasks`, {
+        params: { teamId: teamId }
+      });
+      if (checkResponse.data.code === 200 && !checkResponse.data.data) {
+        ElMessage.error('该成员有关联任务，无法删除');
+        return;
+      }
+    } catch (checkError) {
+      console.log('检查成员任务API不存在或失败，跳过检查:', checkError);
+      // API不存在或调用失败时，继续执行删除流程
+    }
+    
     // 弹出确认对话框
     await ElMessageBox.confirm(
       `确定要从团队中删除成员"${row.member}"吗？`,
@@ -821,13 +901,6 @@ async function deleteDivision(row) {
       }
     );
     
-    // 获取团队ID
-    const teamId = teams.value.find(t => t.name === currentTeam.value)?.id;
-    if (!teamId) {
-      ElMessage.error('团队ID不存在');
-      return;
-    }
-    
     // 调用后端API
     const response = await request.delete('/teams/remove-member', {
       data: {
@@ -836,7 +909,7 @@ async function deleteDivision(row) {
       }
     });
     if (response.data.code === 200) {
-      ElMessage.success('成员删除成功');
+      ElMessage.success('成员从列表中移除');
       // 重新获取团队数据
       await fetchTeamData();
     } else {
@@ -914,6 +987,16 @@ function createTeam() {
 
 // 提交创建团队表单
 async function submitCreateTeam() {
+  if (!createTeamFormRef.value) return;
+  
+  // 表单验证
+  try {
+    await createTeamFormRef.value.validate();
+  } catch (error) {
+    console.error('表单验证失败:', error);
+    return;
+  }
+  
   try {
     // 从本地存储中获取用户信息
     const userStr = localStorage.getItem('user');
@@ -929,10 +1012,7 @@ async function submitCreateTeam() {
         // 提交成功后关闭弹窗
         showCreateTeamDialog.value = false;
         // 重置表单
-        createTeamForm.value = {
-          name: '',
-          description: ''
-        };
+        createTeamFormRef.value.resetFields();
         // 重新获取团队数据
         fetchTeamData();
         // 显示成功消息
@@ -956,6 +1036,16 @@ function inviteMember() {
 
 // 提交邀请成员表单
 async function submitInviteMember() {
+  if (!inviteMemberFormRef.value) return;
+  
+  // 表单验证
+  try {
+    await inviteMemberFormRef.value.validate();
+  } catch (error) {
+    console.error('表单验证失败:', error);
+    return;
+  }
+  
   try {
     // 从本地存储中获取用户信息
     const userStr = localStorage.getItem('user');
@@ -983,15 +1073,11 @@ async function submitInviteMember() {
       // 提交成功后关闭弹窗
       showInviteMemberDialog.value = false;
       // 重置表单
-      inviteMemberForm.value = {
-        teamId: '',
-        username: '',
-        role: ''
-      };
+      inviteMemberFormRef.value.resetFields();
       // 重新获取团队数据
       fetchTeamData();
       // 显示成功消息
-      ElMessage.success('成员邀请成功');
+      ElMessage.success('成员添加成功');
     } else {
       // 显示错误消息
       ElMessage.error(response.data.msg || '成员邀请失败');

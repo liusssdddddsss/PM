@@ -75,6 +75,8 @@ public class WorkbenchController {
     FeedbackService feedbackService;
     @Resource
     TestSuiteService testSuiteService;
+    @Resource
+    TeamMemberService teamMemberService;
 
     @Operation(summary = "获取审批列表", description = "返回审批列表数据")
     @GetMapping("/approvals")
@@ -309,20 +311,26 @@ public class WorkbenchController {
                     taskMap.put("solution", ""); // 默认值
                     
                     // 获取项目名称
-                    String projectName = "未知项目";
-                    if (task.getProjectId() != null) {
+                    String projectName = "未关联项目";
+                    Integer taskProjectId = task.getProjectId();
+                    System.out.println("任务[" + task.getTitle() + "]的项目ID(Integer): " + (taskProjectId != null ? taskProjectId : "null"));
+                    
+                    if (taskProjectId != null) {
                         try {
-                            System.out.println("获取项目信息，ID: " + task.getProjectId());
-                            var project = projectService.findById(task.getProjectId().longValue());
+                            Long projectIdLong = taskProjectId.longValue();
+                            System.out.println("转换为Long类型: " + projectIdLong);
+                            var project = projectService.findById(projectIdLong);
                             if (project.isPresent()) {
                                 projectName = project.get().getName();
-                                System.out.println("项目名称: " + projectName);
+                                System.out.println("找到项目，名称: " + projectName + "，项目ID: " + project.get().getId());
                             } else {
-                                System.out.println("未找到项目信息");
+                                System.out.println("WARNING: 项目ID=" + taskProjectId + " 在数据库中不存在");
                             }
                         } catch (Exception e) {
-                            System.out.println("获取项目名称失败: " + e.getMessage());
+                            System.out.println("ERROR: 获取项目信息失败，项目ID=" + taskProjectId + ", 错误: " + e.getMessage());
                         }
+                    } else {
+                        System.out.println("任务[" + task.getTitle() + "]没有关联项目(project_id为空)");
                     }
                     taskMap.put("project_name", projectName);
                     
@@ -413,6 +421,7 @@ public class WorkbenchController {
             
             // 获取用户参与的项目ID列表（如果是产品经理）
             boolean isProductManager = false;
+            Set<Long> teamMemberUserIds = new HashSet<>(); // 同团队成员的用户ID集合
             
             if (username != null && !username.isEmpty()) {
                 try {
@@ -432,6 +441,36 @@ public class WorkbenchController {
                             }
                         } else {
                             System.out.println("用户角色id为null，需要筛选Bug");
+                        }
+                        
+                        // 获取当前用户所在的所有团队，并收集同团队成员的用户ID
+                        if (!isProductManager) {
+                            try {
+                                Long currentUserId = Long.parseLong(username);
+                                System.out.println("当前用户ID: " + currentUserId);
+                                
+                                // 查找用户所在的所有团队
+                                List<com.example.springboot.entity.TeamMember> userTeamMembers = teamMemberService.findByUserId(currentUserId);
+                                System.out.println("用户所在的团队数量: " + userTeamMembers.size());
+                                
+                                for (com.example.springboot.entity.TeamMember tm : userTeamMembers) {
+                                    System.out.println("团队ID: " + tm.getTeamId());
+                                    // 查找该团队的所有成员
+                                    List<com.example.springboot.entity.TeamMember> allTeamMembers = teamMemberService.findByTeamId(tm.getTeamId());
+                                    System.out.println("团队成员数量: " + allTeamMembers.size());
+                                    
+                                    for (com.example.springboot.entity.TeamMember member : allTeamMembers) {
+                                        if (member.getUserId() != null) {
+                                            teamMemberUserIds.add(member.getUserId());
+                                            System.out.println("添加团队成员ID: " + member.getUserId());
+                                        }
+                                    }
+                                }
+                                
+                                System.out.println("同团队成员ID集合: " + teamMemberUserIds);
+                            } catch (NumberFormatException e) {
+                                System.out.println("用户名无法转换为数字: " + username);
+                            }
                         }
                     } else {
                         System.out.println("未找到用户信息");
@@ -458,22 +497,38 @@ public class WorkbenchController {
                             // 产品经理可以看到所有Bug
                             System.out.println("用户是产品经理，显示Bug: " + bug.getTitle());
                         } else {
-                            // 非产品经理，返回指派给当前用户的Bug或当前用户创建的Bug
-                            System.out.println("用户不是产品经理，需要检查是否指派给自己或自己创建的");
-                            System.out.println("Bug的负责人ID: " + bug.getAssigneeId() + "，Bug的创建人ID: " + bug.getReporterId() + "，当前用户ID: " + userId);
+                            // 非产品经理，显示同团队内的Bug
+                            System.out.println("用户不是产品经理，检查是否是同团队内的Bug");
                             
-                            boolean isAssignedToMe = bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId);
-                            boolean isCreatedByMe = bug.getReporterId() != null && bug.getReporterId().equals(userId);
+                            boolean shouldShow = false;
+                            String reason = "";
                             
-                            if (!isAssignedToMe && !isCreatedByMe) {
-                                System.out.println("跳过Bug: " + bug.getTitle() + "，既不是指派给自己也不是自己创建的");
-                                continue; // 跳过既不是指派给自己也不是自己创建的Bug
+                            // 检查是否指派给自己
+                            if (bug.getAssigneeId() != null && bug.getAssigneeId().equals(userId)) {
+                                shouldShow = true;
+                                reason = "指派给自己";
+                            }
+                            // 检查是否是自己创建的
+                            else if (bug.getReporterId() != null && bug.getReporterId().equals(userId)) {
+                                shouldShow = true;
+                                reason = "自己创建的";
+                            }
+                            // 检查是否指派给同团队成员
+                            else if (bug.getAssigneeId() != null && teamMemberUserIds.contains(bug.getAssigneeId())) {
+                                shouldShow = true;
+                                reason = "指派给同团队成员";
+                            }
+                            // 检查是否是同团队成员创建的
+                            else if (bug.getReporterId() != null && teamMemberUserIds.contains(bug.getReporterId())) {
+                                shouldShow = true;
+                                reason = "同团队成员创建的";
+                            }
+                            
+                            if (!shouldShow) {
+                                System.out.println("跳过Bug: " + bug.getTitle() + "，不属于同团队内的Bug");
+                                continue;
                             } else {
-                                if (isAssignedToMe) {
-                                    System.out.println("保留Bug: " + bug.getTitle() + "，负责人ID匹配");
-                                } else {
-                                    System.out.println("保留Bug: " + bug.getTitle() + "，创建人ID匹配");
-                                }
+                                System.out.println("保留Bug: " + bug.getTitle() + "，原因: " + reason);
                             }
                         }
                     } catch (NumberFormatException e) {
@@ -585,27 +640,40 @@ public class WorkbenchController {
     @GetMapping("/projects")
     public Result getProjects(@RequestParam String username) {
         try {
-            System.out.println("获取项目列表请求，用户名: " + username);
+            System.out.println("========== 获取项目列表开始 ==========");
+            System.out.println("请求用户名: " + username);
             
             List<Map<String, Object>> projectList = new ArrayList<>();
             
             // 获取用户ID
+            System.out.println("1. 查找用户信息...");
             var user = userService.findById(username);
             if (user.isPresent()) {
                 Long userId = Long.parseLong(user.get().getUsername());
-                System.out.println("用户ID: " + userId);
+                System.out.println("   用户ID: " + userId);
+                System.out.println("   用户姓名: " + user.get().getName());
                 
                 // 根据用户ID查询参与的项目成员记录（所有角色都只显示自己参与的项目）
+                System.out.println("2. 查询项目成员记录...");
                 List<com.example.springboot.entity.ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
-                System.out.println("获取到的项目成员记录数量: " + projectMembers.size());
+                System.out.println("   获取到的项目成员记录数量: " + projectMembers.size());
+                
+                if (projectMembers.isEmpty()) {
+                    System.out.println("   警告: 用户在项目成员表中没有记录");
+                    System.out.println("   请检查：1) 用户是否被添加到项目成员表 2) 项目创建时是否自动添加负责人");
+                }
                 
                 // 遍历项目成员记录，获取对应的项目信息
                 for (com.example.springboot.entity.ProjectMember member : projectMembers) {
                     Long projectId = member.getProjectId();
-                    System.out.println("项目ID: " + projectId);
+                    System.out.println("3. 处理项目成员记录:");
+                    System.out.println("   项目ID: " + projectId);
+                    System.out.println("   用户ID: " + member.getUserId());
+                    System.out.println("   角色类型: " + member.getRoleType());
+                    
                     if (projectId != null) {
                         var project = projectService.findById(projectId);
-                        System.out.println("获取到的项目信息: " + (project.isPresent() ? project.get().getName() : "不存在"));
+                        System.out.println("   获取到的项目信息: " + (project.isPresent() ? project.get().getName() : "不存在"));
                         if (project.isPresent()) {
                             Project p = project.get();
                             Map<String, Object> projectMap = new HashMap<>();
@@ -619,14 +687,23 @@ public class WorkbenchController {
                             projectMap.put("finishTime", p.getEnd_date());
                             projectMap.put("degree", p.getProgress() != null ? p.getProgress() : 0);
                             projectMap.put("status", p.getStatus() != null ? p.getStatus() : 0);
-                            System.out.println("项目进度: " + (p.getProgress() != null ? p.getProgress() : 0));
+                            System.out.println("   项目进度: " + (p.getProgress() != null ? p.getProgress() : 0));
+                            System.out.println("   项目状态: " + (p.getStatus() != null ? p.getStatus() : 0));
                             projectList.add(projectMap);
+                        } else {
+                            System.out.println("   警告: 项目不存在，项目ID: " + projectId);
                         }
+                    } else {
+                        System.out.println("   警告: 项目ID为空");
                     }
                 }
+            } else {
+                System.out.println("警告: 未找到用户信息，用户名: " + username);
             }
             
-            System.out.println("返回的项目列表数量: " + projectList.size());
+            System.out.println("4. 返回结果:");
+            System.out.println("   返回的项目列表数量: " + projectList.size());
+            System.out.println("========== 获取项目列表结束 ==========");
             return Result.success(projectList);
         } catch (Exception e) {
             e.printStackTrace();
@@ -872,54 +949,73 @@ public class WorkbenchController {
             System.out.println("请求用户名: " + username);
             
             // 获取所有项目
+            System.out.println("1. 查询所有项目...");
             Iterable<Project> allProjects = projectService.findAll();
-            List<Map<String, Object>> projectList = new ArrayList<>();
+            List<Project> projectList = new ArrayList<>();
+            allProjects.forEach(projectList::add);
+            System.out.println("   数据库中总项目数量: " + projectList.size());
+            
+            List<Map<String, Object>> resultList = new ArrayList<>();
             
             // 如果没有提供用户名，返回所有项目
             if (username == null || username.isEmpty()) {
-                System.out.println("没有提供用户名，返回所有项目");
-                for (Project project : allProjects) {
+                System.out.println("2. 没有提供用户名，返回所有项目");
+                for (Project project : projectList) {
                     Map<String, Object> projectMap = buildProjectMap(project);
-                    projectList.add(projectMap);
+                    resultList.add(projectMap);
                 }
-                return Result.success(projectList);
+                System.out.println("3. 返回结果: 项目数量=" + resultList.size());
+                System.out.println("========== 获取所有项目列表结束 ==========");
+                return Result.success(resultList);
             }
             
             // 获取用户ID（用户名字段）
-            Long userUsername = null;
+            System.out.println("2. 解析用户ID...");
+            Long userId = null;
             try {
-                userUsername = Long.parseLong(username);
+                userId = Long.parseLong(username);
+                System.out.println("   用户ID: " + userId);
             } catch (NumberFormatException e) {
-                System.out.println("用户名字段格式错误: " + username);
-                return Result.success(projectList);
+                System.out.println("   用户名字段格式错误: " + username);
+                System.out.println("3. 返回结果: 项目数量=0");
+                System.out.println("========== 获取所有项目列表结束 ==========");
+                return Result.success(resultList);
             }
             
             // 从项目成员表中查找用户参与的项目ID
-            List<Long> userProjectIds = new ArrayList<>();
-            List<ProjectMember> projectMembers = projectMemberService.findByUserId(userUsername);
-            System.out.println("用户 " + username + " 在项目成员表中的记录数量: " + projectMembers.size());
+            System.out.println("3. 查询项目成员表...");
+            List<ProjectMember> projectMembers = projectMemberService.findByUserId(userId);
+            System.out.println("   用户 " + username + " 在项目成员表中的记录数量: " + projectMembers.size());
             
+            if (projectMembers.isEmpty()) {
+                System.out.println("   警告: 用户在项目成员表中没有记录");
+                System.out.println("   原因可能：1) 用户未被添加到任何项目 2) 项目创建时未自动添加负责人");
+            }
+            
+            List<Long> userProjectIds = new ArrayList<>();
             for (ProjectMember member : projectMembers) {
                 if (member.getProjectId() != null) {
                     userProjectIds.add(member.getProjectId().longValue());
-                    System.out.println("  找到项目ID: " + member.getProjectId());
+                    System.out.println("   找到项目ID: " + member.getProjectId() + ", 用户角色: " + member.getRoleType());
                 }
             }
             
             // 遍历所有项目，只返回用户参与的项目
-            for (Project project : allProjects) {
+            System.out.println("4. 匹配用户有权限的项目...");
+            for (Project project : projectList) {
                 boolean hasAccess = userProjectIds.contains(project.getId());
-                System.out.println("检查项目: " + project.getName() + " (ID: " + project.getId() + "), 有权限: " + hasAccess);
+                System.out.println("   项目: " + project.getName() + " (ID: " + project.getId() + "), 有权限: " + hasAccess);
                 
                 if (hasAccess) {
                     Map<String, Object> projectMap = buildProjectMap(project);
-                    projectList.add(projectMap);
+                    resultList.add(projectMap);
                 }
             }
             
-            System.out.println("最终返回的项目列表数量: " + projectList.size());
+            System.out.println("5. 返回结果:");
+            System.out.println("   返回的项目列表数量: " + resultList.size());
             System.out.println("========== 获取所有项目列表结束 ==========");
-            return Result.success(projectList);
+            return Result.success(resultList);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取项目列表失败: " + e.getMessage());
@@ -1279,6 +1375,11 @@ public class WorkbenchController {
                 projectMap.put("person", managerName);
                 
                 projectMap.put("accessControl", project.getAccess_control());
+                projectMap.put("team_id", project.getTeam_id());
+                projectMap.put("description", project.getDescription());
+                projectMap.put("progress", project.getProgress());
+                projectMap.put("status", project.getStatus());
+                projectMap.put("manager_id", project.getManagerId());
                 
                 return Result.success(projectMap);
             } else {
@@ -1387,9 +1488,6 @@ public class WorkbenchController {
             return Result.error("获取产品列表失败: " + e.getMessage());
         }
     }
-
-    @Resource
-    TeamMemberService teamMemberService;
 
     @Operation(summary = "获取项目成员列表", description = "根据项目ID获取项目成员列表")
     @GetMapping("/projects/{id}/members")
@@ -1503,11 +1601,147 @@ public class WorkbenchController {
                 project.setDescription((String) projectData.get("description"));
             }
             
-            projectService.save(project);
+            // 保存项目
+            Project savedProject = projectService.save(project);
+            
+            System.out.println("项目已保存，项目ID: " + savedProject.getId());
+            
+            // 如果选择了团队，将团队成员都添加到项目成员表中
+            if (savedProject.getTeam_id() != null) {
+                Integer teamId = savedProject.getTeam_id().intValue();
+                List<TeamMember> teamMembers = teamMemberService.findByTeamId(teamId);
+                
+                for (TeamMember teamMember : teamMembers) {
+                    // 如果是负责人，跳过（后面单独处理，使用用户角色ID）
+                    if (savedProject.getManagerId() != null && teamMember.getUserId().equals(savedProject.getManagerId())) {
+                        continue;
+                    }
+                    
+                    ProjectMember member = new ProjectMember();
+                    member.setProjectId(savedProject.getId());
+                    member.setUserId(teamMember.getUserId());
+                    member.setRoleType(teamMember.getRoleInTeam());
+                    member.setTeamId(teamId);
+                    projectMemberService.save(member);
+                }
+            }
+            
+            // 添加负责人到项目成员表，使用用户的角色ID
+            if (savedProject.getManagerId() != null) {
+                ProjectMember managerMember = new ProjectMember();
+                managerMember.setProjectId(savedProject.getId());
+                managerMember.setUserId(savedProject.getManagerId());
+                
+                var managerUser = userService.findById(savedProject.getManagerId().toString());
+                if (managerUser.isPresent()) {
+                    Long roleId = managerUser.get().getRole_id();
+                    managerMember.setRoleType(roleId != null ? roleId.toString() : "2");
+                } else {
+                    managerMember.setRoleType("2");
+                }
+                
+                if (savedProject.getTeam_id() != null) {
+                    managerMember.setTeamId(savedProject.getTeam_id().intValue());
+                }
+                
+                projectMemberService.save(managerMember);
+            }
+            
             return Result.success("新增项目成功");
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("新增项目失败: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "更新项目", description = "更新项目信息")
+    @PutMapping("/projects/{id}")
+    public Result updateProject(@PathVariable Long id, @RequestBody Map<String, Object> projectData) {
+        try {
+            Optional<Project> projectOpt = projectService.findById(id);
+            if (!projectOpt.isPresent()) {
+                return Result.error("项目不存在");
+            }
+            
+            Project project = projectOpt.get();
+            
+            if (projectData.containsKey("name")) {
+                project.setName((String) projectData.get("name"));
+            }
+            if (projectData.containsKey("product_id")) {
+                Object productIdObj = projectData.get("product_id");
+                if (productIdObj instanceof Integer) {
+                    project.setProduct_id(((Integer) productIdObj).longValue());
+                } else if (productIdObj instanceof Long) {
+                    project.setProduct_id((Long) productIdObj);
+                }
+            }
+            if (projectData.containsKey("start_date")) {
+                Object startDateObj = projectData.get("start_date");
+                if (startDateObj instanceof String) {
+                    project.setStart_date(java.sql.Date.valueOf((String) startDateObj));
+                } else if (startDateObj instanceof java.util.Date) {
+                    project.setStart_date(new java.sql.Date(((java.util.Date) startDateObj).getTime()));
+                }
+            }
+            if (projectData.containsKey("end_date")) {
+                Object endDateObj = projectData.get("end_date");
+                if (endDateObj instanceof String) {
+                    project.setEnd_date(java.sql.Date.valueOf((String) endDateObj));
+                } else if (endDateObj instanceof java.util.Date) {
+                    project.setEnd_date(new java.sql.Date(((java.util.Date) endDateObj).getTime()));
+                }
+            }
+            if (projectData.containsKey("manager_id")) {
+                Object managerIdObj = projectData.get("manager_id");
+                if (managerIdObj instanceof Integer) {
+                    project.setManagerId(((Integer) managerIdObj).longValue());
+                } else if (managerIdObj instanceof Long) {
+                    project.setManagerId((Long) managerIdObj);
+                }
+            }
+            if (projectData.containsKey("team_id")) {
+                Object teamIdObj = projectData.get("team_id");
+                if (teamIdObj instanceof Integer) {
+                    project.setTeam_id(((Integer) teamIdObj).longValue());
+                } else if (teamIdObj instanceof Long) {
+                    project.setTeam_id((Long) teamIdObj);
+                }
+            }
+            if (projectData.containsKey("description")) {
+                project.setDescription((String) projectData.get("description"));
+            }
+            if (projectData.containsKey("access_control")) {
+                Object accessControlObj = projectData.get("access_control");
+                if (accessControlObj instanceof String) {
+                    String accessControlStr = (String) accessControlObj;
+                    project.setAccess_control("private".equals(accessControlStr) ? 1 : 0);
+                } else if (accessControlObj instanceof Integer) {
+                    project.setAccess_control((Integer) accessControlObj);
+                }
+            }
+            if (projectData.containsKey("progress")) {
+                Object progressObj = projectData.get("progress");
+                if (progressObj instanceof Integer) {
+                    project.setProgress((Integer) progressObj);
+                } else if (progressObj instanceof String) {
+                    project.setProgress(Integer.parseInt((String) progressObj));
+                }
+            }
+            if (projectData.containsKey("status")) {
+                Object statusObj = projectData.get("status");
+                if (statusObj instanceof Integer) {
+                    project.setStatus((Integer) statusObj);
+                } else if (statusObj instanceof String) {
+                    project.setStatus(Integer.parseInt((String) statusObj));
+                }
+            }
+            
+            projectService.save(project);
+            return Result.success("更新项目成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新项目失败: " + e.getMessage());
         }
     }
 
@@ -1795,6 +2029,50 @@ public class WorkbenchController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("记录操作日志失败: " + e.getMessage());
+        }
+    }
+    
+    @Operation(summary = "更新Bug状态", description = "更新Bug状态和修复说明")
+    @PutMapping("/bugs/{id}/status")
+    public Result updateBugStatus(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        try {
+            System.out.println("更新Bug状态请求, ID: " + id + ", body: " + body);
+            
+            // 先查找Bug是否存在
+            List<Bug> bugs = bugService.findall();
+            Bug existingBug = null;
+            for (Bug b : bugs) {
+                if (b.getId().equals(id)) {
+                    existingBug = b;
+                    break;
+                }
+            }
+            
+            if (existingBug == null) {
+                return Result.error("Bug不存在");
+            }
+            
+            // 更新状态
+            if (body.containsKey("status")) {
+                Object statusObj = body.get("status");
+                if (statusObj instanceof Integer) {
+                    existingBug.setStatus((Integer) statusObj);
+                }
+            }
+            
+            // 更新修复说明
+            if (body.containsKey("solution")) {
+                existingBug.setSolution((String) body.get("solution"));
+            }
+            
+            // 保存更新
+            Bug updatedBug = bugService.save(existingBug);
+            System.out.println("更新Bug状态成功: " + updatedBug);
+            
+            return Result.success("Bug状态更新成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("更新Bug状态失败: " + e.getMessage());
         }
     }
 }

@@ -337,7 +337,7 @@
             <div class="project-detail-meta">
               <span class="start-time">开始时间: {{ formatDate(currentProjectDetail.startTime) || '—' }}</span>
               <span class="finish-time">预计完成时间: {{ formatDate(currentProjectDetail.finishTime) || '—' }}</span>
-              <span class="remaining-time">剩余时间: {{ currentProjectDetail.remainingTime || '—' }}</span>
+<!--              <span class="remaining-time">剩余时间: {{ currentProjectDetail.remainingTime || '—' }}</span>-->
             </div>
           </div>
           

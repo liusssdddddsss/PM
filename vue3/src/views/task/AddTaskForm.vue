@@ -419,15 +419,8 @@ const saveTask = async () => {
     const taskData = {
       title: taskForm.value.name,
       description: taskForm.value.description,
-      projectId: taskForm.value.project === '智慧教室' ? 1 : 
-                 taskForm.value.project === '电子班牌' ? 2 : 
-                 taskForm.value.project === '数据大屏' ? 3 : null,
-      assigneeId: taskForm.value.assignee === '张三' ? 202201 : 
-                 taskForm.value.assignee === '李四' ? 202202 : 
-                 taskForm.value.assignee === '王五' ? 202203 : 
-                 taskForm.value.assignee === '赵六' ? 202204 : 
-                 taskForm.value.assignee === '孙七' ? 202205 : 
-                 taskForm.value.assignee === '周八' ? 202206 : null,
+      projectId: taskForm.value.project ? parseInt(taskForm.value.project) : null,
+      assigneeId: taskForm.value.assignee ? parseInt(taskForm.value.assignee) : null,
       creatorId: parseInt(user.username),
       startDate: taskForm.value.startDate,
       dueDate: taskForm.value.endDate,

@@ -2,7 +2,7 @@
   <div class="bug-submit">
     <h3>创建Bug</h3>
     <div class="form-container">
-      <el-form :model="bugForm" label-width="120px">
+      <el-form :model="bugForm" label-width="120px" :rules="formRules" ref="bugFormRef">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="所属项目">
@@ -77,7 +77,7 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="严重程度">
+            <el-form-item label="严重程度" prop="severity">
               <el-select v-model="bugForm.severity" placeholder="请选择" style="width: 100%">
                 <el-option label="紧急" value="1" />
                 <el-option label="一般" value="2" />
@@ -124,7 +124,7 @@
 
         <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="Bug标题">
+            <el-form-item label="Bug标题" prop="title">
               <el-input v-model="bugForm.title" placeholder="请输入Bug标题" />
             </el-form-item>
           </el-col>
@@ -186,10 +186,22 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import request from '@/utils/request.js';
 import { recordOperationLog } from '@/utils/operationLog.js';
 
 const router = useRouter();
+
+const bugFormRef = ref(null);
+
+const formRules = {
+  title: [
+    { required: true, message: 'Bug标题不能为空', trigger: 'blur' }
+  ],
+  severity: [
+    { required: true, message: '严重程度必须选择', trigger: 'change' }
+  ]
+};
 
 const bugForm = ref({
   title: '',
@@ -468,17 +480,22 @@ const loadUsers = async () => {
 };
 
 const saveBug = async () => {
+  if (!bugFormRef.value) return;
+  
   try {
-    if (!bugForm.value.title) {
-      alert('请输入Bug标题');
-      return;
-    }
+    await bugFormRef.value.validate();
+  } catch (error) {
+    console.error('表单验证失败:', error);
+    return;
+  }
+  
+  try {
     if (!bugForm.value.projectId) {
-      alert('请选择所属项目');
+      ElMessage.error('请选择所属项目');
       return;
     }
     if (!bugForm.value.assigneeId) {
-      alert('请选择负责人');
+      ElMessage.error('请选择负责人');
       return;
     }
     
@@ -503,14 +520,14 @@ const saveBug = async () => {
       console.log('Bug创建成功');
       // 记录操作日志
       await recordOperationLog('创建了', 'Bug', null, bugForm.value.title);
-      alert('Bug创建成功');
+      ElMessage.success('Bug创建成功');
       goBack();
     } else {
-      alert('创建Bug失败: ' + response.data.message);
+      ElMessage.error('创建Bug失败: ' + response.data.message);
     }
   } catch (error) {
     console.error('保存Bug失败:', error);
-    alert('创建Bug失败');
+    ElMessage.error('创建Bug失败');
   }
 };
 

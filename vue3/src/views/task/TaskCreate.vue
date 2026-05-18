@@ -4,8 +4,8 @@
     <div class="form-container">
       <div class="form-content">
         <div class="left-section">
-          <el-form :model="taskForm" label-width="120px">
-            <el-form-item label="任务名称">
+          <el-form :model="taskForm" label-width="120px" :rules="formRules" ref="taskFormRef">
+            <el-form-item label="任务名称" prop="name">
               <el-input v-model="taskForm.name" placeholder="请输入任务名称" />
             </el-form-item>
             
@@ -27,7 +27,7 @@
         
         <div class="right-section">
           <h3>基本信息</h3>
-          <el-form :model="taskForm" label-width="120px">
+          <el-form :model="taskForm" label-width="120px" :rules="formRules">
             <el-form-item label="所属项目">
               <el-select
                 v-model="taskForm.project"
@@ -87,7 +87,7 @@
               </el-select>
             </el-form-item>
             
-            <el-form-item label="指派给">
+            <el-form-item label="指派给" prop="assignee">
               <el-select
                 v-model="taskForm.assignee"
                 placeholder="请选择负责人"
@@ -124,7 +124,7 @@
               />
             </el-form-item>
             
-            <el-form-item label="预计完成日期">
+            <el-form-item label="预计完成日期" prop="endDate">
               <el-date-picker
                 v-model="taskForm.endDate"
                 type="date"
@@ -166,9 +166,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import request from '@/utils/request.js';
 
 const router = useRouter();
+
+// 表单引用
+const taskFormRef = ref(null);
 
 // 任务表单数据
 const taskForm = ref({
@@ -195,6 +199,36 @@ const assigneeOptions = ref([]);
 const projectLoading = ref(false);
 const iterationLoading = ref(false);
 const userLoading = ref(false);
+
+// 表单验证规则
+const formRules = {
+  name: [
+    { required: true, message: '任务标题不能为空', trigger: 'blur' }
+  ],
+  assignee: [
+    { required: true, message: '请指定任务负责人', trigger: 'change' }
+  ],
+  endDate: [
+    { validator: validateEndDate, trigger: 'change' }
+  ]
+};
+
+// 验证截止日期不能早于当前日期
+const validateEndDate = (rule, value, callback) => {
+  if (!value) {
+    return callback();
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(value);
+  endDate.setHours(0, 0, 0, 0);
+  
+  if (endDate < today) {
+    callback(new Error('截止日期不得早于当前日期'));
+  } else {
+    callback();
+  }
+};
 
 // 团队成员ID集合
 const teamMemberIds = ref(new Set());
@@ -425,6 +459,16 @@ const loadUsers = async () => {
 
 // 提交表单
 const submitForm = async () => {
+  if (!taskFormRef.value) return;
+  
+  // 表单验证
+  try {
+    await taskFormRef.value.validate();
+  } catch (error) {
+    console.error('表单验证失败:', error);
+    return;
+  }
+  
   try {
     console.log('提交任务:', taskForm.value);
     
@@ -460,15 +504,15 @@ const submitForm = async () => {
     
     if (response.data.code === 200) {
       console.log('创建任务成功');
-      alert('创建任务成功');
+      ElMessage.success('任务创建成功，状态为"待开始"');
       router.push('/task/meJoinTasks');
     } else {
       console.error('创建任务失败:', response.data.msg);
-      alert('创建任务失败: ' + response.data.msg);
+      ElMessage.error(response.data.msg || '创建任务失败');
     }
   } catch (error) {
     console.error('提交任务失败:', error);
-    alert('创建任务失败');
+    ElMessage.error('创建任务失败');
   }
 };
 

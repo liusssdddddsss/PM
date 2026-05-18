@@ -1,152 +1,72 @@
 package com.example.springboot.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.util.Date;
 
 @Entity
-@Table(name = "feedbacks")
+@Table(name = "feedback")
+@Data
 public class Feedback {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "title", length = 255)
     private String title;
+
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-    private Integer priority; // 优先级 1-5
-    private String status; // 待处理、处理中、待关闭、待评审
-    private String type; // 反馈类型
+
+    @Column(name = "priority")
+    private Integer priority;
+
+    @Column(name = "status", length = 50)
+    private String status;
+
+    @Column(name = "type", length = 50)
+    private String type;
+
     @Column(name = "assignee_id")
-    private Long assigneeId; // 指派给
-    private String solution; // 处理方案
+    private Long assigneeId;
+
+    @Column(name = "solution", columnDefinition = "TEXT")
+    private String solution;
+
     @Column(name = "creator_id")
-    private Long creatorId; // 创建者ID
+    private Long creatorId;
+
+    @Column(name = "project_id")
+    private Long projectId;
+
     @Column(name = "created_at")
-    private Date createdAt; // 创建时间
+    private Date createdAt;
+
     @Column(name = "updated_at")
-    private Date updatedAt; // 最后操作时间
+    private Date updatedAt;
+
     @Column(name = "related_objects")
-    private Integer relatedObjects; // 关联对象数量
-    private String reporter; // 反馈者
-    private String cc; // 抄送给
+    private Integer relatedObjects;
+
+    @Column(name = "reporter", length = 255)
+    private String reporter;
+
+    @Column(name = "cc", length = 500)
+    private String cc;
+
     @Column(name = "product_id")
-    private Long productId; // 所属产品ID
+    private Long productId;
 
-    public Long getId() {
-        return id;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = new Date();
+        updatedAt = new Date();
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Integer getPriority() {
-        return priority;
-    }
-
-    public void setPriority(Integer priority) {
-        this.priority = priority;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Long getAssigneeId() {
-        return assigneeId;
-    }
-
-    public void setAssigneeId(Long assigneeId) {
-        this.assigneeId = assigneeId;
-    }
-
-    public String getSolution() {
-        return solution;
-    }
-
-    public void setSolution(String solution) {
-        this.solution = solution;
-    }
-
-    public Long getCreatorId() {
-        return creatorId;
-    }
-
-    public void setCreatorId(Long creatorId) {
-        this.creatorId = creatorId;
-    }
-
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Date getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Integer getRelatedObjects() {
-        return relatedObjects;
-    }
-
-    public void setRelatedObjects(Integer relatedObjects) {
-        this.relatedObjects = relatedObjects;
-    }
-
-    public String getReporter() {
-        return reporter;
-    }
-
-    public void setReporter(String reporter) {
-        this.reporter = reporter;
-    }
-
-    public String getCc() {
-        return cc;
-    }
-
-    public void setCc(String cc) {
-        this.cc = cc;
-    }
-
-    public Long getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Long productId) {
-        this.productId = productId;
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = new Date();
     }
 }

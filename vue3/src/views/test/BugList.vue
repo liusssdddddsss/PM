@@ -43,7 +43,8 @@ import request from "@/utils/request.js";
 const tabs = ref([
   {name:'全部',type:'all'},
   {name:'处理中',type:'processing'},
-  {name:'已解决',type:'resolved'}
+  {name:'待验证',type:'to-verify'},
+  {name:'已关闭',type:'closed'}
 ]);
 
 const activeTab = ref('all');
@@ -53,11 +54,9 @@ const router = useRouter();
 const route = useRoute();
 
 const goToBugSubmit =()=>{
-  // 跳转到Bug提交页面
   router.push('/test/createBug');
 };
 
-// 组件加载时检查URL参数中的search或assignee
 onMounted(() => {
   const search = route.query.search;
   const assignee = route.query.assignee;
@@ -65,9 +64,6 @@ onMounted(() => {
   if (search) {
     searchQuery.value = search;
   }
-  
-  // 如果URL参数中有assignee，这里可以添加相应的逻辑
-  // 由于BugCaseList已经只显示当前用户的Bug，所以不需要切换标签
 });
 </script>
 
